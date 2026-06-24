@@ -1,0 +1,79 @@
+# BAL.AI OS Documentation Root
+
+> **Prime Reference** for all AI-assisted development across this repository. 
+> **Rule**: When beginning a task, ALWAYS reference this file to locate the specific protocols (Guidelines), identities (Personas), and operational blueprints (Workflows) needed.
+
+---
+
+## 🗂️ Registry & Discovery (Entry Points)
+*Primary indexes for rapid tool and protocol retrieval.*
+
+- [Guideline Index](../guidelines/guideline_index.md): Central directory for all cognitive and engineering guidelines.
+- [Kairou Skill Index](../../skills/skill_index_kairou.md): Architect's toolbelt (Planning, Architecture, DB).
+- [Sparks Skill Index](../../skills/skill_index_sparks.md): Designer's toolbelt (UI/UX, Frontend, Vibe).
+- [Arc Skill Index](../../skills/skill_index_arc.md): Tutor's toolbelt (Learning, Teaching, DSA).
+- [Janitor Skill Index](../../skills/skill_index_janitor.md): QA Specialist's toolbelt (Debugging, Refactoring, Tests).
+- [Secondary Skill Index](../../skills/skill_index_secondary.md): Niche domain tools (Game Dev, Mobile, SEO).
+
+---
+
+## 🏛️ Constitutional Foundation
+*Core engineering laws, user preferences, and system constraints.*
+
+- [CONSTITUTION.md](../../personas/CONSTITUTION.md): The prime directive and universal engineering standards.
+- [Learning Profile](learning_profile.md): AI-optimized guide for personal learning style and analogies.
+- [Global Instructions](../../global_instructions.md): System-wide agent constraints and terminal blindness workarounds.
+
+---
+
+## 👤 Universal Personas (Agentic Identities)
+*Specialized persona protocols. ALWAYS load the corresponding Skill Index when assuming an identity.*
+
+- [Kairou (Architect)](../../personas/all-around-architect_Kairou.md) -> Use `skill_index_kairou.md`
+- [Sparks (Designer)](../../personas/frontend-specialist_Sparks.md) -> Use `skill_index_sparks.md`
+- [Arc (Project Mentor)](../../personas/project-mentor_Arc.md) -> Use `skill_index_arc.md`
+- [Janitor (QA Expert)](../../personas/sanitation-engineer.md) -> Use `skill_index_janitor.md`
+- [Backend/DB Specialist](../../personas/backend-specialist.md)
+- [DevOps/Security](../../personas/devops-engineer.md)
+
+---
+
+## 🕵️ Cognitive Guidelines (Methodologies)
+*Detailed protocols found in `.agent/protocols/guidelines/`. Use `guideline_index.md` for routing.*
+
+- **Context & Memory**: [01-Token Hygiene](../guidelines/01-token-hygiene.md) | [02-Hybrid Conservation](../guidelines/02-hybrid-token-conservation.md) | [03-Context Engineering](../guidelines/03-context-engineering.md) | [05-Canonical Memory](../guidelines/05-canonical-memory.md)
+- **Logic & Auditing**: [09-Premise Audit](../guidelines/09-premise-audit.md) | [11-First Principles](../guidelines/11-first-principles-deconstruction.md) | [13-Graph of Thoughts](../guidelines/13-graph-of-thoughts.md) | [04-Anti-Hallucination](../guidelines/04-anti-hallucination.md)
+- **Flow & Vibe**: [19-Vibe Coding](../guidelines/19-vibe-coding.md) | [18-Vibe Engineering](../guidelines/18-vibe-engineering.md) | [17-Cyborg Methodology](../guidelines/17-cyborg-methodology.md)
+- **Architecture**: [07-Modular Architecture](../guidelines/07-modular-architecture.md) | [08-Forward-Only Design](../guidelines/08-forward-only-architecture.md)
+
+---
+
+## 🛠️ Operational Workflows (Slash Commands)
+*Workflow blueprints found in `.agent/workflows/`.*
+
+- **Strategic**: [Plan](../../workflows/plan.md) | [Roadmap](../../workflows/roadmap.md) | [Orchestrate](../../workflows/orchestrate.md) | [Deep-Dive](../../workflows/deep-dive.md)
+- **Tactical**: [Breakdown-Phase](../../workflows/breakdown-phase.md) | [Atomize](../../workflows/atomize.md) | [Optimize](../../workflows/optimize.md) | [Commit](../../workflows/commit.md)
+- **Diagnostic**: [Vibe-Check](../../workflows/vibe-check.md) | [Analyze-System](../../workflows/analyze-system.md) | [Validate](../../workflows/validate.md) | [Debug-Error](../../workflows/debug-error.md)
+- **Exploratory**: [Search](../../workflows/search.md) | [Learn](../../workflows/learn.md) | [Onboard](../../workflows/onboard.md) | [Pattern-Match](../../workflows/pattern-match.md)
+
+---
+
+## 🔬 Research & Meta-Analysis
+*High-level research and theoretical frameworks.*
+
+- [Agentic Workflows Meta](../../../research/agentic-workflows-meta.md): Meta-research on agentic workflow patterns and semantic engineering.
+
+---
+
+## ⚙️ Core Scripts & Automation
+*Operational scripts for system maintenance and persona management.*
+
+- [boot_agent.py](../../../boot_agent.py): Project initialization and boot sequence.
+- [session_manager.py](../../personas/scripts/session_manager.py): Token tracking and context persistence.
+- [sync_protocols.py](../../../scripts/sync_protocols.py): Protocol synchronization across workspaces.
+- [verify_all.py](../../personas/scripts/verify_all.py): Complete health check of personas and workflows.
+
+---
+
+> [!TIP]
+> **Path Resolution**: All paths listed here are relative to the project root. If a resource cannot be found, use the `find_by_name` tool to locate it within the `.agent/` directory.
