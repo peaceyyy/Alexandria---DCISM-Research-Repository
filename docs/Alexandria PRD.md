@@ -53,27 +53,28 @@ A student should be able to locate a relevant thesis within 30 seconds and under
 
 These decisions are accepted for the MVP and should guide database, backend, and frontend implementation.
 
-| Area | Accepted decision | Product impact |
-| --- | --- | --- |
-| Database | Supabase/PostgreSQL | The data layer uses hosted PostgreSQL with migrations, indexes, and Row Level Security policies |
-| Authentication | Supabase Auth | Admin, Contributor, and Student visitor identity uses hosted authentication |
-| PDF storage | Supabase Storage | Uploaded thesis PDFs are stored in object storage; metadata is stored in the database |
-| PDF fallback | External PDF/repository links only if storage is blocked | Links remain available as a fallback, not the primary MVP storage path |
-| PDF access | Authenticated preview and download | Anonymous users may discover metadata, but PDF preview/download requires login |
-| Admin workflow | Draft then publish | Admin-created records start as draft and must be manually published |
-| Metadata entry | PDF upload plus manual metadata entry | Admins upload the PDF and manually enter required metadata before publishing |
-| Author handling | Author names only | Store ordered author names per thesis; no author email/contact collection in MVP |
-| Recommendations and lessons | Multiple ordered entries | Each recommendation or lesson is stored/displayed as an ordered item |
-| Related theses | Dynamic shared tags/research area | Related theses are computed from shared tags and/or research area for MVP |
-| Account creation | Anyone with a `usc.edu.ph` email may create an account | Students can self-register for authenticated PDF access |
-| Metadata visibility | Full published metadata is public | Anonymous users can inspect thesis details, but cannot access PDFs |
-| Delete behavior | Archive/unpublish in UI, with internal soft delete support | Normal admin UI should avoid hard deletion |
-| User roles | Admin, Contributor, Student visitor | Admins manage the system, contributors help maintain content, students consume published records |
-| Thesis statuses | `draft`, `published`, `archived` | Keep the workflow simple while supporting unpublished and retired records |
-| PDF versioning | Archive old file metadata only | Replaced PDFs should preserve replacement history without full document version management |
-| Search behavior | Search plus filters plus sort | MVP discovery includes keyword search, filter controls, and sorting |
-| Default sort | Newest thesis year first | Repository browsing defaults to newest research first |
-| Tags and research areas | Controlled research areas plus flexible tags | Research areas stay curated while tags remain expressive |
+| Area                        | Accepted decision                                          | Product impact                                                                                   |
+| --------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Database                    | Supabase/PostgreSQL                                        | The data layer uses hosted PostgreSQL with migrations, indexes, and Row Level Security policies  |
+| Authentication              | Supabase Auth                                              | Admin, Contributor, and Student visitor identity uses hosted authentication                      |
+| PDF storage                 | Supabase Storage                                           | Uploaded thesis PDFs are stored in object storage; metadata is stored in the database            |
+| PDF fallback                | External PDF/repository links only if storage is blocked   | Links remain available as a fallback, not the primary MVP storage path                           |
+| PDF access                  | Authenticated preview and download                         | Anonymous users may discover metadata, but PDF preview/download requires login                   |
+| Admin workflow              | Draft then publish                                         | Admin-created records start as draft and must be manually published                              |
+| Metadata entry              | PDF upload plus manual metadata entry                      | Admins upload the PDF and manually enter required metadata before publishing                     |
+| Author and adviser handling | Unified in `Thesis_Authors`                                | Authors and advisers are both profile links on a thesis; advisers are identifiable by `profiles.category = 'teacher'` |
+| Recommendations and lessons | Multiple ordered entries                                   | Each recommendation or lesson is stored/displayed as an ordered item                             |
+| Related theses              | Computed on the frontend via shared keywords               | No `thesis_related` table; the frontend derives related theses from overlapping keywords at render time |
+| Account creation            | Anyone with a `usc.edu.ph` email may create an account     | Students can self-register for authenticated PDF access                                          |
+| Metadata visibility         | Full accepted metadata is public                           | Anonymous users can inspect thesis details, but cannot access PDFs                               |
+| Delete behavior             | Archive/unpublish in UI, with internal soft delete support | Normal admin UI should avoid hard deletion                                                       |
+| User roles                  | `admin`, `student`, `moderator`                            | Admins manage users and system access; moderators review and approve uploads; students browse and access PDFs |
+| Profile category            | `student`, `alumni`, `teacher`                             | Stored in `Profiles.category`; describes the USC identity of the user, separate from their system role |
+| Review status               | `for_review`, `flagged`, `accepted`                        | Replaces `publication_status`; tracks moderator review state of each thesis record               |
+| PDF versioning              | Archive old file metadata only                             | Replaced PDFs should preserve replacement history without full document version management       |
+| Search behavior             | Search plus filters plus sort                              | MVP discovery includes keyword search, filter controls, and sorting                              |
+| Default sort                | Newest thesis year first                                   | Repository browsing defaults to newest research first                                            |
+| Research area vs tags       | Free-text research area plus free hashtag-style tags       | `research_area` is a free-text field on each thesis; distinct values power filter dropdowns. Tags are contributor-driven narrow hashtags |
 
 ## 6. Functional Requirements
 
@@ -86,13 +87,12 @@ Each admin-created thesis record shall start as `draft`. A draft may be edited u
 Each thesis record shall contain:
 
 - Title
-- Ordered author names
+- Ordered author names (stored as profile links in `Thesis_Authors`; advisers are identifiable by `profiles.category = 'teacher'`)
 - Year
-- Adviser
 - Department
-- Research area
+- Research area (free text; e.g. "Machine Learning", "Web Development")
 - Abstract
-- Keywords/tags
+- Keywords/tags (free hashtag-style, contributor-assigned)
 - PDF file stored through Supabase Storage
 - Optional external repository or resource links
 - Awards and conference presentations, optional
@@ -200,8 +200,8 @@ The admin workflow shall support:
 1. Create a draft thesis record.
 2. Upload a PDF.
 3. Manually enter required metadata.
-4. Add ordered author names.
-5. Add tags and research area.
+4. Ordered authors and adviser are linked via `Thesis_Authors` (advisers identifiable by `profiles.category = 'teacher'`).
+5. Tags and research area (free text) are added.
 6. Add ordered recommendations and lessons learned.
 7. Publish the record when required fields are complete.
 
@@ -210,13 +210,13 @@ The system should prevent publishing incomplete records.
 Required publish fields are:
 
 - Title
-- Ordered author names
+- At least one author
+- At least one adviser (identifiable by linked profile's `category = 'teacher'`)
 - Year
-- Adviser
 - Department
-- Research area
+- Research area (free text)
 - Abstract
-- Keywords/tags
+- At least one tag
 - Primary PDF file
 - At least one recommendation for future researchers
 - At least one lesson learned

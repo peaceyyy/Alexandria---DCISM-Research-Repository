@@ -1,0 +1,155 @@
+-- WARNING: This schema is for context only and is not meant to be run directly.
+-- This reflects the actual Supabase schema as of 2026-06-26.
+-- Table names are lowercase to match Supabase's actual stored identifiers.
+
+-- users: single table for all authenticated users.
+-- id = auth.users.id (UUID from Supabase Auth — matched via FK).
+-- Supabase Auth owns password hashing, email verification, and JWT issuance.
+-- role        = system access level
+--                 admin:       manages users and role assignments
+--                 moderator:   reviews and approves thesis submissions
+--                 member:      registered user; can submit theses and access PDFs
+-- affiliation = USC identity type (who the person is at USC, separate from role)
+--                 student / alumni / professor
+-- Trigger `on_auth_user_created` fires on auth.users INSERT and populates this table.
+-- Migration note: if leaving Supabase Auth, add password_hash via ALTER TABLE
+-- and issue force-password-resets to all existing users.
+CREATE TABLE public.users (
+  id           uuid NOT NULL,
+  created_at   timestamp with time zone NOT NULL DEFAULT now(),
+  email        text NOT NULL UNIQUE,
+  profile_name text NOT NULL,
+  usc_id       bigint NOT NULL,
+  role         text NOT NULL DEFAULT 'member'::text
+                 CHECK (role = ANY (ARRAY['admin'::text, 'moderator'::text, 'member'::text])),
+  affiliation  text NOT NULL
+                 CHECK (affiliation = ANY (ARRAY['student'::text, 'alumni'::text, 'professor'::text])),
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+
+-- Trigger function: fires after every Supabase Auth signup.
+-- Inserts a matching row into public.users automatically.
+-- profile_name, usc_id, and affiliation are passed via raw_user_meta_data
+-- from the frontend signUp() call.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.users (id, email, profile_name, usc_id, role, affiliation)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'profile_name', ''),
+    COALESCE((NEW.raw_user_meta_data->>'usc_id')::bigint, 0),
+    'member',
+    COALESCE(NEW.raw_user_meta_data->>'affiliation', 'student')
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- theses: core thesis record.
+-- review_status lifecycle: for_review → accepted | flagged
+-- Only accepted records are publicly visible.
+-- research_area is free text; frontend enforces a controlled dropdown list.
+-- Distinct values power the filter dropdown via SELECT DISTINCT research_area.
+CREATE TABLE public.theses (
+  id               bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at       timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at       timestamp with time zone NOT NULL DEFAULT now(),
+  title            text NOT NULL,
+  abstract         text NOT NULL,
+  department       text NOT NULL,
+  year             integer NOT NULL,
+  research_area    text,
+  publication_link text,
+  publication_date date,
+  review_status    text NOT NULL DEFAULT 'for_review'::text
+                     CHECK (review_status = ANY (ARRAY['for_review'::text, 'flagged'::text, 'accepted'::text])),
+  CONSTRAINT theses_pkey PRIMARY KEY (id)
+);
+
+-- thesis_files: stores a URL pointer to the PDF.
+-- PDFs are hosted on the department school server (physical hardware).
+-- file_url stores the full accessible URL (e.g. https://dcism.usc.edu.ph/repository/thesis.pdf).
+-- Backend proxies authenticated file requests; file_url is never exposed to unauthenticated clients.
+-- is_primary marks the main/current PDF for display; old files are retained for history.
+CREATE TABLE public.thesis_files (
+  id        bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  thesis_id bigint NOT NULL,
+  file_url  text,
+  is_primary boolean NOT NULL DEFAULT false,
+  CONSTRAINT thesis_files_pkey PRIMARY KEY (id),
+  CONSTRAINT thesis_files_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
+);
+
+-- thesis_authors: links users to theses.
+-- Advisers are identifiable by users.affiliation = 'professor'.
+-- author_order keeps display order stable for student authors.
+CREATE TABLE public.thesis_authors (
+  thesis_id    bigint NOT NULL,
+  user_id      uuid NOT NULL,
+  author_order integer,
+  CONSTRAINT thesis_authors_pkey           PRIMARY KEY (thesis_id, user_id),
+  CONSTRAINT thesis_authors_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id),
+  CONSTRAINT thesis_authors_user_id_fkey   FOREIGN KEY (user_id)   REFERENCES public.users(id)
+);
+
+-- thesis_tags: free hashtag-style keywords assigned by contributors.
+-- Used for search, filtering, and frontend-computed related thesis matching.
+CREATE TABLE public.thesis_tags (
+  id        bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  thesis_id bigint NOT NULL,
+  tag       text NOT NULL,
+  CONSTRAINT thesis_tags_pkey           PRIMARY KEY (id),
+  CONSTRAINT thesis_tags_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
+);
+
+-- thesis_recommendations: ordered recommendations for future researchers.
+CREATE TABLE public.thesis_recommendations (
+  id             bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  thesis_id      bigint NOT NULL,
+  header         text NOT NULL,
+  recommendation text NOT NULL,
+  sort_order     integer,
+  CONSTRAINT thesis_recommendations_pkey           PRIMARY KEY (id),
+  CONSTRAINT thesis_recommendations_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
+);
+
+-- thesis_lessons: ordered practical lessons learned.
+CREATE TABLE public.thesis_lessons (
+  id         bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  thesis_id  bigint NOT NULL,
+  header     text NOT NULL,
+  lesson     text NOT NULL,
+  sort_order integer,
+  CONSTRAINT thesis_lessons_pkey           PRIMARY KEY (id),
+  CONSTRAINT thesis_lessons_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
+);
+
+-- thesis_conferences: optional conference presentation records.
+CREATE TABLE public.thesis_conferences (
+  thesis_id          bigint NOT NULL,
+  conference         text NOT NULL,
+  date_of_conference date,
+  CONSTRAINT thesis_conferences_pkey           PRIMARY KEY (thesis_id, conference),
+  CONSTRAINT thesis_conferences_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
+);
+
+-- thesis_audits: tracks moderator/admin actions on thesis records.
+-- changed_by_user_id is nullable to support system-level events.
+CREATE TABLE public.thesis_audits (
+  id                  bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  updated_at          timestamp with time zone NOT NULL DEFAULT now(),
+  thesis_id           bigint NOT NULL,
+  changed_by_user_id  uuid,
+  action              text NOT NULL,
+  change_description  text,
+  CONSTRAINT thesis_audits_pkey                    PRIMARY KEY (id),
+  CONSTRAINT thesis_audits_thesis_id_fkey          FOREIGN KEY (thesis_id)          REFERENCES public.theses(id),
+  CONSTRAINT thesis_audits_changed_by_user_id_fkey FOREIGN KEY (changed_by_user_id) REFERENCES public.users(id)
+);
