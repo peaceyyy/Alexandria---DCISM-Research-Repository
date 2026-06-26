@@ -1,0 +1,47 @@
+phase: 03-service-types-result
+created: 2026-06-26
+schema: athena-default
+feature: alexandria-backend-readiness
+
+dependencies:
+  read:
+    - path: docs/api-contracts.md
+      reason: DTO and result envelope source.
+      priority: critical
+    - path: docs/updated_db_fields.sql
+      reason: Raw DB row shapes.
+      priority: critical
+    - path: frontend/AGENTS.md
+      reason: Next.js version warning before implementation.
+      priority: high
+    - path: frontend/package.json
+      reason: Confirm TypeScript/Next baseline.
+      priority: medium
+  modify: []
+  create:
+    - path: frontend/lib/services/types.ts
+      reason: Future implementation target for shared DTOs.
+      exclusive_lock: true
+      template: none
+    - path: frontend/lib/services/result.ts
+      reason: Future implementation target for service result/error envelope.
+      exclusive_lock: true
+      template: none
+
+relationships:
+  requires_phases:
+    - 01-contract-freeze
+  provides_for_phases:
+    - 04-auth-role-guards
+    - 05-thesis-query-services
+    - 06-submission-review-file-services
+  blocks_if_incomplete:
+    - 05-thesis-query-services
+
+context_estimate:
+  read_tokens: 5000
+  total_budget: 7500
+  warning_threshold: 6500
+  status: ok
+  recommendation: Implement only types and result helpers in the future coding pass.
+

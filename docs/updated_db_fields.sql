@@ -53,7 +53,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
 -- theses: core thesis record.
--- review_status lifecycle: for_review → accepted | flagged
+-- review_status lifecycle: for_review -> flagged | accepted | trashed
 -- Only accepted records are publicly visible.
 -- research_area is free text; frontend enforces a controlled dropdown list.
 -- Distinct values power the filter dropdown via SELECT DISTINCT research_area.
@@ -71,7 +71,7 @@ CREATE TABLE public.theses (
   publication_link text,
   publication_date date,
   review_status    text NOT NULL DEFAULT 'for_review'::text
-                     CHECK (review_status = ANY (ARRAY['for_review'::text, 'flagged'::text, 'accepted'::text])),
+                     CHECK (review_status = ANY (ARRAY['for_review'::text, 'flagged'::text, 'accepted'::text, 'trashed'::text])),
   recommendations  text,
   lessons_learned  text,
   CONSTRAINT theses_pkey PRIMARY KEY (id)
@@ -91,16 +91,25 @@ CREATE TABLE public.thesis_files (
   CONSTRAINT thesis_files_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
 );
 
--- thesis_authors: links users to theses.
--- Advisers are identifiable by users.affiliation = 'professor'.
--- author_order keeps display order stable for student authors.
+-- thesis_authors: credits people on a thesis (authors and advisers).
+-- display_name is always required and stored here for stable display even if the linked
+--   user account is later deleted or renamed.
+-- user_id is nullable: unregistered authors/advisers (historical records, external collaborators)
+--   are credited by display_name alone; registered users can be linked optionally.
+-- contribution_role distinguishes authors from advisers without a separate table.
+-- sort_order controls display order; authors are listed before advisers by convention.
+-- ON DELETE SET NULL on user_id means deleting a user account does not destroy thesis credits.
 CREATE TABLE public.thesis_authors (
-  thesis_id    bigint NOT NULL,
-  user_id      uuid NOT NULL,
-  author_order integer,
-  CONSTRAINT thesis_authors_pkey           PRIMARY KEY (thesis_id, user_id),
-  CONSTRAINT thesis_authors_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id),
-  CONSTRAINT thesis_authors_user_id_fkey   FOREIGN KEY (user_id)   REFERENCES public.users(id)
+  id                  bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  thesis_id           bigint NOT NULL,
+  user_id             uuid,
+  display_name        text NOT NULL,
+  contribution_role   text NOT NULL
+                        CHECK (contribution_role = ANY (ARRAY['author'::text, 'adviser'::text])),
+  sort_order          integer,
+  CONSTRAINT thesis_authors_pkey             PRIMARY KEY (id),
+  CONSTRAINT thesis_people_thesis_id_fkey   FOREIGN KEY (thesis_id) REFERENCES public.theses(id) ON DELETE CASCADE,
+  CONSTRAINT thesis_people_user_id_fkey     FOREIGN KEY (user_id)   REFERENCES public.users(id)  ON DELETE SET NULL
 );
 
 -- thesis_tags: free hashtag-style keywords assigned by contributors.

@@ -1,0 +1,39 @@
+phase: 04-auth-role-guards
+created: 2026-06-26
+schema: athena-default
+feature: alexandria-backend-readiness
+
+dependencies:
+  read:
+    - path: docs/api-contracts.md
+      reason: Auth behavior and role rules.
+      priority: critical
+    - path: docs/backend-readiness-plan.md
+      reason: Locked flow decisions and guard list.
+      priority: critical
+    - path: docs/updated_db_fields.sql
+      reason: users table and role/affiliation constraints.
+      priority: high
+    - path: frontend/AGENTS.md
+      reason: Next.js version warning before implementation.
+      priority: high
+  modify: []
+  create: []
+
+relationships:
+  requires_phases:
+    - 02-db-prerequisites
+    - 03-service-types-result
+  provides_for_phases:
+    - 06-submission-review-file-services
+    - 07-validation-qa-handoff
+  blocks_if_incomplete:
+    - 06-submission-review-file-services
+
+context_estimate:
+  read_tokens: 5500
+  total_budget: 8000
+  warning_threshold: 7000
+  status: ok
+  recommendation: Keep guard helpers small and framework-aligned when implemented.
+

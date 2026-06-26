@@ -301,3 +301,263 @@ Consequences:
 - Tags can be added to capture specific technologies, domains, and methods.
 - Related-thesis discovery can use both curated research areas and flexible tags.
 - The admin UI should make research area selection more controlled than tag entry.
+
+## 2026-06-26
+
+### Decision 021: Use a Supabase service layer for MVP data access
+
+Status: Accepted
+
+Context: The latest API contracts define a one-month MVP implementation where frontend code talks to Supabase through a local service layer instead of a custom REST server.
+
+Decision: Build data access around service functions such as `ThesisService.getAll()` under `frontend/lib/services/`. UI components must not call `supabase.from(...)` directly.
+
+Consequences:
+
+- The backend/project-manager role should focus first on service boundaries, validation helpers, auth guards, and file proxy behavior.
+- A separate REST backend is not required for the MVP unless later constraints force it.
+- The service layer is the swap point if the app later moves to REST or GraphQL.
+
+### Decision 022: Separate system role from USC affiliation
+
+Status: Accepted
+
+Context: The live Supabase schema uses `public.users.role` and `public.users.affiliation` as separate concepts.
+
+Decision: Use `role` for system access and `affiliation` for USC identity.
+
+Consequences:
+
+- System roles are `admin`, `moderator`, and `member`.
+- USC affiliations are `student`, `alumni`, and `professor`.
+- Admin/moderator permissions should be checked against `users.role`.
+- Professor/adviser identity should be derived from `users.affiliation = 'professor'` where needed.
+
+### Decision 023: Use `public.users` as the app profile table
+
+Status: Accepted
+
+Context: Supabase Auth owns identity, but Alexandria needs profile name, USC ID, system role, and affiliation.
+
+Decision: Store application profile data in `public.users`, linked to `auth.users.id`.
+
+Consequences:
+
+- The earlier `profiles` naming should be treated as superseded for implementation.
+- Auth signup metadata must provide `profile_name`, `usc_id`, and `affiliation`.
+- The `on_auth_user_created` trigger inserts the corresponding `public.users` row.
+
+### Decision 024: Use thesis review status for publication visibility
+
+Status: Accepted
+
+Context: The live Supabase schema defines `review_status` as the thesis lifecycle field.
+
+Decision: Use `review_status` values `for_review`, `flagged`, and `accepted`.
+
+Consequences:
+
+- Public repository queries should show only `accepted` records.
+- Upload/submission flow creates `for_review` records.
+- Moderator review can accept or flag records.
+- Archive behavior needs an explicit implementation decision because `archived` is not currently part of the `review_status` check constraint.
+
+### Decision 025: Proxy school-server PDF URLs instead of exposing raw file URLs
+
+Status: Accepted
+
+Context: The live schema stores `thesis_files.file_url`, pointing to PDFs hosted on department/school server infrastructure.
+
+Decision: Store raw PDF URLs in `thesis_files.file_url`, but do not return them directly to unauthenticated clients. Authenticated PDF access should go through a proxy endpoint such as `GET /theses/:id/file`.
+
+Consequences:
+
+- The backend must verify the user's Supabase session before streaming or redirecting to a PDF.
+- Public thesis metadata can include file availability, but not the raw URL.
+- Supabase Storage is no longer the primary MVP file-storage assumption unless the team changes direction again.
+
+### Decision 026: Store recommendations and lessons learned as thesis text fields
+
+Status: Accepted
+
+Context: The live schema keeps `recommendations` and `lessons_learned` on the `theses` table.
+
+Decision: Treat recommendations and lessons learned as free-form thesis text fields for MVP implementation.
+
+Consequences:
+
+- Publish/accept validation should require both fields to be non-empty.
+- The frontend can still display the two sections distinctly.
+- Ordered recommendation/lesson subtables are deferred unless the schema changes.
+
+### Decision 027: Compute related theses on the frontend from tag overlap for MVP
+
+Status: Accepted
+
+Context: The latest API contracts state that related theses are populated by matching overlapping tags against other accepted records.
+
+Decision: Compute related theses on the frontend from raw accepted thesis/tag data for the MVP.
+
+Consequences:
+
+- The backend/service layer must provide enough accepted thesis/tag data for related-thesis computation.
+- No `thesis_related` table is required for MVP.
+- If result quality or performance becomes weak, this can move to a backend query later.
+
+### Decision 028: Use `thesis_audits.change_description` for review history
+
+Status: Accepted
+
+Context: The live schema has `thesis_audits` with `change_description`; the `action` column was removed.
+
+Decision: Record moderator/admin review history in `thesis_audits.change_description`.
+
+Consequences:
+
+- Accept/flag/archive-like actions should insert readable audit descriptions.
+- Backend code should not depend on a separate `action` column.
+- Audit filtering by action type may require a future structured field if needed.
+
+### Decision 029: Allow members to submit theses for review
+
+Status: Accepted
+
+Context: Alexandria should support submissions from registered users, not only administrator-created records.
+
+Decision: Any authenticated `member` may submit a thesis. Submitted theses enter `for_review` and must be approved by either an `admin` or a `moderator` before becoming publicly visible.
+
+Consequences:
+
+- Submission creation must allow the `member` role.
+- Public repository queries must still show only approved/accepted records.
+- Review actions remain restricted to `admin` and `moderator`.
+- Backend services should distinguish submitter permissions from reviewer permissions.
+
+### Decision 030: Treat moderator as the replacement for contributor
+
+Status: Accepted
+
+Context: Earlier planning used Contributor, but the current implementation vocabulary uses Moderator.
+
+Decision: Use `moderator` as the final implementation role replacing the older contributor language.
+
+Consequences:
+
+- Contributor should be treated as an old planning term.
+- UI and service checks should use `moderator`.
+- Moderators can review, flag, approve/accept, and maintain submissions according to final permission rules.
+
+### Decision 031: Treat member as the broad registered-user role
+
+Status: Accepted
+
+Context: Students are not the only users navigating Alexandria. The site may also be used by alumni and professors.
+
+Decision: Use `member` as the broad registered-user role. Use `users.affiliation` to distinguish `student`, `alumni`, and `professor`.
+
+Consequences:
+
+- Student visitor language should be replaced in implementation-facing docs.
+- `member` permissions should not depend on affiliation unless a specific feature requires it.
+- Affiliation should be display/profile context, not system access control.
+
+### Decision 032: Use review statuses for submission moderation
+
+Status: Accepted
+
+Context: The user flow is a submission review process, not only a draft/publish workflow.
+
+Decision: Use review status language: `for_review`, `flagged`, approved/accepted, and `trashed`.
+
+Consequences:
+
+- `for_review` means pending moderator/admin review.
+- `flagged` means fixable or needing more information.
+- Approved/accepted means publicly visible.
+- `trashed` means invalid, duplicate, spam, or intentionally removed from active workflows.
+- The current SQL must be updated if `trashed` is represented in `review_status`.
+
+### Decision 033: Authors and advisers do not require registered profiles
+
+Status: Accepted
+
+Context: Thesis authors and advisers may need to be displayed even when they do not have Alexandria accounts.
+
+Decision: Store author and adviser display names independently from `public.users`. Link to a user profile only when one exists.
+
+Consequences:
+
+- The current `thesis_authors.user_id NOT NULL` schema is too restrictive.
+- Backend and database work should support nullable `user_id` plus required display names.
+- Adviser modeling should not depend solely on `users.affiliation = 'professor'`.
+
+### Decision 034: Keep `thesis_authors` but expand it for authors and advisers
+
+Status: Accepted
+
+Context: The database has been updated so authors and advisers can be stored even when they do not have Alexandria user accounts. The team chose to keep the existing table name `thesis_authors`.
+
+Decision: Use `public.thesis_authors` with required `display_name`, optional `user_id`, `contribution_role` values `author` or `adviser`, and optional `sort_order`.
+
+Consequences:
+
+- Frontend and backend service types should read authors/advisers from `thesis_authors`.
+- The table name is slightly narrower than its actual use, so developers must rely on `contribution_role`.
+- Nullable `user_id` allows unregistered authors/advisers.
+- `display_name` remains the source of truth for public display.
+
+### Decision 035: Limit member edits to flagged submissions
+
+Status: Accepted
+
+Context: Members can submit theses, but the review queue should not keep changing while reviewers are evaluating it.
+
+Decision: Members can edit their own submission only after it is `flagged`.
+
+Consequences:
+
+- New member submissions enter `for_review` and should be effectively locked for member edits.
+- A moderator/admin can flag the submission to request revisions.
+- After flagged, the owning member can edit and resubmit according to the final UI flow.
+
+### Decision 036: Allow members to attach their own thesis files
+
+Status: Accepted
+
+Context: Submission should be self-service enough that members can provide the thesis PDF or file URL.
+
+Decision: Members may attach/register the PDF or file URL for their own submission.
+
+Consequences:
+
+- File registration must verify ownership for `member` users.
+- Admins and moderators can still attach or replace files for reviewable submissions.
+- Raw `file_url` values remain protected from public responses.
+
+### Decision 037: Allow admins and moderators to trash submissions
+
+Status: Accepted
+
+Context: Invalid, duplicate, spam, or unusable submissions need a final removal state outside the fixable `flagged` state.
+
+Decision: Both `admin` and `moderator` can trash submissions.
+
+Consequences:
+
+- `flagged` remains the fixable correction state.
+- `trashed` should hide records from public browsing and active review lists.
+- Trashed records are not recoverable through the admin UI for MVP.
+
+### Decision 038: Keep `accepted` as the internal approved state unless migrated later
+
+Status: Accepted
+
+Context: The current SQL already uses `review_status = 'accepted'`, while user-facing language may prefer Approved.
+
+Decision: Keep `accepted` as the internal database/API value for now. The UI may display this state as `Approved`.
+
+Consequences:
+
+- Avoids an immediate status migration.
+- Frontend can map `accepted` to the label `Approved`.
+- If the team later wants internal naming consistency, Shane can migrate the check constraint and existing rows from `accepted` to `approved`.

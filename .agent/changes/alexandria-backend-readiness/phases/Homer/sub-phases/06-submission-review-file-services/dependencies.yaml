@@ -1,0 +1,51 @@
+phase: 06-submission-review-file-services
+created: 2026-06-26
+schema: athena-default
+feature: alexandria-backend-readiness
+
+dependencies:
+  read:
+    - path: docs/api-contracts.md
+      reason: Submission, review, and file service contracts.
+      priority: critical
+    - path: docs/backend-readiness-plan.md
+      reason: Locked rules for member edits, file attachment, and trash.
+      priority: critical
+    - path: docs/updated_db_fields.sql
+      reason: Current tables used by mutation services.
+      priority: high
+    - path: docs/database-engineer-reference.md
+      reason: DB handoff and schema polishing notes.
+      priority: high
+  modify: []
+  create:
+    - path: frontend/lib/services/submission-service.ts
+      reason: Future implementation target for member submissions.
+      exclusive_lock: true
+      template: none
+    - path: frontend/lib/services/review-service.ts
+      reason: Future implementation target for moderator/admin review actions.
+      exclusive_lock: true
+      template: none
+    - path: frontend/lib/services/file-service.ts
+      reason: Future implementation target for file registration and protected file access.
+      exclusive_lock: true
+      template: none
+
+relationships:
+  requires_phases:
+    - 02-db-prerequisites
+    - 03-service-types-result
+    - 04-auth-role-guards
+  provides_for_phases:
+    - 07-validation-qa-handoff
+  blocks_if_incomplete:
+    - 07-validation-qa-handoff
+
+context_estimate:
+  read_tokens: 6500
+  total_budget: 9000
+  warning_threshold: 7800
+  status: ok
+  recommendation: Keep mutation services permission-heavy and UI-shape-light.
+

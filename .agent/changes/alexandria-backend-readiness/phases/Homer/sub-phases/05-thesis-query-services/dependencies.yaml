@@ -1,0 +1,37 @@
+phase: 05-thesis-query-services
+created: 2026-06-26
+schema: athena-default
+feature: alexandria-backend-readiness
+
+dependencies:
+  read:
+    - path: docs/api-contracts.md
+      reason: Public thesis DTOs and service contracts.
+      priority: critical
+    - path: docs/DESIGN.md
+      reason: Public browse/detail frontend needs.
+      priority: high
+    - path: docs/updated_db_fields.sql
+      reason: theses, thesis_authors, thesis_tags, thesis_files shape.
+      priority: high
+  modify: []
+  create:
+    - path: frontend/lib/services/thesis-service.ts
+      reason: Future implementation target for public thesis queries.
+      exclusive_lock: true
+      template: none
+
+relationships:
+  requires_phases:
+    - 03-service-types-result
+  provides_for_phases:
+    - 07-validation-qa-handoff
+  blocks_if_incomplete: []
+
+context_estimate:
+  read_tokens: 5500
+  total_budget: 8000
+  warning_threshold: 7000
+  status: ok
+  recommendation: Coordinate with Leira before final DTO changes.
+

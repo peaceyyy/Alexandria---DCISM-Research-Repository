@@ -1,0 +1,133 @@
+phase: homer
+created: 2026-06-26
+schema: athena-default
+feature: alexandria-backend-readiness
+owner: Homer
+status: planning_only
+
+summary:
+  workstream: homer-service-skeleton
+  goal: Prepare Alexandria's backend/service-layer skeleton so frontend pages can wire against stable contracts with minimal friction.
+  implementation_rule: No production implementation in this breakdown. Use these sub-phases as execution plans for later coding sessions.
+  source_of_truth:
+    - docs/api-contracts.md
+    - docs/backend-readiness-plan.md
+    - docs/updated_db_fields.sql
+    - docs/database-engineer-reference.md
+  current_architecture:
+    - Next.js frontend is the app surface.
+    - Supabase Auth handles identity.
+    - Supabase PostgreSQL stores data.
+    - Frontend pages call service-layer functions, not raw Supabase queries.
+    - System roles are admin, moderator, member.
+    - Review statuses are for_review, flagged, accepted, trashed.
+
+sub_phases:
+  - id: "01-contract-freeze"
+    title: "Contract Freeze and Team Alignment"
+    owner: Homer
+    status: not_started
+    objective: Lock the exact DTOs, service names, response shape, and frontend-facing field names before coding.
+    shared_with: [Leira, Ethan]
+    output:
+      - Final approved docs/api-contracts.md
+      - Frontend DTO checklist
+    blocks:
+      - "03-service-types-result"
+      - "05-thesis-query-services"
+
+  - id: "02-db-prerequisites"
+    title: "Database Prerequisites"
+    owner: Shane
+    fallback_owner: Homer
+    status: not_started
+    objective: Close schema gaps required for member-owned submissions and stable file behavior.
+    shared_with: [Homer]
+    note: Shane owns this by default. Homer can do the SQL work if Shane is unavailable or asks for help.
+    output:
+      - submitted_by_user_id column added to theses
+      - primary-file uniqueness decision
+      - confirmed review_status includes trashed
+    blocks:
+      - "04-auth-role-guards"
+      - "06-submission-review-file-services"
+
+  - id: "03-service-types-result"
+    title: "Service Types and Result Envelope"
+    owner: Homer
+    status: not_started
+    objective: Create shared TypeScript contracts for service results, errors, roles, statuses, users, thesis cards, thesis detail, and validation errors.
+    shared_with: [Leira, Ethan]
+    output:
+      - frontend/lib/services/types.ts
+      - frontend/lib/services/result.ts
+    blocks:
+      - "05-thesis-query-services"
+      - "06-submission-review-file-services"
+
+  - id: "04-auth-role-guards"
+    title: "Auth and Role Guard Plan"
+    owner: Homer
+    status: not_started
+    objective: Define helper boundaries for current user lookup, role checks, member ownership checks, and usc.edu.ph signup validation.
+    shared_with: [Ethan, Shane]
+    output:
+      - Auth helper plan
+      - Role guard matrix
+    blocks:
+      - "06-submission-review-file-services"
+      - "07-validation-qa-handoff"
+
+  - id: "05-thesis-query-services"
+    title: "Public Thesis Query Services"
+    owner: Homer
+    status: not_started
+    objective: Plan service functions for accepted thesis list, thesis detail, filters, related-thesis data, and public DTO shaping.
+    shared_with: [Leira]
+    output:
+      - ThesisService function plan
+      - public query checklist
+    blocks:
+      - "07-validation-qa-handoff"
+
+  - id: "06-submission-review-file-services"
+    title: "Submission, Review, and File Services"
+    owner: Homer
+    status: not_started
+    objective: Plan member submission, flagged-edit flow, moderator/admin review actions, file registration, file replacement, and protected file access.
+    shared_with: [Ethan, Shane]
+    output:
+      - SubmissionService plan
+      - ReviewService plan
+      - FileService plan
+    blocks:
+      - "07-validation-qa-handoff"
+
+  - id: "07-validation-qa-handoff"
+    title: "Validation and Frontend Handoff"
+    owner: Homer
+    status: not_started
+    objective: Plan acceptance validation, service-level QA cases, and frontend handoff notes for Leira and Ethan.
+    shared_with: [Leira, Ethan, Shane]
+    output:
+      - validation checklist
+      - frontend wiring checklist
+      - backend QA matrix
+    blocks: []
+
+execution_order:
+  - "01-contract-freeze"
+  - "02-db-prerequisites"
+  - "03-service-types-result"
+  - "04-auth-role-guards"
+  - "05-thesis-query-services"
+  - "06-submission-review-file-services"
+  - "07-validation-qa-handoff"
+
+phase_exit_criteria:
+  - Contracts use current DB terms: thesis_authors, users, for_review, flagged, accepted, trashed.
+  - Frontend DTOs are stable enough for Leira and Ethan to code against.
+  - Shared Shane/Homer DB tasks are documented and not hidden.
+  - No raw file_url is exposed in public thesis detail contracts.
+  - Member-owned operations have an ownership field plan.
+  - Validation errors have a frontend-friendly shape.

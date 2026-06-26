@@ -9,6 +9,36 @@ Source documents:
 - `docs/design-decision-log.md`
 - `docs/Group 3 _ Project Proposal.md`
 
+Latest implementation sources:
+
+- `docs/api-contracts.md`
+- `docs/updated_db_fields.sql`
+
+## 0. Current Implementation Override
+
+As of 2026-06-26, the API contracts and Supabase SQL snapshot contain newer implementation decisions than the earlier planning docs. When there is a conflict, treat these latest files as the implementation source of truth:
+
+- The MVP uses the Supabase JS client through a frontend service layer in `frontend/lib/services/`; UI components should not call `supabase.from(...)` directly.
+- System roles are now `admin`, `moderator`, and `member`.
+- USC identity is stored separately as `affiliation`: `student`, `alumni`, or `professor`.
+- User profile data lives in `public.users`, linked to `auth.users`, rather than the earlier `profiles` naming.
+- Thesis lifecycle uses `review_status`: `for_review`, `flagged`, and `accepted`; public discovery shows accepted records.
+- Any authenticated `member` can submit a thesis for review.
+- Only `admin` and `moderator` can approve/accept, flag, or trash submissions.
+- Members can edit their own submission only after it has been flagged.
+- Members can attach/register their own thesis PDF or file URL.
+- Trashed submissions are not recoverable through the admin UI for MVP.
+- `moderator` replaces the older Contributor role in implementation-facing work.
+- `member` replaces the narrower Student visitor role in implementation-facing work.
+- Use `accepted` internally if preserving the current SQL is preferred, but the UI may label that state as Approved.
+- Add a `trashed` workflow state or soft-delete path for invalid, duplicate, spam, or intentionally removed submissions. Do not overload `flagged` for this.
+- PDF files are represented by `thesis_files.file_url` pointing to a department/school server URL. The raw URL must not be exposed directly; authenticated file access should be proxied.
+- `recommendations` and `lessons_learned` currently live as text fields on `theses`, not separate ordered tables.
+- Authors and advisers live in `thesis_authors`, with required display names, optional `user_id`, and `contribution_role` values `author` or `adviser`.
+- Related theses are currently planned as frontend-computed results from overlapping tags.
+
+Legacy sections below may still use earlier terms such as Contributor, Student visitor, profiles, draft/published/archived, or Supabase Storage. For implementation, prefer the override above and the latest `docs/api-contracts.md`, `docs/updated_db_fields.sql`, and `docs/backend-readiness-plan.md`.
+
 ## 1. Project Summary
 
 Alexandria is a web-based thesis repository for the Department of Computer Information Science and Mathematics (DCISM). It helps students discover previous thesis work, inspect thesis metadata, learn from recommendations and lessons learned, and access thesis PDFs after authentication.
@@ -143,7 +173,7 @@ flowchart LR
 | `research_areas` | Controlled category list |
 | `tags` | Flexible keywords |
 | `theses` | Core thesis record and publication status |
-| `thesis_authors` | Ordered author names per thesis |
+| `thesis_authors` | Ordered authors and advisers per thesis, with display names and optional linked users |
 | `thesis_tags` | Many-to-many thesis/tag relationship |
 | `thesis_files` | Supabase Storage metadata and PDF replacement history |
 | `thesis_links` | Optional external resources/repository links |

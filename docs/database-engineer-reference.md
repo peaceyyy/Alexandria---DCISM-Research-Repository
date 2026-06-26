@@ -28,14 +28,14 @@ Alexandria is a web-based thesis repository for DCISM. The MVP must let students
 | Moderator review workflow | Moderators review uploads; review_status tracks state | Records start as `for_review`; moderators set `accepted` or `flagged` |
 | Admin workflow | Admins manage users and role access | Admins have a users list and role management view; they do not own the review/publish flow |
 | Metadata entry | Upload PDF and manually enter metadata | Upload flow should attach a PDF and require manual metadata entry before a record can be accepted |
-| Author and adviser handling | Unified in `thesis_authors` | Authors and advisers are both user links; advisers are identifiable by `users.affiliation = 'professor'` |
+| Author and adviser handling | Unified in `thesis_authors` | Authors and advisers are both rows in `thesis_authors` with `contribution_role = 'author'` or `'adviser'`. `user_id` is nullable; unregistered people are credited by `display_name` only. `display_name` is always stored at submission time for stable rendering. |
 | Recommendations and lessons | Free-form text fields | Store `recommendations` and `lessons_learned` as text columns directly on the `theses` table |
 | Account creation | School-email self-registration | Accounts may self-register with `usc.edu.ph` email addresses; role defaults to `member` |
 | Metadata visibility | Full accepted metadata is public | Anonymous users can inspect thesis metadata but cannot access PDFs |
-| Delete behavior | Archive/unpublish plus internal soft delete | Normal admin UI avoids hard delete while preserving recoverability |
+| Delete behavior | Trash invalid submissions | `review_status = 'trashed'` hides records from normal UI; trashed records are not recoverable through the admin UI for MVP |
 | User role | `admin`, `moderator`, `member` | Stored in `users.role`; controls system access level. `member` = registered user with upload access and PDF access |
 | User affiliation | `student`, `alumni`, `professor` | Stored in `users.affiliation`; describes USC identity type, distinct from system role |
-| Review status | `for_review`, `flagged`, `accepted` | Replaces `publication_status`; controls public visibility and moderator workflow |
+| Review status | `for_review`, `flagged`, `accepted`, `trashed` | Replaces `publication_status`; controls public visibility and moderator workflow |
 | PDF replacement | Retain old file metadata | Mark the current file as primary and keep old file_url for history |
 | Search behavior | Search plus filters plus sort | Repository queries should support all three discovery modes |
 | Default sort | Newest thesis year first | Use year-descending ordering by default |
@@ -48,8 +48,8 @@ Each thesis record must support:
 | Field | Required | Notes |
 | --- | --- | --- |
 | Title | Yes | Main searchable title |
-| Authors | Yes | Multiple authors per thesis; stored via `thesis_authors`. Advisers are identifiable by `users.affiliation = 'professor'` |
-| Adviser | Yes | Stored alongside authors in `thesis_authors`; no separate role field needed |
+| Authors | Yes | Multiple authors per thesis; stored via `thesis_authors` with `contribution_role = 'author'`. `display_name` is required; `user_id` is optional |
+| Adviser | Yes | Stored in `thesis_authors` with `contribution_role = 'adviser'`. `user_id` is optional; advisers without accounts are credited by name only |
 | Year | Yes | Used for display and filtering |
 | Department | Yes | MVP default is DCISM, but keep normalized for future expansion |
 | Abstract | Yes | Full detail page text; preview derived by backend/frontend |
@@ -72,8 +72,8 @@ Recommendations and lessons are distinct:
 
 ```mermaid
 erDiagram
-  theses ||--o{ thesis_authors : has
-  users ||--o{ thesis_authors : linked_as
+  theses ||--o{ thesis_authors : credited_on
+  users |o--o{ thesis_authors : optionally_linked_as
   theses ||--o{ thesis_tags : has
   theses ||--o{ thesis_files : stores
   theses ||--o{ thesis_conferences : presents
@@ -127,20 +127,26 @@ Core thesis record.
 | lessons_learned | Optional free-form text; uploaders paste or type this section directly from their thesis |
 | publication_link | Optional external publication or repository link |
 | publication_date | Optional date of external publication |
-| review_status | Required: `for_review`, `flagged`, or `accepted`. CHECK constraint enforced. Default `for_review` |
+| review_status | Required: `for_review`, `flagged`, `accepted`, or `trashed`. CHECK constraint enforced. Default `for_review` |
 | created_at, updated_at | Standard timestamps |
 
 ### `thesis_authors`
 
-Links users to theses. Advisers are identifiable by `users.affiliation = 'professor'`.
+Credits people on a thesis. Keeps the `thesis_authors` table name, but now supports both registered users and unregistered people (historical records, external advisers).
 
 | Column | Notes |
 | --- | --- |
-| thesis_id | Foreign key to `theses` |
-| user_id | Foreign key to `users` |
-| author_order | Optional display order; mainly relevant for student authors |
+| id | Primary key; auto-generated |
+| thesis_id | Foreign key to `theses`; NOT NULL; CASCADE deletes |
+| user_id | Foreign key to `users`; **nullable** — unregistered people have no account; SET NULL on user delete |
+| display_name | Required display name; NOT NULL — always stored here for stable rendering |
+| contribution_role | CHECK: `author` or `adviser` |
+| sort_order | Optional display order integer |
 
-Suggested constraint: unique pair on `thesis_id` + `user_id`.
+> **Why `display_name` is stored here, not derived from `users.profile_name`:** If a user later changes their profile name or their account is deleted, the thesis credit should remain accurate and stable. The name stored at submission time is the canonical credit.
+
+> **Query pattern for authors:** `SELECT * FROM thesis_authors WHERE thesis_id = $1 AND contribution_role = 'author' ORDER BY sort_order`
+> **Query pattern for advisers:** `SELECT * FROM thesis_authors WHERE thesis_id = $1 AND contribution_role = 'adviser' ORDER BY sort_order`
 
 ### `thesis_tags`
 
@@ -246,13 +252,13 @@ Exact syntax should target PostgreSQL/Supabase.
 | theses | research_area | Research area text search and filter dropdown |
 | theses | review_status | Accepted/moderation list filtering |
 | theses | year, review_status | Default public browse by newest accepted thesis year |
-| thesis_authors | thesis_id, user_id | Joins and uniqueness |
-| thesis_authors | user_id | Joins to users |
+| thesis_authors | thesis_id | Joins for people lookup per thesis |
+| thesis_authors | user_id | Joins to users (nullable, sparse index) |
 | thesis_tags | thesis_id | Joins for tag lookup per thesis |
 | thesis_tags | tag | Tag text search |
 | thesis_files | thesis_id, is_primary | Main PDF lookup |
 
-Consider PostgreSQL full-text search across `theses.title`, `theses.abstract`, `thesis_authors.author_name`, and `tags.name`. For the MVP, a simpler `ILIKE` search may be acceptable first, then upgrade to `tsvector`/GIN indexes if search feels slow or weak.
+Consider PostgreSQL full-text search across `theses.title`, `theses.abstract`, `thesis_authors.display_name`, and `thesis_tags.tag`. For the MVP, a simpler `ILIKE` search may be acceptable first, then upgrade to `tsvector`/GIN indexes if search feels slow or weak.
 
 ## Backend Contract Notes
 
@@ -268,7 +274,7 @@ Use these as the early API/database boundary:
 | `POST /upload/theses/:id/files/replace` | Store replacement metadata, keep old file metadata, and mark the newest valid PDF as primary |
 | `POST /moderator/theses/:id/accept` | Validate required metadata/file presence, then set `review_status = 'accepted'` |
 | `POST /moderator/theses/:id/flag` | Set `review_status = 'flagged'` and optionally record a reason in `thesis_audits` |
-| `POST /admin/theses/:id/archive` | Move a record to archived state and remove it from public results |
+| `POST /admin/theses/:id/trash` | Move a record to trashed state and remove it from public and active review results |
 | `DELETE /admin/theses/:id` | Internal soft delete only; not a normal UI action |
 | `GET /admin/users` | Paginated list of all users with role and profile info |
 | `PATCH /admin/users/:id/role` | Update a user's `role` in `users` |
@@ -310,7 +316,7 @@ Minimum seed data for frontend/backend integration:
    - Accepted: Full accepted thesis metadata is public; PDF access requires authentication via backend proxy.
 
 7. Delete behavior:
-   - Accepted: Archive/unpublish through the admin UI, with internal soft delete support.
+   - Accepted: Invalid or removed submissions use `review_status = 'trashed'`. Trashed records are hidden from normal UI and are not recoverable through the admin UI for MVP.
 
 8. User role:
    - Accepted: `admin`, `moderator`, `member`. Stored in `users.role`.
@@ -319,7 +325,7 @@ Minimum seed data for frontend/backend integration:
    - Accepted: `student`, `alumni`, `professor`. Stored in `users.affiliation`. Distinct from system role.
 
 10. Review status:
-    - Accepted: `for_review`, `flagged`, `accepted`. Replaces `publication_status`. CHECK constraint required.
+    - Accepted: `for_review`, `flagged`, `accepted`, `trashed`. Replaces `publication_status`. CHECK constraint required.
 
 11. Search and classification:
     - Accepted: Search plus filters plus sort, newest thesis year first by default. `research_area` is free text on `theses`; tags are contributor-assigned hashtags.
@@ -338,7 +344,7 @@ These choices affect schema, storage policy, and backend API behavior.
    - Accepted: Uploader attaches PDF and manually enters required metadata.
 
 4. Author and adviser handling:
-   - Accepted: Both stored as user links in `thesis_authors`. Advisers are identifiable by `users.affiliation = 'professor'`.
+   - Accepted: Both stored as rows in `thesis_authors` with `contribution_role = 'author'` or `'adviser'`. `user_id` is nullable; unregistered people are credited by `display_name` only.
 
 5. Research area:
    - Accepted: Free text on `theses.research_area`. Filter dropdown is populated via `SELECT DISTINCT research_area FROM theses WHERE review_status = 'accepted'`.
@@ -355,11 +361,18 @@ Create an initial ERD and migration draft for:
 - `thesis_authors`
 - `thesis_tags`
 - `thesis_files`
-- `thesis_recommendations`
-- `thesis_lessons`
 - `thesis_audits`
 
-Then review it with the backend integrator before adding optional conferences, links, and soft-delete behavior.
+Then review it with the backend integrator before adding optional conferences and soft-delete behavior.
+
+## Current Schema Polishing Needed
+
+Before frontend integration, confirm these details in Supabase:
+
+- `theses.review_status` includes `for_review`, `flagged`, `accepted`, and `trashed`.
+- `thesis_authors` stores both authors and advisers through `contribution_role`.
+- Add `theses.submitted_by_user_id uuid REFERENCES public.users(id)` so the backend can enforce member-owned editing and file registration.
+- Consider a partial unique index on `thesis_files(thesis_id)` where `is_primary = true` so only one primary PDF exists per thesis.
 
 ## Future / Optional Tables
 
