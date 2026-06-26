@@ -57,6 +57,8 @@ CREATE TRIGGER on_auth_user_created
 -- Only accepted records are publicly visible.
 -- research_area is free text; frontend enforces a controlled dropdown list.
 -- Distinct values power the filter dropdown via SELECT DISTINCT research_area.
+-- recommendations and lessons_learned are free-form text fields (no structured sub-tables).
+-- Uploaders paste or type these sections directly from their thesis document.
 CREATE TABLE public.theses (
   id               bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   created_at       timestamp with time zone NOT NULL DEFAULT now(),
@@ -70,6 +72,8 @@ CREATE TABLE public.theses (
   publication_date date,
   review_status    text NOT NULL DEFAULT 'for_review'::text
                      CHECK (review_status = ANY (ARRAY['for_review'::text, 'flagged'::text, 'accepted'::text])),
+  recommendations  text,
+  lessons_learned  text,
   CONSTRAINT theses_pkey PRIMARY KEY (id)
 );
 
@@ -81,7 +85,7 @@ CREATE TABLE public.theses (
 CREATE TABLE public.thesis_files (
   id        bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   thesis_id bigint NOT NULL,
-  file_url  text,
+  file_url  text NOT NULL,
   is_primary boolean NOT NULL DEFAULT false,
   CONSTRAINT thesis_files_pkey PRIMARY KEY (id),
   CONSTRAINT thesis_files_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
@@ -109,29 +113,9 @@ CREATE TABLE public.thesis_tags (
   CONSTRAINT thesis_tags_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
 );
 
--- thesis_recommendations: ordered recommendations for future researchers.
-CREATE TABLE public.thesis_recommendations (
-  id             bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  thesis_id      bigint NOT NULL,
-  header         text NOT NULL,
-  recommendation text NOT NULL,
-  sort_order     integer,
-  CONSTRAINT thesis_recommendations_pkey           PRIMARY KEY (id),
-  CONSTRAINT thesis_recommendations_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
-);
-
--- thesis_lessons: ordered practical lessons learned.
-CREATE TABLE public.thesis_lessons (
-  id         bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  thesis_id  bigint NOT NULL,
-  header     text NOT NULL,
-  lesson     text NOT NULL,
-  sort_order integer,
-  CONSTRAINT thesis_lessons_pkey           PRIMARY KEY (id),
-  CONSTRAINT thesis_lessons_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
-);
-
 -- thesis_conferences: optional conference presentation records.
+-- Composite PK on (thesis_id, conference) prevents duplicate entries per thesis.
+-- date_of_conference is optional; conference name is required.
 CREATE TABLE public.thesis_conferences (
   thesis_id          bigint NOT NULL,
   conference         text NOT NULL,
@@ -142,13 +126,13 @@ CREATE TABLE public.thesis_conferences (
 
 -- thesis_audits: tracks moderator/admin actions on thesis records.
 -- changed_by_user_id is nullable to support system-level events.
+-- action column was removed; all context is captured via change_description.
 CREATE TABLE public.thesis_audits (
   id                  bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   updated_at          timestamp with time zone NOT NULL DEFAULT now(),
   thesis_id           bigint NOT NULL,
   changed_by_user_id  uuid,
-  action              text NOT NULL,
-  change_description  text,
+  change_description  text NOT NULL,
   CONSTRAINT thesis_audits_pkey                    PRIMARY KEY (id),
   CONSTRAINT thesis_audits_thesis_id_fkey          FOREIGN KEY (thesis_id)          REFERENCES public.theses(id),
   CONSTRAINT thesis_audits_changed_by_user_id_fkey FOREIGN KEY (changed_by_user_id) REFERENCES public.users(id)

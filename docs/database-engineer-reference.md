@@ -21,7 +21,7 @@ Alexandria is a web-based thesis repository for DCISM. The MVP must let students
 | --- | --- | --- |
 | Database engine | Supabase/PostgreSQL | Use Postgres tables, foreign keys, migrations, indexes, and Row Level Security policies |
 | File storage | Supabase Storage/object storage | Store PDFs in a storage bucket and save object keys/metadata in `thesis_files` |
-| File storage fallback | External PDF/repository links only if storage is blocked | Keep `thesis_links` and `repository_url` available as fallback paths |
+| File storage fallback | External PDF/repository links only if storage is blocked | Keep `publication_link` on the `theses` table as fallback path |
 | Authentication | Supabase Auth + `users` table | Supabase Auth owns passwords and email verification. A single `users` table (id = Supabase UUID) stores role, affiliation, and display data. A Postgres trigger (`on_auth_user_created`) auto-populates `users` on every signup. If migrating away from Supabase, add `password_hash` via ALTER TABLE and issue force-password-resets |
 | Related theses | Frontend computation from overlapping keywords | No `thesis_related` table needed for MVP; frontend derives related theses at render time |
 | PDF access | Authenticated access via backend proxy | PDFs are stored on the department school server. `thesis_files.file_url` stores the full URL. The backend proxies authenticated requests; raw URLs are never exposed to unauthenticated clients |
@@ -29,7 +29,7 @@ Alexandria is a web-based thesis repository for DCISM. The MVP must let students
 | Admin workflow | Admins manage users and role access | Admins have a users list and role management view; they do not own the review/publish flow |
 | Metadata entry | Upload PDF and manually enter metadata | Upload flow should attach a PDF and require manual metadata entry before a record can be accepted |
 | Author and adviser handling | Unified in `thesis_authors` | Authors and advisers are both user links; advisers are identifiable by `users.affiliation = 'professor'` |
-| Recommendations and lessons | Multiple ordered entries | Store each recommendation/lesson as its own ordered row |
+| Recommendations and lessons | Free-form text fields | Store `recommendations` and `lessons_learned` as text columns directly on the `theses` table |
 | Account creation | School-email self-registration | Accounts may self-register with `usc.edu.ph` email addresses; role defaults to `member` |
 | Metadata visibility | Full accepted metadata is public | Anonymous users can inspect thesis metadata but cannot access PDFs |
 | Delete behavior | Archive/unpublish plus internal soft delete | Normal admin UI avoids hard delete while preserving recoverability |
@@ -76,26 +76,12 @@ erDiagram
   users ||--o{ thesis_authors : linked_as
   theses ||--o{ thesis_tags : has
   theses ||--o{ thesis_files : stores
-  theses ||--o{ thesis_links : references
   theses ||--o{ thesis_conferences : presents
-  theses ||--o{ thesis_recommendations : gives
-  theses ||--o{ thesis_lessons : records
   theses ||--o{ thesis_audits : tracked_by
   users ||--o{ thesis_audits : performs
 ```
 
 ## Recommended Tables
-
-### `departments`
-
-Stores departments so Alexandria can start with DCISM but avoid hardcoding it everywhere.
-
-| Column | Notes |
-| --- | --- |
-| id | Primary key |
-| name | Unique department name, e.g. `Department of Computer Information Science and Mathematics` |
-| code | Unique short code, e.g. `DCISM` |
-| created_at, updated_at | Standard timestamps |
 
 ### `research_areas`
 
@@ -137,10 +123,12 @@ Core thesis record.
 | year | Required; indexed for filtering |
 | department | Stored as text for MVP; normalize to FK in future |
 | research_area | Optional free text; used for search and filter dropdowns via `DISTINCT research_area` |
+| recommendations | Optional free-form text; uploaders paste or type this section directly from their thesis |
+| lessons_learned | Optional free-form text; uploaders paste or type this section directly from their thesis |
 | publication_link | Optional external publication or repository link |
 | publication_date | Optional date of external publication |
 | review_status | Required: `for_review`, `flagged`, or `accepted`. CHECK constraint enforced. Default `for_review` |
-| created_at, updated_at, deleted_at | Standard timestamps; `deleted_at` supports soft delete |
+| created_at, updated_at | Standard timestamps |
 
 ### `thesis_authors`
 
@@ -172,24 +160,12 @@ Stores a URL pointer to the PDF. PDFs are hosted on the department's physical sc
 | --- | --- |
 | id | Primary key |
 | thesis_id | Foreign key to `theses` |
-| file_url | Full URL to the PDF on the school server (e.g. `https://dcism.usc.edu.ph/repository/thesis.pdf`) |
+| file_url | Required; Full URL to the PDF on the school server; NOT NULL |
 | is_primary | Marks the current active PDF; old file rows are retained for history |
 
 > **Retrieval pattern:** The backend proxies authenticated file requests. The frontend never receives the raw `file_url` directly — it calls `GET /theses/:id/file`, the backend verifies the JWT, fetches from the school server internally, and streams the PDF back. This keeps raw URLs hidden from unauthenticated clients.
 
 > **School server requirement:** The server must expose files over HTTPS. Mixed content (HTTPS app + HTTP file) is blocked by all modern browsers.
-
-### `thesis_links`
-
-Stores external links separately when a thesis may have multiple resources.
-
-| Column | Notes |
-| --- | --- |
-| id | Primary key |
-| thesis_id | Foreign key to `theses` |
-| label | Example: `GitHub Repository`, `Demo`, `Publication` |
-| url | Required |
-| created_at, updated_at | Standard timestamps |
 
 ### `thesis_audits`
 
@@ -200,47 +176,20 @@ Tracks changes to thesis records for admin and moderator traceability.
 | id | Primary key |
 | thesis_id | Foreign key to `theses` |
 | changed_by_user_id | Foreign key to `users.id`; nullable for system-level events |
-| action | Example: `thesis.created`, `thesis.accepted`, `thesis.flagged`, `file.uploaded` |
-| change_description | Optional human-readable description of the change |
+| change_description | Required; Human-readable description of the change; NOT NULL |
 | updated_at | Timestamp of the change |
+
+> **`action` removed:** The `action` enum column was dropped. All audit context is captured in `change_description` as free text, which is simpler to maintain and avoids enum drift as the workflow evolves.
 
 ### `thesis_conferences`
 
-Optional conference presentation records.
+Optional conference presentation records. Uses a composite primary key on `(thesis_id, conference)` to prevent duplicate entries per thesis.
 
 | Column | Notes |
 | --- | --- |
-| id | Primary key |
-| thesis_id | Foreign key to `theses` |
-| conference_name | Required |
-| presentation_title | Optional if same as thesis title |
-| presentation_date | Optional |
-| location | Optional |
-| created_at, updated_at | Standard timestamps |
-
-### `thesis_recommendations`
-
-Stores recommendations for future researchers. Separate table allows multiple recommendations and easier editing.
-
-| Column | Notes |
-| --- | --- |
-| id | Primary key |
-| thesis_id | Foreign key to `theses` |
-| content | Required |
-| sort_order | Optional display order |
-| created_at, updated_at | Standard timestamps |
-
-### `thesis_lessons`
-
-Stores lessons learned. Separate table allows multiple lessons and easier editing.
-
-| Column | Notes |
-| --- | --- |
-| id | Primary key |
-| thesis_id | Foreign key to `theses` |
-| content | Required |
-| sort_order | Optional display order |
-| created_at, updated_at | Standard timestamps |
+| thesis_id | Foreign key to `theses`; part of composite PK |
+| conference | Required conference name; part of composite PK |
+| date_of_conference | Optional date of the conference presentation |
 
 ### `thesis_related`
 
@@ -257,7 +206,7 @@ The backend will likely need these database queries:
 | Filters | Filter by year, department, research area |
 | Detail page | Fetch thesis metadata, authors, tags, files, links, recommendations, lessons |
 | Moderator review list | Paginated thesis list filtered by `review_status` |
-| Admin editor | Create/update thesis and nested authors, tags, files, recommendations, lessons |
+| Admin editor | Create/update thesis and nested authors, tags, files |
 | Admin user list | Paginated list of `users` with role and affiliation |
 | Related theses | Frontend matches overlapping tags from current thesis against other accepted records |
 | Default repository browse | Return accepted theses ordered by newest thesis year first |
@@ -330,7 +279,7 @@ Minimum seed data for frontend/backend integration:
 
 | Data | Minimum count |
 | --- | --- |
-| Departments | 1: DCISM |
+| Department names | 1: "DCISM" (as text on theses) |
 | Research areas | 5 to 8 (broader curated domains) |
 | Accepted thesis records | 8 to 12 |
 | For-review thesis records | 2 |
@@ -411,3 +360,16 @@ Create an initial ERD and migration draft for:
 - `thesis_audits`
 
 Then review it with the backend integrator before adding optional conferences, links, and soft-delete behavior.
+
+## Future / Optional Tables
+
+### `departments`
+
+Currently, `department` is stored as a free-text string on the `theses` table to simplify the MVP schema. If the application needs to expand to multiple departments with specific metadata (e.g., department heads, specific rules), a `departments` table can be introduced.
+
+| Column | Notes |
+| --- | --- |
+| id | Primary key |
+| name | Unique department name, e.g. `Department of Computer Information Science and Mathematics` |
+| code | Unique short code, e.g. `DCISM` |
+| created_at, updated_at | Standard timestamps |

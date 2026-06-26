@@ -73,9 +73,8 @@ Returns paginated thesis cards for repository browsing and keyword search.
   | ------------------ | ------ | --------------------------------------------- |
   | `q`                | string | Search query (title, authors, tags, abstract) |
   | `year`             | int    | Filter by thesis year                         |
-  | `department_id`    | uuid   | Filter by department                          |
-  | `research_area_id` | uuid   | Filter by research area                       |
-  | `adviser_id`       | uuid   | Filter by adviser                             |
+  | `department`       | string | Filter by department name (e.g. `DCISM`)      |
+  | `research_area`    | string | Filter by research area                       |
   | `page`             | int    | Default `1`                                   |
   | `limit`            | int    | Default `20`                                  |
 
@@ -109,49 +108,38 @@ Returns the full detail payload for a single published thesis.
   ```json
   {
     "data": {
-      "id": "uuid",
+      "id": 1,
       "title": "Thesis Title",
       "abstract": "Full abstract text...",
       "year": 2026,
       "authors": [
-        { "profile_id": "uuid", "name": "Author One", "author_order": 1 },
-        { "profile_id": "uuid", "name": "Dr. Smith" }
+        { "user_id": "uuid", "name": "Author One", "author_order": 1 },
+        { "user_id": "uuid", "name": "Dr. Smith", "author_order": 2 }
       ],
       "department": "DCISM",
       "research_area": "Web Development",
       "tags": ["#react", "#ai", "#progressive-web-apps"],
       "publication_date": "2025-05-14",
       "publication_link": "https://...",
-      "recommendations": [
-        { "id": "uuid", "header": "Mobile Adaptation", "recommendation": "Explore mobile adaptation.", "sort_order": 1 },
-        { "id": "uuid", "header": "AI Extension", "recommendation": "Extend the recommendation engine with AI.", "sort_order": 2 }
-      ],
-      "lessons": [
-        { "id": "uuid", "header": "Database Design", "lesson": "Start database design early.", "sort_order": 1 },
-        { "id": "uuid", "header": "PDF Storage", "lesson": "Do not underestimate PDF storage configuration.", "sort_order": 2 }
-      ],
+      "recommendations": "Explore mobile adaptation. Extend the recommendation engine with AI.",
+      "lessons_learned": "Start database design early. Do not underestimate PDF storage configuration.",
       "files": [
         {
-          "id": "uuid",
-          "file_name": "thesis_final.pdf",
-          "file_size_bytes": 4194304,
-          "is_primary": true,
-          "signed_url": "https://... (null for anonymous users)"
+          "id": 1,
+          "file_url": "(proxied — never the raw school server URL)",
+          "is_primary": true
         }
       ],
-      "links": [
-        { "id": "uuid", "label": "GitHub Repository", "url": "https://github.com/..." }
-      ],
       "related_theses": [
-        { "id": "uuid", "title": "Related Thesis Title", "year": 2025, "authors": ["Author A"] }
+        { "id": 2, "title": "Related Thesis Title", "year": 2025, "authors": ["Author A"] }
       ]
     }
   }
   ```
 
-> **Note on `signed_url`:** If the requesting user is authenticated, return a short-lived signed URL from Supabase Storage. If anonymous, return `null`. The frontend uses this to conditionally render the PDF preview/download controls.
+> **Note on PDF access:** The `file_url` stored in the database is never returned directly. The backend proxies requests via `GET /theses/:id/file`, verifying the JWT before streaming the PDF from the school server.
 
-> **Note on `related_theses`:** This field is populated by the frontend by matching overlapping tags from the current thesis against other accepted records. The backend returns the raw thesis data needed for this computation.
+> **Note on `related_theses`:** Populated by the frontend by matching overlapping tags from the current thesis against other accepted records. The backend returns the raw thesis data needed for this computation.
 
 ---
 
@@ -165,13 +153,13 @@ Returns controlled vocabulary values for filter dropdowns.
   {
     "data": {
       "research_areas": ["Machine Learning", "Web Development", "Information Systems"],
-      "departments": [{ "id": "uuid", "name": "DCISM" }],
+      "departments": ["DCISM", "CAS", "TC"],
       "years": [2026, 2025, 2024]
     }
   }
   ```
 
-> **Note:** `research_areas` is derived via `SELECT DISTINCT research_area FROM theses WHERE review_status = 'accepted'`.
+> **Note:** `research_areas` and `departments` are derived via `SELECT DISTINCT research_area FROM theses WHERE review_status = 'accepted'` and `SELECT DISTINCT department...` respectively.
 
 ---
 
@@ -235,8 +223,8 @@ Creates a new thesis record with `review_status = 'for_review'`.
     "tags": ["#react", "#machine-learning"],
     "publication_date": "2025-05-14",
     "publication_link": "https://...",
-    "recommendations": [{ "header": "Future Work", "recommendation": "Rec bullet 1", "sort_order": 1 }],
-    "lessons": [{ "header": "Dev Tip", "lesson": "Lesson bullet 1", "sort_order": 1 }]
+    "recommendations": "Explore mobile adaptation. Extend the recommendation engine with AI.",
+    "lessons_learned": "Start database design early. Do not underestimate PDF storage configuration."
   }
   ```
 - **Response:** `201 Created` — returns the newly created thesis `id`.
@@ -250,52 +238,6 @@ Updates any field of a `for_review` or `flagged` thesis. Accepts partial payload
 - **Auth Required:** Yes (Role: `admin` or `moderator`)
 - **Request Body:** Any subset of the POST body above.
 - **Response:** `200 OK`
-
----
-
-### `POST /upload/theses/:id/recommendations` — Add Recommendation
-
-- **Auth Required:** Yes (Role: `admin` or `moderator`)
-- **Request Body:** `{ "header": "Future Work", "recommendation": "New recommendation", "sort_order": 3 }`
-- **Response:** `201 Created` — returns `{ "data": { "id": "uuid", "header": "...", "recommendation": "...", "sort_order": 3 } }`
-
----
-
-### `PATCH /upload/theses/:id/recommendations/:rec_id` — Update Recommendation
-
-- **Auth Required:** Yes (Role: `admin` or `moderator`)
-- **Request Body:** `{ "header": "Updated Header", "recommendation": "Updated recommendation", "sort_order": 1 }`
-- **Response:** `200 OK`
-
----
-
-### `DELETE /upload/theses/:id/recommendations/:rec_id` — Remove Recommendation
-
-- **Auth Required:** Yes (Role: `admin` or `moderator`)
-- **Response:** `204 No Content`
-
----
-
-### `POST /upload/theses/:id/lessons` — Add Lesson
-
-- **Auth Required:** Yes (Role: `admin` or `moderator`)
-- **Request Body:** `{ "header": "Dev Tip", "lesson": "New lesson", "sort_order": 3 }`
-- **Response:** `201 Created`
-
----
-
-### `PATCH /upload/theses/:id/lessons/:lesson_id` — Update Lesson
-
-- **Auth Required:** Yes (Role: `admin` or `moderator`)
-- **Request Body:** `{ "header": "Updated Header", "lesson": "Updated lesson", "sort_order": 1 }`
-- **Response:** `200 OK`
-
----
-
-### `DELETE /upload/theses/:id/lessons/:lesson_id` — Remove Lesson
-
-- **Auth Required:** Yes (Role: `admin` or `moderator`)
-- **Response:** `204 No Content`
 
 ---
 
@@ -331,7 +273,7 @@ Validates that all required fields and at least one PDF are present, then sets `
 
 - **Auth Required:** Yes (Role: `admin` or `moderator`)
 - **Required fields checked before acceptance:**
-  - Title, at least one author, at least one adviser, year, department, research area, abstract, at least one tag, primary PDF, at least one recommendation, at least one lesson.
+  - Title, at least one author, at least one adviser, year, department, research area, abstract, at least one tag, primary PDF, recommendations, lessons_learned.
 - **Response:** `200 OK`
 - **Errors:** `400 Bad Request` with a list of missing fields if validation fails.
 
