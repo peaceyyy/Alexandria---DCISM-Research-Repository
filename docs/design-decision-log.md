@@ -561,3 +561,34 @@ Consequences:
 - Avoids an immediate status migration.
 - Frontend can map `accepted` to the label `Approved`.
 - If the team later wants internal naming consistency, Shane can migrate the check constraint and existing rows from `accepted` to `approved`.
+
+## 2026-06-27
+
+### Decision 039: Allow nullable thesis submission ownership for legacy and admin-uploaded records
+
+Status: Accepted
+
+Context: Some thesis records may be imported or uploaded by an admin rather than submitted by a member with an Alexandria profile.
+
+Decision: Allow `theses.submitted_by_user_id` to be nullable for legacy, imported, or admin-uploaded thesis records. Member self-submissions must set `submitted_by_user_id`.
+
+Consequences:
+
+- Existing or admin-uploaded thesis records do not need fake owner accounts.
+- Member-owned edit and file-registration rules can still be enforced for self-submitted records.
+- Services should treat `submitted_by_user_id = null` as "no member owner," not as publicly editable.
+
+### Decision 040: Enforce one primary PDF file per thesis
+
+Status: Accepted
+
+Context: Alexandria keeps old PDF file metadata for history, but the student-facing preview/download flow needs one current PDF.
+
+Decision: Each thesis should have exactly one current primary file for PDF preview/download.
+
+Consequences:
+
+- `thesis_files.is_primary = true` identifies the current PDF.
+- File registration/replacement services must prevent multiple primary files for the same thesis.
+- The database should enforce this with a partial unique index on `thesis_files (thesis_id) WHERE is_primary = true` during the database prerequisite phase.
+- Frontend contracts should use `file_access` and never need to choose between multiple primary files.

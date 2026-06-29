@@ -1,5 +1,5 @@
 -- WARNING: This schema is for context only and is not meant to be run directly.
--- This reflects the actual Supabase schema as of 2026-06-26.
+-- This reflects the actual Supabase schema as of 2026-06-27.
 -- Table names are lowercase to match Supabase's actual stored identifiers.
 
 -- users: single table for all authenticated users.
@@ -59,6 +59,8 @@ CREATE TRIGGER on_auth_user_created
 -- Distinct values power the filter dropdown via SELECT DISTINCT research_area.
 -- recommendations and lessons_learned are free-form text fields (no structured sub-tables).
 -- Uploaders paste or type these sections directly from their thesis document.
+-- submitted_by_user_id is nullable so legacy/imported/admin-uploaded theses do not need a fake owner.
+-- Member self-submissions must set submitted_by_user_id so ownership checks can be enforced.
 CREATE TABLE public.theses (
   id               bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   created_at       timestamp with time zone NOT NULL DEFAULT now(),
@@ -70,11 +72,13 @@ CREATE TABLE public.theses (
   research_area    text,
   publication_link text,
   publication_date date,
+  submitted_by_user_id uuid,
   review_status    text NOT NULL DEFAULT 'for_review'::text
                      CHECK (review_status = ANY (ARRAY['for_review'::text, 'flagged'::text, 'accepted'::text, 'trashed'::text])),
   recommendations  text,
   lessons_learned  text,
-  CONSTRAINT theses_pkey PRIMARY KEY (id)
+  CONSTRAINT theses_pkey PRIMARY KEY (id),
+  CONSTRAINT theses_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id)
 );
 
 -- thesis_files: stores a URL pointer to the PDF.
@@ -82,6 +86,7 @@ CREATE TABLE public.theses (
 -- file_url stores the full accessible URL (e.g. https://dcism.usc.edu.ph/repository/thesis.pdf).
 -- Backend proxies authenticated file requests; file_url is never exposed to unauthenticated clients.
 -- is_primary marks the main/current PDF for display; old files are retained for history.
+-- Project rule: each thesis should have exactly one primary file for preview/download.
 CREATE TABLE public.thesis_files (
   id        bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   thesis_id bigint NOT NULL,

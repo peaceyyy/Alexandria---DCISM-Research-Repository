@@ -4,7 +4,9 @@
 
 This document defines the data-fetching and API contracts for the Alexandria MVP. These contracts describe the boundary between the frontend application and the data layer.
 
-> **Status:** DRAFT — Last updated: 2026-06-26
+> **Status:** LOCKED FOR PHASE 1 - Last reviewed: 2026-06-27
+>
+> Reviewed against `docs/updated_db_fields.sql` and the 2026-06-27 team confirmation that `theses.submitted_by_user_id` has been added in the live Supabase database.
 
 ### Architecture Strategy
 
@@ -17,6 +19,14 @@ Alexandria is MVP-scoped with a 1-month delivery window. The following approach 
 This document defines the **contracts** those service functions must fulfill.
 
 > **Implementation note:** The endpoint names below describe service intent and future backend route shape. For the MVP, frontend pages should call service functions, not fetch these route strings directly unless a route is explicitly implemented.
+
+### Contract Terms
+
+- **DTO** means "data transfer object." In Alexandria, a DTO is the frontend-safe shape returned by a service function. It hides raw Supabase row details, joins, and sensitive fields.
+- DB row names stay close to the live schema, such as `thesis_authors`, `review_status`, and `file_url`.
+- DTO names are frontend-facing, such as `ThesisCard`, `ThesisDetail`, `CurrentUser`, and `file_access`.
+- Thesis-related IDs are numbers because the live tables use `bigint` identity columns.
+- User IDs are UUID strings because `public.users.id` references `auth.users.id`.
 
 ---
 
@@ -49,6 +59,8 @@ All service calls resolve to a consistent shape.
 - Members can edit their own submission only after a moderator/admin flags it.
 - Members can attach/register their own thesis PDF or file URL.
 - The database value `accepted` may be displayed as `Approved` in the UI.
+- Member-owned actions are checked against `theses.submitted_by_user_id`.
+- `submitted_by_user_id` may be `null` for legacy/imported/admin-uploaded theses. Member self-submissions must set it.
 
 ### 2.3 Pagination
 
@@ -65,7 +77,7 @@ Default sort for public repository browsing: **newest thesis year first** (`year
 
 ## 3. Public / Discovery Endpoints
 
-These are accessible without authentication. Full published thesis metadata is public.
+These are accessible without authentication. Full accepted thesis metadata is public.
 
 ---
 
@@ -92,7 +104,9 @@ Returns paginated thesis cards for repository browsing and keyword search.
       {
         "id": 1,
         "title": "Thesis Title",
-        "authors": [{ "id": 1, "user_id": "uuid-or-null", "display_name": "Author One", "sort_order": 1 }],
+        "authors": [
+          { "id": 1, "user_id": "uuid-or-null", "display_name": "Author One", "contribution_role": "author", "sort_order": 1 }
+        ],
         "year": 2026,
         "abstract_preview": "First 200 characters of abstract...",
         "tags": ["#react", "#ai"],
@@ -107,7 +121,7 @@ Returns paginated thesis cards for repository browsing and keyword search.
 
 ### `GET /theses/:id` — Thesis Detail
 
-Returns the full detail payload for a single published thesis.
+Returns the full detail payload for a single accepted thesis.
 
 - **Auth Required:** No. Metadata is public; PDF file access requires auth through `download_path`.
 
@@ -120,10 +134,10 @@ Returns the full detail payload for a single published thesis.
       "abstract": "Full abstract text...",
       "year": 2026,
       "authors": [
-        { "id": 1, "user_id": "uuid-or-null", "display_name": "Author One", "sort_order": 1 }
+        { "id": 1, "user_id": "uuid-or-null", "display_name": "Author One", "contribution_role": "author", "sort_order": 1 }
       ],
       "advisers": [
-        { "id": 2, "user_id": "uuid-or-null", "display_name": "Dr. Smith", "sort_order": 1 }
+        { "id": 2, "user_id": "uuid-or-null", "display_name": "Dr. Smith", "contribution_role": "adviser", "sort_order": 1 }
       ],
       "department": "DCISM",
       "research_area": "Web Development",
@@ -138,7 +152,17 @@ Returns the full detail payload for a single published thesis.
         "download_path": "/theses/1/file"
       },
       "related_theses": [
-        { "id": 2, "title": "Related Thesis Title", "year": 2025, "authors": ["Author A"] }
+        {
+          "id": 2,
+          "title": "Related Thesis Title",
+          "authors": [
+            { "id": 3, "user_id": null, "display_name": "Author A", "contribution_role": "author", "sort_order": 1 }
+          ],
+          "year": 2025,
+          "abstract_preview": "Short related thesis abstract preview...",
+          "tags": ["#react"],
+          "research_area": "Web Development"
+        }
       ]
     }
   }
@@ -205,7 +229,7 @@ These require an authenticated session. Role checks are enforced by RLS and serv
 Returns thesis records for the review/admin dashboard.
 
 - **Auth Required:** Yes (Role: `admin` or `moderator`)
-- **Parameters:** `page`, `limit`, `review_status` (`for_review` / `flagged` / `accepted` / `trashed` if added)
+- **Parameters:** `page`, `limit`, `review_status` (`for_review` / `flagged` / `accepted` / `trashed`)
 - **Response:** Paginated list with `id`, `title`, `review_status`, `year`, `updated_at`.
 
 ---
@@ -215,7 +239,7 @@ Returns thesis records for the review/admin dashboard.
 Creates a new thesis record with `review_status = 'for_review'`.
 
 - **Auth Required:** Yes (Role: `member`, `admin`, or `moderator`)
-- **Ownership:** The service must store the submitting user's id on the thesis record once the database has a submission owner field.
+- **Ownership:** The service stores the submitting user's id in `theses.submitted_by_user_id`.
 - **Request Body:**
   ```json
   {
@@ -240,7 +264,7 @@ Creates a new thesis record with `review_status = 'for_review'`.
   ```
 
 > **Author/adviser storage:** Both `authors` and `advisers` are stored in `thesis_authors`. Use `contribution_role = 'author'` or `contribution_role = 'adviser'` to separate them.
-- **Response:** `201 Created` — returns the newly created thesis `id`.
+- **Response:** `201 Created` - returns the newly created thesis `id`.
 
 ---
 
@@ -249,6 +273,7 @@ Creates a new thesis record with `review_status = 'for_review'`.
 Updates any field of a `for_review` or `flagged` thesis. Accepts partial payloads.
 
 - **Auth Required:** Yes. `admin` and `moderator` can update review records. `member` can update their own submission only after it is `flagged`.
+- **Ownership Check:** Member ownership is determined by `theses.submitted_by_user_id`.
 - **Request Body:** Any subset of the POST body above.
 - **Response:** `200 OK`
 
@@ -259,6 +284,7 @@ Updates any field of a `for_review` or `flagged` thesis. Accepts partial payload
 Called after the PDF has been placed on the school server. Stores the URL pointer in `thesis_files`.
 
 - **Auth Required:** Yes. `member` may register a file for their own submission. `admin` and `moderator` may register a file for reviewable submissions.
+- **Primary File Rule:** A thesis has exactly one current primary file for PDF preview/download. If `is_primary` is `true`, the service must ensure no other file for that thesis remains primary.
 - **Request Body:**
   ```json
   {
@@ -328,12 +354,11 @@ Moves a thesis to trashed state. Hidden from all public browsing, search, and ac
 
 ---
 
-### `DELETE /admin/theses/:id` — Soft Delete
+### Deferred: Soft Delete
 
-Sets `deleted_at`. Not exposed in the normal admin UI. Internal recovery/audit path only.
+No MVP frontend should call a soft-delete endpoint. The live schema snapshot does not define `theses.deleted_at`, and MVP removal is represented by `review_status = 'trashed'`.
 
-- **Auth Required:** Yes (Role: `admin` only)
-- **Response:** `204 No Content`
+If a future recovery or audit workflow needs soft delete, add `deleted_at` to the schema first and define a new contract at that time.
 
 ---
 
@@ -393,6 +418,22 @@ Updates a user's system role in `users.role`. Used by the admin role access mana
 These DTOs should exist in `frontend/lib/services/types.ts` before pages start wiring real data.
 
 ```ts
+export type PaginationMeta = {
+  total_count: number;
+  page: number;
+  limit: number;
+};
+
+export type ServiceError = {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+};
+
+export type ServiceResult<T> =
+  | { data: T; error: null; meta?: PaginationMeta }
+  | { data: null; error: ServiceError };
+
 export type ReviewStatus = "for_review" | "flagged" | "accepted" | "trashed";
 export type UserRole = "admin" | "moderator" | "member";
 export type Affiliation = "student" | "alumni" | "professor";
@@ -431,15 +472,48 @@ export type ThesisDetail = ThesisCard & {
   };
   related_theses: ThesisCard[];
 };
+
+export type FilterOptions = {
+  research_areas: string[];
+  departments: string[];
+  years: number[];
+};
+
+export type CurrentUser = {
+  id: string;
+  email: string;
+  profile_name: string;
+  usc_id: number;
+  role: UserRole;
+  affiliation: Affiliation;
+};
+
+export type AdminThesisRow = {
+  id: number;
+  title: string;
+  review_status: ReviewStatus;
+  year: number;
+  updated_at: string;
+  submitted_by_user_id: string | null;
+};
+
+export type UserAdminRow = CurrentUser;
+
+export type ValidationErrorList = {
+  missing_fields: string[];
+};
 ```
 
-## 8. Remaining Contract Polish Before Frontend Wiring
+## 8. Phase 1 Contract Review Notes
 
-- Add a thesis ownership column, recommended `submitted_by_user_id uuid REFERENCES public.users(id)`, so member-only edit/file rules can be enforced.
-- Decide whether `GET /theses/:id/file` streams the PDF or redirects after auth. The frontend only needs `download_path`.
-- Keep all public thesis reads filtered to `review_status = 'accepted'`.
-- Keep trashed records out of normal admin/review lists unless a future audit view is added.
-- Standardize frontend status labels: `accepted` displays as `Approved`.
+- `submitted_by_user_id` is treated as a locked DB field because the team confirmed it exists in live Supabase on 2026-06-27.
+- `submitted_by_user_id` is nullable for legacy/imported/admin-uploaded theses, but required for member self-submissions.
+- A thesis has exactly one primary PDF file for preview/download.
+- `GET /theses/:id/file` may stream or redirect after auth. The frontend contract is only `file_access.download_path`.
+- All public thesis reads filter to `review_status = 'accepted'`.
+- Normal admin/review lists exclude `trashed` unless explicitly filtered.
+- Frontend status labels display `accepted` as `Approved`.
+- Public DTOs never expose raw `thesis_files.file_url`.
 
 ---
 

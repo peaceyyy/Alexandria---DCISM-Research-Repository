@@ -1,6 +1,6 @@
 # Alexandria Backend Readiness Plan
 
-Last updated: 2026-06-26
+Last updated: 2026-06-27
 
 ## Purpose
 
@@ -45,7 +45,8 @@ These decisions came from project-lead clarification on 2026-06-26.
 | Trash authority | Both `admin` and `moderator` can trash invalid submissions. |
 | Trash recovery | Trashed records are not recoverable through the admin UI for MVP. |
 | Approved label | Keep the current DB value `accepted` unless the team chooses a migration; the UI can label it as `Approved`. |
-| Submission ownership | Add a thesis owner field so member edit/file permissions can be enforced. Recommended: `submitted_by_user_id uuid REFERENCES public.users(id)`. |
+| Submission ownership | Use `theses.submitted_by_user_id uuid REFERENCES public.users(id)` for member edit/file permissions. Nullable is allowed for legacy/imported/admin-uploaded theses; member self-submissions must set it. Confirmed added in live Supabase on 2026-06-27. |
+| Primary thesis PDF | Exactly one `thesis_files` row per thesis should be primary for PDF preview/download. |
 
 ## Backend Work Homer Can Start Now
 
@@ -255,20 +256,14 @@ CREATE TABLE public.thesis_authors (
 );
 ```
 
-### 10. Schema Gaps To Close
+### 10. Schema Follow-Ups
 
-Before frontend wiring, close these small backend/data gaps:
+Before frontend wiring, keep these backend/data constraints visible:
 
-- Add `submitted_by_user_id` to `theses` so member-owned edit and file-registration rules can be enforced.
-- Verify `review_status = 'trashed'` exists in the live database, because the UI and services now depend on it.
-- Consider a partial unique index so only one file per thesis can have `is_primary = true`.
-
-Recommended ownership column:
-
-```sql
-ALTER TABLE public.theses
-ADD COLUMN submitted_by_user_id uuid REFERENCES public.users(id);
-```
+- `submitted_by_user_id` exists on `theses` in the live Supabase database and should be used for member-owned edit and file-registration rules.
+- `submitted_by_user_id` may be nullable for legacy/imported/admin-uploaded theses. New member self-submissions should always set it.
+- `review_status = 'trashed'` exists in the live database and is the MVP removal state.
+- Add or confirm a partial unique index so only one file per thesis can have `is_primary = true`.
 
 Recommended primary-file uniqueness:
 
@@ -284,7 +279,9 @@ WHERE is_primary = true;
 
 - Reconcile role names in docs and frontend discussions.
 - Confirm review status naming with the team: keep internal `accepted` with UI label `Approved`.
-- Confirm the live database includes `review_status = trashed`.
+- Confirm service contracts use `submitted_by_user_id` for ownership.
+- Confirm service contracts use `review_status = trashed` for MVP removal.
+- Confirm file services enforce exactly one primary file per thesis.
 - Confirm the updated `thesis_authors` shape is reflected in frontend service types.
 - Create shared TypeScript types and result/error shape.
 
@@ -305,5 +302,4 @@ WHERE is_primary = true;
 
 ## Questions To Lock With The Team
 
-- Should trashed submissions be represented by `review_status = trashed` or `deleted_at`?
 - Should related theses remain frontend-computed, or should Homer prepare a backend query for it early?
