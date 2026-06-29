@@ -11,19 +11,19 @@ dependencies:
     - path: docs/updated_db_fields.sql
       reason: Raw DB row shapes.
       priority: critical
-    - path: frontend/AGENTS.md
+    - path: Alexandria/AGENTS.md
       reason: Next.js version warning before implementation.
       priority: high
-    - path: frontend/package.json
+    - path: Alexandria/package.json
       reason: Confirm TypeScript/Next baseline.
       priority: medium
   modify: []
   create:
-    - path: frontend/lib/services/types.ts
+    - path: Alexandria/lib/services/types.ts
       reason: Future implementation target for shared DTOs.
       exclusive_lock: true
       template: none
-    - path: frontend/lib/services/result.ts
+    - path: Alexandria/lib/services/result.ts
       reason: Future implementation target for service result/error envelope.
       exclusive_lock: true
       template: none

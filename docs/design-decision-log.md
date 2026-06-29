@@ -310,7 +310,7 @@ Status: Accepted
 
 Context: The latest API contracts define a one-month MVP implementation where frontend code talks to Supabase through a local service layer instead of a custom REST server.
 
-Decision: Build data access around service functions such as `ThesisService.getAll()` under `frontend/lib/services/`. UI components must not call `supabase.from(...)` directly.
+Decision: Build data access around service functions such as `ThesisService.getAll()` under `Alexandria/lib/services/`. UI components must not call `supabase.from(...)` directly.
 
 Consequences:
 

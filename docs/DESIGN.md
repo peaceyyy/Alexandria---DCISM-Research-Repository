@@ -238,7 +238,7 @@ The Figma mock contains several very small text sizes: 6px footer text, 7px tag 
 
 - Use `#14181C` as the app background across all main screens.
 - Install and load Inter and Khula before implementing the typography system.
-- Encode palette tokens in `frontend/app/globals.css` or the project theme layer.
+- Encode palette tokens in `Alexandria/app/globals.css` or the project theme layer.
 - Build the main app shell as a three-column desktop grid with responsive collapse.
 - Keep content cards flat, sharp, and dense.
 - Use blue only for brand, primary action, focus, selected state, and logo emphasis.

@@ -39,7 +39,7 @@ As the project team, we want a stable MVP demo, so that we can confidently show 
 ### Task 1: Run Static Validation
 
 **Action**: Run lint and build/type checks that exist for the frontend.
-**Files**: `frontend/package.json`
+**Files**: `Alexandria/package.json`
 **Why**: Catch regressions before demo.
 **Verification**: `npm.cmd run lint` passes; build/type check passes if configured.
 

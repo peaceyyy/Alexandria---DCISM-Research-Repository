@@ -9,8 +9,8 @@ Create the shared TypeScript types that frontend pages and backend services both
 
 ## Future Files
 
-- `frontend/lib/services/types.ts`
-- `frontend/lib/services/result.ts`
+- `Alexandria/lib/services/types.ts`
+- `Alexandria/lib/services/result.ts`
 
 ## Types To Include
 

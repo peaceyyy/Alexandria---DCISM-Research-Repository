@@ -16,7 +16,7 @@ dependencies:
       priority: high
   modify: []
   create:
-    - path: frontend/lib/services/thesis-service.ts
+    - path: Alexandria/lib/services/thesis-service.ts
       reason: Future implementation target for public thesis queries.
       exclusive_lock: true
       template: none

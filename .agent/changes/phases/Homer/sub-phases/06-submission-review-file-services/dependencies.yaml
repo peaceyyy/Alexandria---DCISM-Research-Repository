@@ -19,15 +19,15 @@ dependencies:
       priority: high
   modify: []
   create:
-    - path: frontend/lib/services/submission-service.ts
+    - path: Alexandria/lib/services/submission-service.ts
       reason: Future implementation target for member submissions.
       exclusive_lock: true
       template: none
-    - path: frontend/lib/services/review-service.ts
+    - path: Alexandria/lib/services/review-service.ts
       reason: Future implementation target for moderator/admin review actions.
       exclusive_lock: true
       template: none
-    - path: frontend/lib/services/file-service.ts
+    - path: Alexandria/lib/services/file-service.ts
       reason: Future implementation target for file registration and protected file access.
       exclusive_lock: true
       template: none

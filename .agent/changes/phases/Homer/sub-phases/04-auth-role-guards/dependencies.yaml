@@ -14,7 +14,7 @@ dependencies:
     - path: docs/updated_db_fields.sql
       reason: users table and role/affiliation constraints.
       priority: high
-    - path: frontend/AGENTS.md
+    - path: Alexandria/AGENTS.md
       reason: Next.js version warning before implementation.
       priority: high
   modify: []

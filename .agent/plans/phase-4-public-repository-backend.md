@@ -39,14 +39,14 @@ As a student, I want to search and inspect theses, so that I can quickly decide 
 ### Task 1: Implement Thesis List Contract
 
 **Action**: Build `GET /api/theses` with pagination, keyword search, filters, and default newest-year sorting.
-**Files**: Recommended: `frontend/app/api/theses/route.ts`, backend query helpers.
+**Files**: Recommended: `Alexandria/app/api/theses/route.ts`, backend query helpers.
 **Why**: Powers the public repository page.
 **Verification**: Returns only published, non-deleted records.
 
 ### Task 2: Implement Thesis Detail Contract
 
 **Action**: Build `GET /api/theses/:slug` or equivalent dynamic route with full public metadata.
-**Files**: Recommended: `frontend/app/api/theses/[slug]/route.ts`
+**Files**: Recommended: `Alexandria/app/api/theses/[slug]/route.ts`
 **Why**: Powers the thesis detail page.
 **Verification**: Includes authors, adviser, department, research area, tags, recommendations, lessons, optional links/awards/conferences, related theses, and PDF access state.
 
@@ -67,7 +67,7 @@ As a student, I want to search and inspect theses, so that I can quickly decide 
 ### Task 5: Add Structured Errors
 
 **Action**: Standardize validation, unauthorized, forbidden, not found, and storage failure responses.
-**Files**: Recommended: `frontend/app/lib/errors/*`
+**Files**: Recommended: `Alexandria/app/lib/errors/*`
 **Why**: Frontend can show consistent states.
 **Verification**: Each route returns predictable status and JSON shape.
 

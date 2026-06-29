@@ -415,7 +415,7 @@ Updates a user's system role in `users.role`. Used by the admin role access mana
 
 ## 7. Frontend DTOs To Implement First
 
-These DTOs should exist in `frontend/lib/services/types.ts` before pages start wiring real data.
+These DTOs should exist in `Alexandria/lib/services/types.ts` before pages start wiring real data.
 
 ```ts
 export type PaginationMeta = {

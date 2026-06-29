@@ -32,35 +32,35 @@ As a student, I want to sign in with my school email, so that I can access prote
 | --- | --- | --- |
 | `.agent/project_specification.md` | Access Control, Auth/Profile Contracts, Environment Configuration | Auth requirements |
 | `docs/Alexandria PRD.md` | Authentication and Authorization, PDF Access | Product behavior |
-| `frontend/AGENTS.md` | All | Next.js 16 warning before implementation |
+| `Alexandria/AGENTS.md` | All | Next.js 16 warning before implementation |
 
 ## Implementation Tasks
 
 ### Task 1: Install Supabase Client Libraries
 
 **Action**: Add Supabase packages and verify compatibility with the current Next.js app.
-**Files**: `frontend/package.json`, `frontend/package-lock.json`
+**Files**: `Alexandria/package.json`, `Alexandria/package-lock.json`
 **Why**: Required for browser and server auth/session work.
 **Verification**: `npm.cmd install` succeeds and lint still passes.
 
 ### Task 2: Add Supabase Client Helpers
 
 **Action**: Create browser and server Supabase client helpers, including per-request server clients.
-**Files**: Recommended: `frontend/app/lib/supabase/*`
+**Files**: Recommended: `Alexandria/app/lib/supabase/*`
 **Why**: Keeps auth/session code consistent.
 **Verification**: Helpers can read the current session without exposing service-role credentials.
 
 ### Task 3: Add Middleware Session Handling
 
 **Action**: Add middleware for Supabase SSR session refresh/persistence.
-**Files**: `frontend/middleware.ts` and Supabase helper files.
+**Files**: `Alexandria/middleware.ts` and Supabase helper files.
 **Why**: Server-rendered routes need correct session cookies.
 **Verification**: Login state persists across refreshes.
 
 ### Task 4: Build Auth Routes and Screens
 
 **Action**: Implement login, signup, callback, error, and logout flows.
-**Files**: Auth pages/routes under `frontend/app`.
+**Files**: Auth pages/routes under `Alexandria/app`.
 **Why**: Student visitors need PDF access and admins need protected workflows.
 **Verification**: Signup/login/logout work with test accounts.
 
@@ -74,7 +74,7 @@ As a student, I want to sign in with my school email, so that I can access prote
 ### Task 6: Add Role Helpers and `/api/me`
 
 **Action**: Implement profile lookup, role helpers, and current-user response contract.
-**Files**: Recommended: `frontend/app/api/me/route.ts`, `frontend/app/lib/auth/*`
+**Files**: Recommended: `Alexandria/app/api/me/route.ts`, `Alexandria/app/lib/auth/*`
 **Why**: UI and server routes need one source for role checks.
 **Verification**: Anonymous, student, contributor, and admin states return correct results.
 
@@ -107,7 +107,7 @@ As a student, I want to sign in with my school email, so that I can access prote
 
 **Common Issues**:
 
-- Read `frontend/AGENTS.md` and current Next.js docs before writing code.
+- Read `Alexandria/AGENTS.md` and current Next.js docs before writing code.
 - Never expose `SUPABASE_SERVICE_ROLE_KEY` to browser code.
 - Student visitors must not self-assign Contributor or Admin.
 

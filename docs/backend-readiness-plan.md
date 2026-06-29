@@ -18,7 +18,7 @@ The latest implementation direction has shifted from the earlier planning docs i
 
 | Area | Current State | Backend Impact |
 | --- | --- | --- |
-| Data access | Supabase JS client through a local service layer | Build `frontend/lib/services/` contracts first; keep UI away from raw Supabase queries |
+| Data access | Supabase JS client through a local service layer | Build `Alexandria/lib/services/` contracts first; keep UI away from raw Supabase queries |
 | User table | `public.users` linked to `auth.users` | Use this as the app profile table |
 | System roles | `admin`, `moderator`, `member` | Replace older Admin/Contributor/Student visitor language in implementation |
 | USC identity | `student`, `alumni`, `professor` in `users.affiliation` | Do not use affiliation for permission checks |
@@ -57,15 +57,15 @@ Create the service layer before frontend integration gets messy.
 Recommended modules:
 
 ```text
-frontend/lib/supabase/client.ts
-frontend/lib/supabase/server.ts
-frontend/lib/services/thesis-service.ts
-frontend/lib/services/auth-service.ts
-frontend/lib/services/admin-thesis-service.ts
-frontend/lib/services/user-service.ts
-frontend/lib/services/file-service.ts
-frontend/lib/services/types.ts
-frontend/lib/services/result.ts
+Alexandria/lib/supabase/client.ts
+Alexandria/lib/supabase/server.ts
+Alexandria/lib/services/thesis-service.ts
+Alexandria/lib/services/auth-service.ts
+Alexandria/lib/services/admin-thesis-service.ts
+Alexandria/lib/services/user-service.ts
+Alexandria/lib/services/file-service.ts
+Alexandria/lib/services/types.ts
+Alexandria/lib/services/result.ts
 ```
 
 Minimum contracts:

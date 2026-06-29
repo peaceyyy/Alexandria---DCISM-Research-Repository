@@ -32,14 +32,14 @@ As a student, I want to browse, search, and inspect thesis records, so that I ca
 | --- | --- | --- |
 | `.agent/project_specification.md` | Frontend Requirements, Search, API Contracts | Page behavior |
 | `docs/Alexandria PRD.md` | Repository, Search, Detail View | User-facing requirements |
-| `frontend/AGENTS.md` | All | Next.js version warning before coding |
+| `Alexandria/AGENTS.md` | All | Next.js version warning before coding |
 
 ## Implementation Tasks
 
 ### Task 1: Build Repository Browse Page
 
 **Action**: Build the main repository page with search input, result count, thesis cards, filters, sort, pagination or load-more behavior.
-**Files**: `frontend/app/*` paths chosen by the frontend team.
+**Files**: `Alexandria/app/*` paths chosen by the frontend team.
 **Why**: This is the main student workflow.
 **Verification**: Seeded or mock thesis cards render with loading, empty, and error states.
 

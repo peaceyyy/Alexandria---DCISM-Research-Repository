@@ -59,8 +59,8 @@ sub_phases:
     objective: Create shared TypeScript contracts for service results, errors, roles, statuses, users, thesis cards, thesis detail, and validation errors.
     shared_with: [Leira, Ethan]
     output:
-      - frontend/lib/services/types.ts
-      - frontend/lib/services/result.ts
+      - Alexandria/lib/services/types.ts
+      - Alexandria/lib/services/result.ts
     blocks:
       - "05-thesis-query-services"
       - "06-submission-review-file-services"

@@ -18,7 +18,7 @@ Latest implementation sources:
 
 As of 2026-06-26, the API contracts and Supabase SQL snapshot contain newer implementation decisions than the earlier planning docs. When there is a conflict, treat these latest files as the implementation source of truth:
 
-- The MVP uses the Supabase JS client through a frontend service layer in `frontend/lib/services/`; UI components should not call `supabase.from(...)` directly.
+- The MVP uses the Supabase JS client through a frontend service layer in `Alexandria/lib/services/`; UI components should not call `supabase.from(...)` directly.
 - System roles are now `admin`, `moderator`, and `member`.
 - USC identity is stored separately as `affiliation`: `student`, `alumni`, or `professor`.
 - User profile data lives in `public.users`, linked to `auth.users`, rather than the earlier `profiles` naming.
@@ -96,7 +96,7 @@ The MVP is successful when:
 
 These assumptions are made to keep the MVP coherent with the current repository.
 
-- The existing `frontend/` Next.js app is the main application surface.
+- The existing `Alexandria/` Next.js app is the main application surface.
 - The backend integration layer should start inside the Next.js app through server-side route handlers/actions and Supabase server clients.
 - A separate backend service is not required for MVP unless a later implementation constraint proves otherwise.
 - The root `backend/` folder is reserved for future service extraction or backend-only utilities, not required for Phase 1.
@@ -476,7 +476,7 @@ Do not commit real credentials.
 
 ### 18.1 Static Checks
 
-- `npm.cmd run lint` from `frontend/`
+- `npm.cmd run lint` from `Alexandria/`
 - TypeScript build/type checks once implementation exists
 
 ### 18.2 Functional Checks

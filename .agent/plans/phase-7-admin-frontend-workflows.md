@@ -32,14 +32,14 @@ As an admin or contributor, I want a clear dashboard and editor, so that I can m
 | --- | --- | --- |
 | `.agent/project_specification.md` | Admin Pages, Admin Contracts, UI States | Admin scope |
 | `docs/Alexandria PRD.md` | Admin Publishing Workflow | Required workflow |
-| `frontend/AGENTS.md` | All | Next.js version warning before coding |
+| `Alexandria/AGENTS.md` | All | Next.js version warning before coding |
 
 ## Implementation Tasks
 
 ### Task 1: Build Admin Dashboard
 
 **Action**: Build a protected dashboard with thesis list, status tabs/filters, search, and quick actions.
-**Files**: Admin route and components under `frontend/app`.
+**Files**: Admin route and components under `Alexandria/app`.
 **Why**: Admins need a control center for repository records.
 **Verification**: Admin/Contributor sees records by status; Student visitor is denied.
 

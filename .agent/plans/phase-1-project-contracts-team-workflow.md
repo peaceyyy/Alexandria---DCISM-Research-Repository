@@ -35,7 +35,7 @@ As a project team, we want clear contracts and ownership, so that frontend, back
 | `docs/Alexandria PRD.md` | Product Decisions, Functional Requirements | Product scope and user behavior |
 | `docs/database-engineer-reference.md` | Recommended Tables, RLS, Seed Data | Database handoff |
 | `docs/design-decision-log.md` | All accepted decisions | Traceability for locked choices |
-| `frontend/AGENTS.md` | All | Next.js version warning before coding |
+| `Alexandria/AGENTS.md` | All | Next.js version warning before coding |
 
 ## Implementation Tasks
 
@@ -49,14 +49,14 @@ As a project team, we want clear contracts and ownership, so that frontend, back
 ### Task 2: Draft API Response Shapes
 
 **Action**: Define the initial payload shapes for thesis cards, thesis detail, auth profile, admin list rows, and publish validation errors.
-**Files**: Recommended follow-up: `docs/api-contracts.md` or `frontend/app/lib/mock-data/*`
+**Files**: Recommended follow-up: `docs/api-contracts.md` or `Alexandria/app/lib/mock-data/*`
 **Why**: Allows frontend work to proceed before live endpoints are complete.
 **Verification**: Leira and Ethan can build views without inventing their own data shapes.
 
 ### Task 3: Draft Environment Contract
 
 **Action**: Document required environment variables without real credentials.
-**Files**: Recommended follow-up: `frontend/.env.example`
+**Files**: Recommended follow-up: `Alexandria/.env.example`
 **Why**: Makes Supabase setup reproducible across machines.
 **Verification**: Required keys include `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, optional `SUPABASE_SERVICE_ROLE_KEY`, and `ALEXANDRIA_ALLOWED_EMAIL_DOMAINS=usc.edu.ph`.
 

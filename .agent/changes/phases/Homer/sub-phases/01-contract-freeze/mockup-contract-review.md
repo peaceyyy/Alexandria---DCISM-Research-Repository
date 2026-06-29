@@ -75,4 +75,4 @@ Ask these before frontend implementation starts:
 
 ## Current Recommendation
 
-Do not start service implementation solely because mockups exist. First, answer the three follow-up questions above, then patch `docs/api-contracts.md` if needed. After that, move to sub-phase 03 and create `frontend/lib/services/types.ts` and `frontend/lib/services/result.ts`.
+Do not start service implementation solely because mockups exist. First, answer the three follow-up questions above, then patch `docs/api-contracts.md` if needed. After that, move to sub-phase 03 and create `Alexandria/lib/services/types.ts` and `Alexandria/lib/services/result.ts`.

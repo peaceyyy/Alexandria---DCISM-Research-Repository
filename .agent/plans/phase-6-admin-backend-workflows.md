@@ -61,7 +61,7 @@ As an admin, I want to create, edit, upload, validate, publish, and archive thes
 ### Task 4: Implement Publish Validation
 
 **Action**: Centralize validation for required publish fields.
-**Files**: Recommended: `frontend/app/lib/theses/publish-validation.ts`
+**Files**: Recommended: `Alexandria/app/lib/theses/publish-validation.ts`
 **Why**: UI and API should agree on what makes a thesis publishable.
 **Verification**: Publish fails with structured errors when title, authors, year, adviser, department, research area, abstract, tags, primary PDF, recommendation, or lesson is missing.
 
