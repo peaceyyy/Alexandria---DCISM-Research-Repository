@@ -44,19 +44,19 @@ export function AuthShell({ children }: { children: ReactNode }) {
           </span>
         </Link>
 
-        <header className="mt-5 max-w-[854px]">
-          <div className="flex items-end gap-3">
-            <h1 className="font-[var(--font-display)] text-[clamp(4rem,7vw,6.25rem)] leading-none font-extrabold text-[#368bfe]">
+        <header className="mt-6 max-w-[854px]">
+          <div className="flex items-baseline gap-3">
+            <h1 className="font-[var(--font-display)] text-[clamp(3.5rem,6vw,5rem)] leading-none font-extrabold text-[#368bfe] tracking-tight">
               ALEXANDRIA
             </h1>
-            <span className="mb-3 text-[15px] text-[#ffd900] max-md:hidden">
+            <span className="text-base font-medium text-[#ffd900] max-md:hidden">
               (al-ig-ZAN-dree-uh)
             </span>
           </div>
-          <p className="text-[clamp(1.65rem,2.45vw,2.2rem)] leading-tight font-black text-[var(--color-text)]">
+          <p className="mt-2 text-[clamp(1.5rem,2.2vw,1.8rem)] leading-tight font-black text-[var(--color-text)]">
             Thesis, Research, and Capstone Hub
           </p>
-          <p className="mt-2 text-xl font-semibold text-[var(--color-text-muted)]">
+          <p className="mt-2 text-lg font-semibold text-[var(--color-text-muted)]">
             by DCISM Students, for DCISM Students
           </p>
         </header>

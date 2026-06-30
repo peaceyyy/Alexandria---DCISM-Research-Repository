@@ -48,7 +48,7 @@ export function SignUpForm({
     const payload: RegisterPayload = {
       profile_name: input.profile_name.trim(),
       email: input.email.trim().toLowerCase(),
-      usc_id: Number(input.usc_id),
+      usc_id: input.usc_id.trim() ? Number(input.usc_id) : undefined,
       affiliation: input.affiliation as RegisterPayload["affiliation"],
       password: input.password,
     };
@@ -112,7 +112,7 @@ export function SignUpForm({
       <div className="grid grid-cols-2 gap-3 max-[600px]:grid-cols-1">
         <AuthField
           id="sign-up-usc-id"
-          label="USC ID"
+          label={input.affiliation === "student" ? "USC ID" : "USC ID (Optional)"}
           name="usc_id"
           inputMode="numeric"
           placeholder="Enter your USC ID"

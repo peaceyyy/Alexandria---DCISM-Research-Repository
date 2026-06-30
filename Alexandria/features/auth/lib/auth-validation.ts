@@ -34,7 +34,9 @@ export function validateRegistrationInput(
   if (!isUscEmail(input.email)) {
     errors.email = "Use your @usc.edu.ph email address.";
   }
-  if (!/^\d+$/.test(input.usc_id)) {
+  if (input.affiliation === "student" && !input.usc_id.trim()) {
+    errors.usc_id = "USC ID is required for students.";
+  } else if (input.usc_id.trim() && !/^\d+$/.test(input.usc_id)) {
     errors.usc_id = "Enter a valid numeric USC ID.";
   }
   if (!input.affiliation) {

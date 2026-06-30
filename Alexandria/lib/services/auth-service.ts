@@ -34,24 +34,18 @@ export async function registerMember(payload: RegisterPayload): Promise<ServiceR
   const { data, error } = await supabase.auth.signUp({
     email: payload.email,
     password: payload.password,
+    options: {
+      data: {
+        profile_name: payload.profile_name,
+        display_name: payload.profile_name,
+        usc_id: payload.usc_id,
+        affiliation: payload.affiliation,
+      }
+    }
   });
 
   if (error || !data.user) {
     return err(makeError("SUPABASE_ERROR", error?.message || "Registration failed"));
-  }
-
-  // Insert into public.users
-  const { error: profileError } = await supabase.from("users").insert({
-    id: data.user.id,
-    email: payload.email,
-    profile_name: payload.profile_name,
-    usc_id: payload.usc_id,
-    role: "member", // default role
-    affiliation: payload.affiliation,
-  });
-
-  if (profileError) {
-    return err(makeError("SUPABASE_ERROR", profileError.message));
   }
 
   return ok({ id: data.user.id });

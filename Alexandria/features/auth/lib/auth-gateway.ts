@@ -3,7 +3,7 @@ import type {
   RegisterPayload,
   ServiceResult,
 } from "./auth-contract";
-import { mockAuthGateway } from "./mock-auth-gateway";
+import { loginAction, registerAction } from "./actions";
 
 export type AuthGateway = {
   login(email: string, password: string): Promise<ServiceResult<CurrentUser>>;
@@ -12,4 +12,7 @@ export type AuthGateway = {
   ): Promise<ServiceResult<{ id: string }>>;
 };
 
-export const authGateway: AuthGateway = mockAuthGateway;
+export const authGateway: AuthGateway = {
+  login: loginAction,
+  registerMember: registerAction,
+};

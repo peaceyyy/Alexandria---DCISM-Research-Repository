@@ -4,15 +4,15 @@ export function AuthTabs({ active }: { active: "login" | "sign-up" }) {
   return (
     <nav
       aria-label="Authentication"
-      className="grid h-[57px] grid-cols-2 rounded-[20px] border border-[#368bfe] p-1"
+      className="grid h-[56px] grid-cols-2 rounded-[20px] border border-[#368bfe]/50 bg-[var(--color-bg)] p-1 shadow-sm"
     >
       <Link
         href="/login"
         aria-current={active === "login" ? "page" : undefined}
-        className={`grid place-items-center rounded-[18px] font-[var(--font-display)] text-xl font-semibold ${
+        className={`grid place-items-center rounded-[16px] font-[var(--font-display)] text-lg font-semibold transition-colors ${
           active === "login"
             ? "bg-[#368bfe] text-white"
-            : "text-[var(--color-text)]"
+            : "text-[var(--color-text-muted)] hover:bg-[#368bfe]/10 hover:text-[var(--color-text)]"
         }`}
       >
         Log In
@@ -20,10 +20,10 @@ export function AuthTabs({ active }: { active: "login" | "sign-up" }) {
       <Link
         href="/sign-up"
         aria-current={active === "sign-up" ? "page" : undefined}
-        className={`grid place-items-center rounded-[18px] font-[var(--font-display)] text-xl font-semibold ${
+        className={`grid place-items-center rounded-[16px] font-[var(--font-display)] text-lg font-semibold transition-colors ${
           active === "sign-up"
             ? "bg-[#368bfe] text-white"
-            : "text-[var(--color-text)]"
+            : "text-[var(--color-text-muted)] hover:bg-[#368bfe]/10 hover:text-[var(--color-text)]"
         }`}
       >
         Sign Up

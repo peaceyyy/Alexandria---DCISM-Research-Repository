@@ -22,7 +22,7 @@ export type DbUser = {
   id: string; // uuid — mirrors auth.users.id
   email: string;
   profile_name: string;
-  usc_id: number;
+  usc_id: number | null;
   role: UserRole;
   affiliation: Affiliation;
   created_at: string;
@@ -121,7 +121,7 @@ export type CurrentUser = {
   id: string;
   email: string;
   profile_name: string;
-  usc_id: number;
+  usc_id: number | null;
   role: UserRole;
   affiliation: Affiliation;
 };
@@ -145,7 +145,7 @@ export type RegisterPayload = {
   email: string;
   password: string;
   profile_name: string;
-  usc_id: number;
+  usc_id?: number;
   affiliation: Affiliation;
 };
 export type ThesisPersonInput = {

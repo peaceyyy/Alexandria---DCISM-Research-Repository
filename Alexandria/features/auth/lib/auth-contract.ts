@@ -15,7 +15,7 @@ export type CurrentUser = {
   id: string;
   email: string;
   profile_name: string;
-  usc_id: number;
+  usc_id: number | null;
   role: UserRole;
   affiliation: Affiliation;
 };
@@ -24,7 +24,7 @@ export type RegisterPayload = {
   email: string;
   password: string;
   profile_name: string;
-  usc_id: number;
+  usc_id?: number;
   affiliation: Affiliation;
 };
 
