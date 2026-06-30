@@ -207,7 +207,7 @@ export type SubmitThesisPayload = {
   lessons_learned?: string;
 };
 /** All fields optional — partial PATCH. */
-export type UpdateThesisPayload = Partial<SubmitThesisPayload>;
+export type updateThesisStatusPayload = Partial<SubmitThesisPayload>;
 export type RegisterFilePayload = {
   file_url: string;
   is_primary: boolean;
@@ -345,13 +345,6 @@ export function isAllowedEmailDomain(
   allowedDomains: string[], // e.g. ["usc.edu.ph"]
 ): boolean;
 /**
- * Returns true if affiliation is "student" | "alumni" | "professor", false otherwise.
- * Used by: registerMember() guard.
- */
-export function assertValidAffiliation( // probably not necessary
-  affiliation: string,
-): affiliation is "student" | "alumni" | "professor";
-/**
  * Returns true if role is "admin" | "moderator" | "member", false otherwise.
  * Used by: updateUserRole() guard.
  */
@@ -370,10 +363,18 @@ export function assertValidRole(
 ```ts
 import type {
   SubmitThesisPayload,
-  UpdateThesisPayload,
+  updateThesisStatusPayload,
   RegisterFilePayload,
   ServiceResult,
 } from "./types";
+/**
+ * GET /upload/theses/me
+ * Returns a list of all theses submitted by the current user.
+ * This allows members to see their own pending (`for_review`), `flagged`, or `accepted` submissions,
+ * which do not appear in the public catalog until accepted.
+ * Used by: "My Submissions" page or dashboard.
+ */
+export async function getOwnSubmissions(): Promise<ServiceResult<ThesisCard[]>>;
 /**
  * POST /upload/theses
  * Creates a new thesis record with review_status = 'for_review'.
@@ -394,7 +395,7 @@ export async function submitThesis(
  */
 export async function updateOwnSubmission(
   id: number,
-  payload: UpdateThesisPayload,
+  payload: updateThesisStatusPayload,
 ): Promise<ServiceResult<null>>;
 /**
  * POST /upload/theses/:id/files
@@ -420,7 +421,7 @@ import type {
   AdminThesisRow,
   AdminThesisListParams,
   SubmitThesisPayload,
-  UpdateThesisPayload,
+  updateThesisStatusPayload,
   RegisterFilePayload,
   ServiceResult,
 } from "./types";
@@ -445,32 +446,15 @@ export async function createThesis(
 ): Promise<ServiceResult<{ id: number }>>;
 /**
  * PATCH /upload/theses/:id (admin variant)
- * Updates any field of a for_review or flagged thesis.
+ * Updates any field of a thesis, including changing review_status to 'accepted' or 'flagged'.
  * No ownership restriction — admin and moderator can edit any reviewable record.
- * Used by: Admin review detail / edit panel.
+ * If updating review_status to 'accepted', this function MUST validate that all
+ * required fields are present (title, authors, year, pdf, etc.) before saving.
+ * Used by: Admin review detail / edit panel (for editing, approving, and flagging).
  */
-export async function updateThesis(
+export async function updateThesisStatus(
   id: number,
-  payload: UpdateThesisPayload,
-): Promise<ServiceResult<null>>;
-/**
- * POST /moderator/theses/:id/accept
- * Validates all required fields are present, then sets review_status = 'accepted'.
- * Required fields: title, >=1 author, >=1 adviser, year, department, research_area,
- *   abstract, >=1 tag, primary PDF, recommendations, lessons_learned.
- * Logs the action to thesis_audits.
- * Returns VALIDATION_FAILED with missing_fields list if validation fails.
- * Used by: Admin review dashboard — "Approve" action.
- */
-export async function acceptThesis(id: number): Promise<ServiceResult<null>>;
-/**
- * POST /moderator/theses/:id/flag
- * Sets review_status = 'flagged'. Optionally records a reason in thesis_audits.
- * Used by: Admin review dashboard — "Flag" action.
- */
-export async function flagThesis(
-  id: number,
-  reason?: string,
+  payload: updateThesisStatusPayload,
 ): Promise<ServiceResult<null>>;
 /**
  * POST /admin/theses/:id/trash
@@ -627,7 +611,7 @@ export async function requireOwnership(
 > | **Submit Thesis** | `submitThesis()`, `registerThesisFile()` |
 > | **My Submission (member edit)** | `updateOwnSubmission()`, `registerThesisFile()` |
 > | **Admin Review Queue** | `getAdminTheses()`, `acceptThesis()`, `flagThesis()`, `trashThesis()` |
-> | **Admin Thesis Detail / Edit** | `updateThesis()`, `replacePrimaryFile()`, `validateThesisForAcceptance()` |
+> | **Admin Thesis Detail / Edit** | `updateThesisStatus()`, `replacePrimaryFile()`, `validateThesisForAcceptance()` |
 > | **Admin Create / Import Thesis** | `createThesis()` |
 > | **Admin Users Management** | `getUsers()`, `updateUserRole()` |
 

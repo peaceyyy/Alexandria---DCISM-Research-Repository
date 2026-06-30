@@ -144,6 +144,7 @@ Returns the full detail payload for a single accepted thesis.
       "tags": ["#react", "#ai", "#progressive-web-apps"],
       "publication_date": "2025-05-14",
       "publication_link": "https://...",
+      "conference": "ACM Web Conference 2025",
       "recommendations": "Explore mobile adaptation. Extend the recommendation engine with AI.",
       "lessons_learned": "Start database design early. Do not underestimate PDF storage configuration.",
       "file_access": {
@@ -258,6 +259,7 @@ Creates a new thesis record with `review_status = 'for_review'`.
     "tags": ["#react", "#machine-learning"],
     "publication_date": "2025-05-14",
     "publication_link": "https://...",
+    "conference": "ACM Web Conference 2025",
     "recommendations": "Explore mobile adaptation. Extend the recommendation engine with AI.",
     "lessons_learned": "Start database design early. Do not underestimate PDF storage configuration."
   }
@@ -289,6 +291,7 @@ Called after the PDF has been placed on the school server. Stores the URL pointe
   ```json
   {
     "file_url": "https://dcism.usc.edu.ph/repository/thesis_final.pdf",
+    "file_type": "application/pdf",
     "is_primary": true
   }
   ```
@@ -463,6 +466,7 @@ export type ThesisDetail = ThesisCard & {
   department: string;
   publication_date: string | null;
   publication_link: string | null;
+  conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
   file_access: {

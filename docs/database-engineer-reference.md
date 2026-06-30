@@ -58,7 +58,7 @@ Each thesis record must support:
 | PDF file or repository link | Yes | Store one or both depending on policy |
 | Publication date | No | Optional; displayed on detail page |
 | Publication link | No | Optional external publication or repository link |
-| Conference presentations | No | Optional presentation/publication info |
+| Conference | No | Optional conference presentation info (stored as text on theses) |
 | Recommendations for future researchers | Yes | Knowledge-transfer feature |
 | Lessons learned | Yes | Knowledge-transfer feature |
 | Related theses | Yes | Derived on the frontend from overlapping keywords; no DB table required |
@@ -76,7 +76,6 @@ erDiagram
   users |o--o{ thesis_authors : optionally_linked_as
   theses ||--o{ thesis_tags : has
   theses ||--o{ thesis_files : stores
-  theses ||--o{ thesis_conferences : presents
   theses ||--o{ thesis_audits : tracked_by
   users ||--o{ thesis_audits : performs
 ```
@@ -127,6 +126,7 @@ Core thesis record.
 | lessons_learned | Optional free-form text; uploaders paste or type this section directly from their thesis |
 | publication_link | Optional external publication or repository link |
 | publication_date | Optional date of external publication |
+| conference | Optional conference presentation name |
 | review_status | Required: `for_review`, `flagged`, `accepted`, or `trashed`. CHECK constraint enforced. Default `for_review` |
 | created_at, updated_at | Standard timestamps |
 
@@ -167,6 +167,7 @@ Stores a URL pointer to the PDF. PDFs are hosted on the department's physical sc
 | id | Primary key |
 | thesis_id | Foreign key to `theses` |
 | file_url | Required; Full URL to the PDF on the school server; NOT NULL |
+| file_type | Required; MIME type of the file; NOT NULL DEFAULT 'application/pdf' |
 | is_primary | Marks the current active PDF; old file rows are retained for history |
 
 > **Retrieval pattern:** The backend proxies authenticated file requests. The frontend never receives the raw `file_url` directly — it calls `GET /theses/:id/file`, the backend verifies the JWT, fetches from the school server internally, and streams the PDF back. This keeps raw URLs hidden from unauthenticated clients.
@@ -187,15 +188,7 @@ Tracks changes to thesis records for admin and moderator traceability.
 
 > **`action` removed:** The `action` enum column was dropped. All audit context is captured in `change_description` as free text, which is simpler to maintain and avoids enum drift as the workflow evolves.
 
-### `thesis_conferences`
 
-Optional conference presentation records. Uses a composite primary key on `(thesis_id, conference)` to prevent duplicate entries per thesis.
-
-| Column | Notes |
-| --- | --- |
-| thesis_id | Foreign key to `theses`; part of composite PK |
-| conference | Required conference name; part of composite PK |
-| date_of_conference | Optional date of the conference presentation |
 
 ### `thesis_related`
 

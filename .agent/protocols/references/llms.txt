@@ -77,3 +77,21 @@
 
 > [!TIP]
 > **Path Resolution**: All paths listed here are relative to the project root. If a resource cannot be found, use the `find_by_name` tool to locate it within the `.agent/` directory.
+
+---
+
+## Alexandria Project Code Documentation
+
+Project-specific external documentation was last reviewed on 2026-06-30.
+
+- [Code documentation index](code-documentation/README.md)
+- [Next.js 16 frontend conventions](code-documentation/nextjs-16-frontend.md)
+- [Tailwind CSS 4 design tokens](code-documentation/tailwind-css-4-design-tokens.md)
+- [Component library recommendation](code-documentation/component-library-recommendation.md)
+
+Primary external indexes:
+
+- [Next.js 16.2.9 documentation](https://nextjs.org/docs/llms.txt)
+- [Tailwind CSS theme variables](https://tailwindcss.com/docs/theme)
+- [shadcn/ui for Next.js](https://ui.shadcn.com/docs/installation/next)
+- [Radix Primitives](https://www.radix-ui.com/primitives/docs/overview/introduction)

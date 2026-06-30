@@ -78,8 +78,6 @@ Minimum contracts:
 - `AdminThesisService.getAll({ review_status, page, limit })`
 - `AdminThesisService.create(payload)`
 - `AdminThesisService.update(id, payload)`
-- `AdminThesisService.accept(id)`
-- `AdminThesisService.flag(id, reason?)`
 - `AdminThesisService.trash(id)`
 - `SubmissionService.create(payload)`
 - `SubmissionService.updateOwn(id, payload)`

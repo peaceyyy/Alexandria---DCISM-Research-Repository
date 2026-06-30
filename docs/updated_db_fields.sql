@@ -70,8 +70,9 @@ CREATE TABLE public.theses (
   department       text NOT NULL,
   year             integer NOT NULL,
   research_area    text,
-  publication_link text,
+  publication_link text,nt
   publication_date date,
+  conference       text,
   submitted_by_user_id uuid,
   review_status    text NOT NULL DEFAULT 'for_review'::text
                      CHECK (review_status = ANY (ARRAY['for_review'::text, 'flagged'::text, 'accepted'::text, 'trashed'::text])),
@@ -91,6 +92,7 @@ CREATE TABLE public.thesis_files (
   id        bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   thesis_id bigint NOT NULL,
   file_url  text NOT NULL,
+  file_type text NOT NULL DEFAULT 'application/pdf',
   is_primary boolean NOT NULL DEFAULT false,
   CONSTRAINT thesis_files_pkey PRIMARY KEY (id),
   CONSTRAINT thesis_files_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
@@ -127,16 +129,7 @@ CREATE TABLE public.thesis_tags (
   CONSTRAINT thesis_tags_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
 );
 
--- thesis_conferences: optional conference presentation records.
--- Composite PK on (thesis_id, conference) prevents duplicate entries per thesis.
--- date_of_conference is optional; conference name is required.
-CREATE TABLE public.thesis_conferences (
-  thesis_id          bigint NOT NULL,
-  conference         text NOT NULL,
-  date_of_conference date,
-  CONSTRAINT thesis_conferences_pkey           PRIMARY KEY (thesis_id, conference),
-  CONSTRAINT thesis_conferences_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
-);
+
 
 -- thesis_audits: tracks moderator/admin actions on thesis records.
 -- changed_by_user_id is nullable to support system-level events.
