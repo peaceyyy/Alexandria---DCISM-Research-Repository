@@ -119,7 +119,7 @@ Decision: Store each recommendation and lesson learned as its own ordered row.
 
 Consequences:
 
-- Use `thesis_recommendations` and `thesis_lessons`.
+- Use `recommendations` and `lessons_learned` columns directly on the `theses` table.
 - Each row should include content and sort order.
 - The frontend should display these as ordered or bullet-style lists.
 - One large freeform text field is not the MVP model.
@@ -487,7 +487,7 @@ Decision: Store author and adviser display names independently from `public.user
 
 Consequences:
 
-- The current `thesis_authors.user_id NOT NULL` schema is too restrictive.
+- The previous `thesis_authors.user_id NOT NULL` schema is too restrictive.
 - Backend and database work should support nullable `user_id` plus required display names.
 - Adviser modeling should not depend solely on `users.affiliation = 'professor'`.
 

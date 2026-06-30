@@ -115,8 +115,8 @@ CREATE TABLE public.thesis_authors (
                         CHECK (contribution_role = ANY (ARRAY['author'::text, 'adviser'::text])),
   sort_order          integer,
   CONSTRAINT thesis_authors_pkey             PRIMARY KEY (id),
-  CONSTRAINT thesis_people_thesis_id_fkey   FOREIGN KEY (thesis_id) REFERENCES public.theses(id) ON DELETE CASCADE,
-  CONSTRAINT thesis_people_user_id_fkey     FOREIGN KEY (user_id)   REFERENCES public.users(id)  ON DELETE SET NULL
+  CONSTRAINT thesis_authors_thesis_id_fkey   FOREIGN KEY (thesis_id) REFERENCES public.theses(id) ON DELETE CASCADE,
+  CONSTRAINT thesis_authors_user_id_fkey     FOREIGN KEY (user_id)   REFERENCES public.users(id)  ON DELETE SET NULL
 );
 
 -- thesis_tags: free hashtag-style keywords assigned by contributors.
