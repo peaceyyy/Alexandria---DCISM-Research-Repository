@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Khula } from "next/font/google";
+import { Inter, Khula, Geist } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,7 +30,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${khula.variable}`}
+      className={cn(inter.variable, khula.variable, "font-sans", geist.variable)}
       suppressHydrationWarning
     >
       <body>{children}</body>

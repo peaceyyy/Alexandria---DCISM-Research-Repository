@@ -1,7 +1,7 @@
 // frontend/app/page.tsx
 import Image from "next/image";
 import Link from "next/link";
-
+import { ArrowRight } from "lucide-react";
 export default function Landing() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#14181c] text-white">
@@ -64,25 +64,13 @@ export default function Landing() {
 
           <div className="mt-12 flex flex-wrap gap-3">
             <Link
-              href="/login"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-[#368bfe] px-8 text-base font-semibold text-white transition-colors hover:bg-[#2f78ff]"
+              href="/theses"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#368bfe] px-8 text-base font-semibold text-white transition-colors hover:bg-[#2f78ff]"
             >
-              Log In
-            </Link>
-            <Link
-              href="/sign-up"
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[#368bfe] bg-transparent px-8 text-base font-semibold text-white transition-colors hover:bg-white/5"
-            >
-              Sign Up
+              Browse
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
-
-          <p className="mt-4 text-sm font-semibold text-white">
-            Want to contribute your thesis/research paper?{" "}
-            <a href="#" className="underline underline-offset-2">
-              Submit here
-            </a>
-          </p>
         </div>
       </section>
 
