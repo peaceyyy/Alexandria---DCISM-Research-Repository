@@ -1,45 +1,18 @@
-import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
-import { RoleIndicator } from "@/components/auth/role-indicator";
+import { AppHeader } from "@/components/layout/app-header";
 import { getCurrentUser } from "@/lib/services/auth-service";
 
 export default async function ThesesPage() {
   const userResult = await getCurrentUser();
-  const isGuest = !userResult.data;
+  const role = userResult.data?.role ?? null;
 
   return (
     <div className="min-h-screen bg-[#14181c] text-white">
-      {/* Header */}
-      <header className="sticky top-0 z-50 flex h-16 items-center justify-between border-b border-[#d9d9d9]/15 bg-[#14181c]/95 px-6 backdrop-blur sm:px-10">
-        <div className="flex items-center gap-3">
-          <span className="text-xl font-black tracking-tight font-[var(--font-khula)]">
-            ALEXANDRIA
-          </span>
-        </div>
-
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4">
-            <RoleIndicator role={userResult.data?.role ?? null} />
-            {isGuest ? (
-              <>
-                <AuthInterceptModal />
-              </>
-            ) : (
-              // If logged in, a normal link to submission page
-              <a
-                href="/submit"
-                className="inline-flex h-9 items-center justify-center rounded-md bg-[#368bfe] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#2f78ff]"
-              >
-                Contribute
-              </a>
-            )}
-          </div>
-        </div>
-      </header>
+      <AppHeader role={role} />
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-6 py-12 sm:px-10 lg:px-16">
         <h1 className="text-3xl font-bold mb-8">Repository</h1>
-        
+
         <div className="flex flex-col gap-6">
           {/* Mock Thesis Card */}
           <div className="rounded-lg border border-[#d9d9d9]/15 p-6 transition-colors hover:bg-white/5">

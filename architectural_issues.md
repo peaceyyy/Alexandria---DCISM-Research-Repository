@@ -27,11 +27,11 @@ Profile search submits q, but /theses ignores search parameters and renders mock
 [profile/page.tsx (line 20)](/C:/Users/Peace/Documents/vscode/Personal Projects/Alexandria - DCISM Thesis Repository/Alexandria/app/profile/page.tsx:20) redirects every missing-data case to login, including a valid session with a missing profile row. Distinguish unauthenticated from profile corruption.
 getCurrentUser() selects \* and logs user identifiers. Select explicit columns and remove debug logging before production.
 The disabled Change Password button communicates availability through title, but disabled controls are not reliably focusable. Show visible “Unavailable” text.
-Docs still say post-auth redirects to /, while implementation now uses /theses.
+~~Docs still say post-auth redirects to /, while implementation now uses /theses.~~ (Resolved: implementation now uses role-based routing: /admin/dashboard for admins, /admin/moderators for mods, /theses for members).
 Dashboard metrics are unspecified. Freeze exact definitions and DTOs before creating generic stat cards or mock data.
 Recommended order next session
 Repair the dashboard breakdown paths and missing source references.
-Freeze route access: admin-only versus moderator/admin.
+~~Freeze route access: admin-only versus moderator/admin.~~ (Resolved: Layout guards restrict /admin/members and /admin/moderators to Admins only. Moderators can only access /admin/dashboard).
 Consolidate the canonical authenticated-user DTO.
 Add centralized capabilities, protected layouts, and RLS evidence.
 Define DashboardMetrics, RecentUploadRow, and AdminUserRow.

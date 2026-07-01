@@ -1,0 +1,140 @@
+/* ============================
+   Admin Sidebar Module
+   ============================ */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100svh;
+  width: 240px;
+  background: #0d1014;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  z-index: 40;
+  padding: 0;
+}
+
+/* Brand / Logo */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 20px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.brandText {
+  font-family: var(--font-khula), sans-serif;
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  color: #368bfe;
+}
+
+/* Nav */
+.nav {
+  flex: 1;
+  padding: 16px 12px 0;
+  overflow-y: auto;
+}
+
+.navList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #969696;
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+  position: relative;
+  border-left: 3px solid transparent;
+}
+
+.navLink:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.navLinkActive {
+  color: #ffffff;
+  background: rgba(54, 139, 254, 0.1);
+  border-left-color: #368bfe;
+}
+
+.navIcon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.navLinkActive .navIcon {
+  opacity: 1;
+  color: #368bfe;
+}
+
+/* Browse Repository */
+.viewSite {
+  padding: 8px 12px;
+}
+
+.viewSiteLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #969696;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.viewSiteLink:hover {
+  color: #d8dadc;
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Footer / Logout */
+.footer {
+  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #969696;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.logoutBtn:hover {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.08);
+}

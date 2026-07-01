@@ -609,3 +609,35 @@ Consequences:
 - PDF preview and download are no longer restricted to authenticated users.
 - Decision 004, 010, and 012 are superseded regarding PDF authentication.
 - API contracts must be updated so `requires_auth: false` for file access.
+
+### Decision 022: Role-Based Routing and Access Control
+
+Status: Accepted
+
+Context: The application needs to handle routing and permissions distinctly for different user roles post-authentication. Specifically, the boundary between Admins (who have full control) and Moderators (who only review submissions). Members just read the public site.
+
+Decision: 
+1. Implement role-based post-auth redirects:
+   - Admins redirect to `/admin/dashboard`
+   - Moderators redirect to `/admin/dashboard` (until a moderator-specific dashboard is made)
+   - Members redirect to `/theses` (the public view)
+2. Use strict layout guards (Server Components) on `/admin/members` and `/admin/moderators` to ensure ONLY Admins can access them. Moderators attempting to access these routes are redirected to `/admin/dashboard`.
+3. Filter the `AdminSidebar` navigation links based on role so Moderators only see "Dashboard" and "Browse Repository".
+
+Consequences:
+- Moderators are securely confined to their thesis-review duties and cannot manage users.
+- Role capability checks are enforced both in the UI rendering and server-side layouts.
+- Replaces the generic post-auth `/theses` redirect stub.
+
+### Decision 042: Standardize Header Architecture
+
+Status: Accepted
+
+Context: The header layout and design were previously fragmented across pages (e.g. `/`, `/theses`, `/profile`), resulting in inconsistent padding, search bar styles, and redundant code. The design also called for a flush-left, GitHub-style search bar.
+
+Decision: Use a standardized header component system: `MinimalHeader` for non-app landing pages (e.g. `/`, `/login`), and `AppHeader` for all core application pages (e.g. `/theses`, `/profile`, `/admin/*`).
+
+Consequences:
+- Inline `<header>` elements must not be used on individual pages.
+- `AppHeader` takes a `role` prop to conditionally render role-specific navigation indicators (e.g., "Dashboard ->").
+- The global GitHub-style flush-left search bar design is defined centrally in `AppHeader`. Any layout tweaks or visual enhancements automatically apply globally across the repository interface.

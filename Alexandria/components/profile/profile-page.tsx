@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { RoleIndicator } from "@/components/auth/role-indicator";
+import { AppHeader } from "@/components/layout/app-header";
 import { logoutAction } from "@/lib/auth/actions";
 import {
   formatMemberSince,
@@ -23,57 +23,8 @@ export function ProfilePage({
 
   return (
     <div className="min-h-screen bg-[#14181c] text-white">
-      <header className="border-b border-white/15 bg-[#0f1317]">
-        <div className="mx-auto flex min-h-16 max-w-[1440px] items-center gap-5 px-5 sm:px-8">
-          <Link
-            href="/"
-            className="flex shrink-0 items-center gap-2.5 text-sm font-black tracking-[0.08em] text-[#368bfe]"
-          >
-            <Image
-              src="/logo.svg"
-              alt=""
-              width={28}
-              height={28}
-              className="h-7 w-7"
-            />
-            <span>ALEXANDRIA</span>
-          </Link>
+      <AppHeader role={user.role} />
 
-          <div className="ml-auto flex items-center gap-3">
-            <form
-              action="/theses"
-              className="hidden h-9 w-[300px] max-w-[36vw] items-center rounded-md border border-white/20 bg-[#0b0f13] px-3 focus-within:border-[#368bfe] sm:flex"
-            >
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="h-4 w-4 shrink-0 text-[#969696]"
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3.5-3.5" />
-              </svg>
-              <label htmlFor="profile-header-search" className="sr-only">
-                Search the repository
-              </label>
-              <input
-                id="profile-header-search"
-                name="q"
-                type="search"
-                placeholder="Search Alexandria"
-                className="min-w-0 flex-1 bg-transparent px-2 text-sm text-white outline-none placeholder:text-[#7e858c]"
-              />
-              <kbd className="rounded border border-white/20 px-1.5 py-0.5 text-[10px] text-[#969696]">
-                /
-              </kbd>
-            </form>
-
-            <RoleIndicator role={user.role} />
-          </div>
-        </div>
-      </header>
 
       <main className="mx-auto flex min-h-[calc(100vh-65px)] max-w-6xl items-center px-5 py-12 sm:px-8 lg:py-16">
         <section
