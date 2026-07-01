@@ -1,0 +1,53 @@
+phase: admin-dashboard
+mission: "Build the Admin Dashboard routes, shared layout shell, metric cards, and data tables with mock integration based on the refined Impeccable Design direction."
+success_criteria:
+  - "[ ] app/(admin)/layout.tsx is implemented with a responsive sidebar navigation."
+  - "[ ] app/(admin)/dashboard/page.tsx renders 3 metric cards and the Recent Uploads table."
+  - "[ ] app/(admin)/members/page.tsx renders the Members table with hover-based icon actions."
+  - "[ ] UI matches the restrained, dark-first product design guidelines."
+estimated_hours: 10
+
+sub_phases:
+  # Wave 1: Foundation (Sequential)
+  - id: 01-admin-layout-shell
+    name: Admin Layout & Sidebar Shell
+    persona: Kairou (Architect) / Sparks (Designer)
+    time_estimate: 2h
+    dependencies: []
+    files_to_create:
+      - app/(admin)/layout.tsx
+      - features/admin/components/admin-sidebar.tsx
+      - features/admin/components/admin-shell.module.css
+    tasks:
+      - Define the 2-column CSS Grid shell (Sidebar + Main Content).
+      - Implement the Admin Sidebar with navigation links (Dashboard, Members, Moderators) and active state styling.
+      - Add bottom-anchored Logout button.
+
+  # Wave 2: Dashboard Content (Parallelizable with Members)
+  - id: 02-dashboard-metrics
+    name: Dashboard Overview & Metric Cards
+    persona: Default (Engineer)
+    time_estimate: 4h
+    dependencies: [01-admin-layout-shell]
+    files_to_create:
+      - app/(admin)/dashboard/page.tsx
+      - features/admin/components/stat-card.tsx
+      - features/admin/components/data-table.tsx
+      - features/admin/lib/mock-data.ts
+    tasks:
+      - Create reusable `StatCard` component for metrics.
+      - Create reusable `DataTable` component.
+      - Assemble `/dashboard` with 3 metric cards and "Recent Uploads" mock data.
+
+  # Wave 2: Members Content (Parallelizable with Dashboard)
+  - id: 03-members-management
+    name: Members Management View
+    persona: Default (Engineer)
+    time_estimate: 4h
+    dependencies: [01-admin-layout-shell]
+    files_to_create:
+      - app/(admin)/members/page.tsx
+    tasks:
+      - Reuse `DataTable` component for the Members table.
+      - Implement hover-based icon actions (Edit, Delete) in the table rows to reduce visual noise.
+      - Assemble `/members` with mock member data.
