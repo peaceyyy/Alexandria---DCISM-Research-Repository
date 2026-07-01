@@ -37,6 +37,7 @@ export type DbThesis = {
   review_status: ReviewStatus;
   publication_date: string | null;
   publication_link: string | null;
+  conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
   submitted_by_user_id: string | null; // uuid — nullable for legacy/admin uploads
@@ -62,12 +63,6 @@ export type DbThesisFile = {
   file_url: string; // NEVER returned to public payloads
   is_primary: boolean;
   created_at: string;
-};
-export type DbThesisConference = {
-  id: number;
-  thesis_id: number;
-  conference_name: string;
-  year: number | null;
 };
 export type DbThesisAudit = {
   id: number;
@@ -97,10 +92,11 @@ export type ThesisCard = {
 /** Used on the Thesis Detail page. Extends ThesisCard. */
 export type ThesisDetail = ThesisCard & {
   abstract: string;
-  advisers: ThesisPerson[];
+  authors: ThesisPerson[];
   department: string;
   publication_date: string | null;
   publication_link: string | null;
+  conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
   file_access: {
@@ -151,6 +147,7 @@ export type RegisterPayload = {
 export type ThesisPersonInput = {
   user_id: string | null;
   display_name: string;
+  contribution_role: ContributionRole;
   sort_order: number;
 };
 export type SubmitThesisPayload = {
@@ -160,10 +157,10 @@ export type SubmitThesisPayload = {
   department: string;
   research_area: string;
   authors: ThesisPersonInput[];
-  advisers: ThesisPersonInput[];
   tags: string[];
   publication_date?: string;
   publication_link?: string;
+  conference?: string;
   recommendations?: string;
   lessons_learned?: string;
 };
@@ -171,6 +168,7 @@ export type SubmitThesisPayload = {
 export type updateThesisStatusPayload = Partial<SubmitThesisPayload>;
 export type RegisterFilePayload = {
   file_url: string;
+  file_type?: string;
   is_primary: boolean;
 };
 export type ThesisListParams = {

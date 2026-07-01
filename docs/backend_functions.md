@@ -76,6 +76,7 @@ export type DbThesis = {
   review_status: ReviewStatus;
   publication_date: string | null;
   publication_link: string | null;
+  conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
   submitted_by_user_id: string | null; // uuid — nullable for legacy/admin uploads
@@ -101,12 +102,6 @@ export type DbThesisFile = {
   file_url: string; // NEVER returned to public payloads
   is_primary: boolean;
   created_at: string;
-};
-export type DbThesisConference = {
-  id: number;
-  thesis_id: number;
-  conference_name: string;
-  year: number | null;
 };
 export type DbThesisAudit = {
   id: number;
@@ -140,6 +135,7 @@ export type ThesisDetail = ThesisCard & {
   department: string;
   publication_date: string | null;
   publication_link: string | null;
+  conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
   file_access: {
@@ -203,6 +199,7 @@ export type SubmitThesisPayload = {
   tags: string[];
   publication_date?: string;
   publication_link?: string;
+  conference?: string;
   recommendations?: string;
   lessons_learned?: string;
 };
@@ -489,6 +486,7 @@ export function validateThesisForAcceptance(thesis: {
   year: number | null;
   department: string | null;
   research_area: string | null;
+  conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
   authors: { contribution_role: string }[];

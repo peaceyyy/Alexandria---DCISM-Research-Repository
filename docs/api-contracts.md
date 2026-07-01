@@ -134,9 +134,7 @@ Returns the full detail payload for a single accepted thesis.
       "abstract": "Full abstract text...",
       "year": 2026,
       "authors": [
-        { "id": 1, "user_id": "uuid-or-null", "display_name": "Author One", "contribution_role": "author", "sort_order": 1 }
-      ],
-      "advisers": [
+        { "id": 1, "user_id": "uuid-or-null", "display_name": "Author One", "contribution_role": "author", "sort_order": 1 },
         { "id": 2, "user_id": "uuid-or-null", "display_name": "Dr. Smith", "contribution_role": "adviser", "sort_order": 1 }
       ],
       "department": "DCISM",
@@ -250,11 +248,9 @@ Creates a new thesis record with `review_status = 'for_review'`.
     "department": "DCISM",
     "research_area": "Machine Learning",
     "authors": [
-      { "user_id": "uuid-or-null", "display_name": "Author One", "sort_order": 1 },
-      { "user_id": null, "display_name": "Author Two", "sort_order": 2 }
-    ],
-    "advisers": [
-      { "user_id": "uuid-or-null", "display_name": "Dr. Adviser", "sort_order": 1 }
+      { "user_id": "uuid-or-null", "display_name": "Author One", "contribution_role": "author", "sort_order": 1 },
+      { "user_id": null, "display_name": "Author Two", "contribution_role": "author", "sort_order": 2 },
+      { "user_id": "uuid-or-null", "display_name": "Dr. Adviser", "contribution_role": "adviser", "sort_order": 1 }
     ],
     "tags": ["#react", "#machine-learning"],
     "publication_date": "2025-05-14",
