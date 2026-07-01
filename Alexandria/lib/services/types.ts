@@ -120,6 +120,7 @@ export type CurrentUser = {
   usc_id: number | null;
   role: UserRole;
   affiliation: Affiliation;
+  created_at: string;
 };
 /** Row shape for the admin review dashboard list. */
 export type AdminThesisRow = {
@@ -144,10 +145,7 @@ export type RegisterPayload = {
   usc_id?: number;
   affiliation: Affiliation;
 };
-export type ThesisAuthorInput = {
-  user_id: string | null;
-  display_name: string;
-  contribution_role: ContributionRole;
+export type ThesisAuthorInput = Omit<ThesisAuthor, "id" | "sort_order"> & {
   sort_order: number;
 };
 export type SubmitThesisPayload = {

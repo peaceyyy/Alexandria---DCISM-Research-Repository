@@ -1,3 +1,5 @@
+"use server";
+
 import { createClient } from "../supabase/server";
 import { err, makeError, ok } from "./result";
 import { requireSession, requireOwnership } from "./_guards";

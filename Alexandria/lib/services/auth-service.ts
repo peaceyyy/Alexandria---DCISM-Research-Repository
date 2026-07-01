@@ -103,8 +103,11 @@ export async function getCurrentUser(): Promise<ServiceResult<CurrentUser | null
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
+    // Expected behavior for guests: Supabase returns AuthSessionMissingError when no session exists.
     return ok(null); // No active session
   }
+
+  console.log("[DEBUG] getCurrentUser: user found in auth", user.id);
 
   const { data: profile, error: profileError } = await supabase
     .from("users")
@@ -113,6 +116,7 @@ export async function getCurrentUser(): Promise<ServiceResult<CurrentUser | null
     .single();
 
   if (profileError || !profile) {
+    console.error("[DEBUG] getCurrentUser: profile fetch failed", profileError, "profile:", profile);
     return err(makeError("NOT_FOUND", "Profile not found for authenticated user"));
   }
 
@@ -124,6 +128,7 @@ export async function getCurrentUser(): Promise<ServiceResult<CurrentUser | null
     usc_id: profile.usc_id,
     role: profile.role,
     affiliation: profile.affiliation,
+    created_at: profile.created_at,
   };
 
   return ok(currentUser);

@@ -4,7 +4,7 @@
 
 This document defines the data-fetching and API contracts for the Alexandria MVP. These contracts describe the boundary between the frontend application and the data layer.
 
-> **Status:** LOCKED FOR PHASE 1 - Last reviewed: 2026-06-27
+> **Status:** LOCKED FOR PHASE 1 - Last reviewed: 2026-07-01
 >
 > Reviewed against `docs/updated_db_fields.sql` and the 2026-06-27 team confirmation that `theses.submitted_by_user_id` has been added in the live Supabase database.
 
@@ -27,6 +27,29 @@ This document defines the **contracts** those service functions must fulfill.
 - DTO names are frontend-facing, such as `ThesisCard`, `ThesisDetail`, `CurrentUser`, and `file_access`.
 - Thesis-related IDs are numbers because the live tables use `bigint` identity columns.
 - User IDs are UUID strings because `public.users.id` references `auth.users.id`.
+
+### Canonical Type Ownership
+
+`Alexandria/lib/services/types.ts` is the canonical source for service-layer
+contracts, including `UserRole`, `Affiliation`, `ServiceError`,
+`ServiceResult`, `CurrentUser`, `RegisterPayload`, `ThesisAuthor`, and
+`ThesisAuthorInput`.
+
+`Alexandria/lib/auth/auth-contract.ts` is an auth-facing compatibility facade.
+It re-exports shared contracts from `lib/services/types.ts` and owns only
+auth-form types such as `LoginInput`, `RegistrationFormInput`, and
+`FieldErrors`. Do not redeclare shared service contracts in the auth module.
+
+Import rules:
+
+- Service implementations and non-auth features import shared contracts from
+  `@/lib/services/types`.
+- Auth components may import the re-exported contracts from
+  `@/lib/auth/auth-contract`.
+- Contract changes are made in `lib/services/types.ts` first, then reflected in
+  this document and the backend function blueprint.
+- `ThesisAuthorInput` is derived from `ThesisAuthor`; it excludes the
+  database-generated `id` and requires a non-null `sort_order` for writes.
 
 ---
 
@@ -238,6 +261,7 @@ Self-registration for members. Restricted to `usc.edu.ph` email addresses. Creat
     "affiliation": "student"
   }
   ```
+- `usc_id` is optional and may be omitted for members without a USC ID.
 - **Response:** `201 Created`
 - **Errors:** `400 Bad Request` if email domain is not `usc.edu.ph` or `affiliation` is not one of `student`, `alumni`, `professor`.
 
@@ -425,9 +449,10 @@ Returns a paginated list of all users with their role and affiliation. Used by t
         "id": "uuid",
         "email": "jane@usc.edu.ph",
         "profile_name": "Jane Doe",
-        "usc_id": 12345678,
+        "usc_id": null,
         "role": "member",
-        "affiliation": "student"
+        "affiliation": "alumni",
+        "created_at": "2026-07-01T08:00:00.000Z"
       }
     ],
     "meta": { "total_count": 42, "page": 1, "limit": 20 }
@@ -488,12 +513,19 @@ export type UserRole = "admin" | "moderator" | "member";
 export type Affiliation = "student" | "alumni" | "professor";
 export type ContributionRole = "author" | "adviser";
 
-export type ThesisPerson = {
+export type ThesisAuthor = {
   id: number;
   user_id: string | null;
   display_name: string;
   contribution_role: ContributionRole;
   sort_order: number | null;
+};
+
+export type ThesisAuthorInput = Omit<
+  ThesisAuthor,
+  "id" | "sort_order"
+> & {
+  sort_order: number;
 };
 
 export type ThesisCard = {
@@ -533,9 +565,10 @@ export type CurrentUser = {
   id: string;
   email: string;
   profile_name: string;
-  usc_id: number;
+  usc_id: number | null;
   role: UserRole;
   affiliation: Affiliation;
+  created_at: string;
 };
 
 export type AdminThesisRow = {
@@ -564,6 +597,12 @@ export type ValidationErrorList = {
 - Normal admin/review lists exclude `trashed` unless explicitly filtered.
 - Frontend status labels display `accepted` as `Approved`.
 - Public DTOs never expose raw `thesis_files.file_url`.
+- `users.usc_id` is nullable because not every member has a USC ID. The current
+  SQL snapshot still marks it `NOT NULL`; the database migration must land
+  before live registration relies on omitted IDs.
+- Shared contract ownership is centralized in
+  `Alexandria/lib/services/types.ts`; auth-layer re-exports must not introduce
+  duplicate definitions.
 
 ---
 
@@ -571,4 +610,6 @@ export type ValidationErrorList = {
 
 - [Alexandria PRD](./Alexandria%20PRD.md)
 - [Database Engineer Reference](./database-engineer-reference.md)
+- [Backend Function Headers](./backend_functions.md)
+- [Backend Readiness Plan](./backend-readiness-plan.md)
 - [Design Decision Log](./design-decision-log.md)
