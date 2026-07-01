@@ -21,7 +21,8 @@ export function assertValidRole(role: string): role is "admin" | "moderator" | "
 
 /**
  * POST /auth/register
- * Creates a Supabase Auth user and inserts the public.users profile row.
+ * Creates a Supabase Auth user and supplies profile metadata.
+ * The on_auth_user_created database trigger owns the public.users insert.
  * Validates that email domain is "usc.edu.ph" and affiliation is valid.
  * Used by: Register page.
  */

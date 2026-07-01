@@ -4,9 +4,16 @@ import { Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import type { FieldErrors, LoginInput } from "../lib/auth-contract";
-import { authGateway, type AuthGateway } from "../lib/auth-gateway";
-import { validateLoginInput } from "../lib/auth-validation";
+import type {
+  FieldErrors,
+  LoginInput,
+} from "@/lib/auth/auth-contract";
+import {
+  authGateway,
+  type AuthGateway,
+} from "@/lib/auth/auth-gateway";
+import { getPostAuthDestination } from "@/lib/auth/auth-routing";
+import { validateLoginInput } from "@/lib/auth/auth-validation";
 import { AuthField } from "./auth-field";
 import { AuthTabs } from "./auth-tabs";
 import { PasswordField } from "./password-field";
@@ -46,12 +53,7 @@ export function LoginForm({
       return;
     }
 
-    const destination = {
-      admin: "/admin",
-      moderator: "/moderator",
-      member: "/",
-    }[result.data.role];
-    router.push(destination);
+    router.replace(getPostAuthDestination(result.data.role));
   }
 
   return (

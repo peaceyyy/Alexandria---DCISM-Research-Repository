@@ -1,6 +1,6 @@
 # Alexandria Backend Readiness Plan
 
-Last updated: 2026-06-27
+Last updated: 2026-07-01
 
 ## Purpose
 
@@ -20,6 +20,7 @@ The latest implementation direction has shifted from the earlier planning docs i
 | --- | --- | --- |
 | Data access | Supabase JS client through a local service layer | Build `Alexandria/lib/services/` contracts first; keep UI away from raw Supabase queries |
 | User table | `public.users` linked to `auth.users` | Use this as the app profile table |
+| USC ID | Nullable for members who do not have a student ID | Drop the current `users.usc_id NOT NULL` constraint and stop substituting `0` in the signup trigger |
 | System roles | `admin`, `moderator`, `member` | Replace older Admin/Contributor/Student visitor language in implementation |
 | USC identity | `student`, `alumni`, `professor` in `users.affiliation` | Do not use affiliation for permission checks |
 | Thesis lifecycle | `for_review`, `flagged`, `accepted`, `trashed` | Public repository queries must filter to approved/accepted records only and hide trashed records |
@@ -35,6 +36,7 @@ These decisions came from project-lead clarification on 2026-06-26.
 | Decision | Locked Behavior |
 | --- | --- |
 | Auth terminology | **Sign-up** creates/registers a new account through `registerMember()`. **Login** authenticates an existing account through `login()`. Do not use “sign-in” to refer to registration. |
+| Signup profile ownership | `registerMember()` creates the Supabase Auth user and supplies `raw_user_meta_data`; the `on_auth_user_created` trigger is the only writer that creates the matching `public.users` row. |
 | Member submissions | Any authenticated `member` can submit a thesis. New submissions enter `for_review`. |
 | Review authority | Only `admin` and `moderator` can approve/accept, flag, or trash submissions. |
 | Moderator naming | `moderator` is the implementation replacement for the older `contributor` role. |
@@ -67,7 +69,13 @@ Alexandria/lib/services/user-service.ts
 Alexandria/lib/services/file-service.ts
 Alexandria/lib/services/types.ts
 Alexandria/lib/services/result.ts
+Alexandria/lib/auth/auth-contract.ts
 ```
+
+`Alexandria/lib/services/types.ts` owns shared service and domain contracts.
+`Alexandria/lib/auth/auth-contract.ts` is a compatibility facade that re-exports
+the shared auth-facing contracts and keeps only form-specific types locally.
+Developers must not redefine shared types in both modules.
 
 Minimum contracts:
 
@@ -89,6 +97,10 @@ Minimum contracts:
 ### 2. Shared Result and Error Shape
 
 Lock this before frontend begins wiring real data.
+
+The executable source of truth is
+`Alexandria/lib/services/types.ts`. In particular, use its metadata-capable
+`ServiceResult<T>` everywhere rather than declaring an auth-specific variant.
 
 ```ts
 export type ServiceResult<T> =
@@ -139,6 +151,10 @@ UI/service DTOs:
 - `ValidationErrorList`
 
 This keeps the frontend from being tightly coupled to Supabase row names.
+
+`CurrentUser.usc_id` is `number | null`, and `CurrentUser.created_at` is a
+required ISO timestamp string. `RegisterPayload.usc_id` is optional because
+students provide an ID while other member affiliations may not have one.
 
 ### 4. Auth and Role Guards
 
@@ -263,6 +279,21 @@ Before frontend wiring, keep these backend/data constraints visible:
 - `submitted_by_user_id` may be nullable for legacy/imported/admin-uploaded theses. New member self-submissions should always set it.
 - `review_status = 'trashed'` exists in the live database and is the MVP removal state.
 - Add or confirm a partial unique index so only one file per thesis can have `is_primary = true`.
+- Change `public.users.usc_id` from `NOT NULL` to nullable.
+- Update `handle_new_user()` to store a missing USC ID as `NULL`, not the sentinel value `0`.
+
+Recommended USC ID migration:
+
+```sql
+ALTER TABLE public.users
+ALTER COLUMN usc_id DROP NOT NULL;
+```
+
+The signup trigger should use:
+
+```sql
+NULLIF(NEW.raw_user_meta_data->>'usc_id', '')::bigint
+```
 
 Recommended primary-file uniqueness:
 

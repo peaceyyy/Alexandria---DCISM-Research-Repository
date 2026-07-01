@@ -8,9 +8,13 @@ import type {
   FieldErrors,
   RegistrationFormInput,
   RegisterPayload,
-} from "../lib/auth-contract";
-import { authGateway, type AuthGateway } from "../lib/auth-gateway";
-import { validateRegistrationInput } from "../lib/auth-validation";
+} from "@/lib/auth/auth-contract";
+import {
+  authGateway,
+  type AuthGateway,
+} from "@/lib/auth/auth-gateway";
+import { getPostAuthDestination } from "@/lib/auth/auth-routing";
+import { validateRegistrationInput } from "@/lib/auth/auth-validation";
 import { AuthField } from "./auth-field";
 import { AuthTabs } from "./auth-tabs";
 import { PasswordField } from "./password-field";
@@ -31,8 +35,7 @@ export function SignUpForm({
 }) {
   const router = useRouter();
   const [input, setInput] = useState(initialInput);
-  const [errors, setErrors] =
-    useState<FieldErrors<RegistrationFormInput>>({});
+  const [errors, setErrors] = useState<FieldErrors<RegistrationFormInput>>({});
   const [serviceError, setServiceError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -68,7 +71,7 @@ export function SignUpForm({
       return;
     }
 
-    router.push("/login?registered=1");
+    router.replace(getPostAuthDestination());
   }
 
   return (
@@ -112,7 +115,9 @@ export function SignUpForm({
       <div className="grid grid-cols-2 gap-3 max-[600px]:grid-cols-1">
         <AuthField
           id="sign-up-usc-id"
-          label={input.affiliation === "student" ? "USC ID" : "USC ID (Optional)"}
+          label={
+            input.affiliation === "student" ? "USC ID" : "USC ID (Optional)"
+          }
           name="usc_id"
           inputMode="numeric"
           placeholder="Enter your USC ID"

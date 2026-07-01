@@ -101,7 +101,7 @@ Single table for all authenticated users. `id` is a UUID matching `auth.users.id
 | id | Primary key; UUID matching `auth.users.id` |
 | email | Unique; must be `usc.edu.ph` for self-registered users |
 | profile_name | Required display name |
-| usc_id | Required USC student/staff ID |
+| usc_id | Nullable USC ID. Students provide it during registration; other member affiliations may not have one |
 | role | System access level. CHECK: `admin`, `moderator`, `member`. Default `member` |
 | affiliation | USC identity type. CHECK: `student`, `alumni`, `professor` |
 | created_at | Standard timestamp |
@@ -109,6 +109,17 @@ Single table for all authenticated users. `id` is a UUID matching `auth.users.id
 > **Portability note:** If migrating away from Supabase Auth, add `password_hash text` via `ALTER TABLE` and issue force-password-resets. UUID `id` values can be preserved in most auth systems that accept custom UUIDs.
 
 > **Role semantics:** `member` means a registered user with upload access and PDF access — not necessarily someone who has submitted a thesis. The name reflects permission level, not activity.
+
+> **Required schema follow-up:** The current SQL snapshot still declares
+> `users.usc_id bigint NOT NULL` and the signup trigger substitutes `0` when the
+> metadata is absent. Change the column to nullable and store `NULL` instead.
+> `registerMember()` supplies profile metadata, while `on_auth_user_created`
+> remains the only owner of the `public.users` insert.
+
+```sql
+ALTER TABLE public.users
+ALTER COLUMN usc_id DROP NOT NULL;
+```
 
 ### `theses`
 

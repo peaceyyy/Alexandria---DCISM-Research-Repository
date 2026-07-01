@@ -1,7 +1,7 @@
 # Alexandria — Backend Function Headers Blueprint
 
 > **Status:** Draft · Phase 1 Skeleton
-> Last updated: 2026-06-29
+> Last updated: 2026-07-01
 >
 > This document is the **function-level blueprint** for the Alexandria service layer (`Alexandria/lib/services/`).
 > Function bodies are intentionally left empty (`TODO`). This file is the single source of truth for
@@ -35,6 +35,11 @@ Alexandria/lib/
 
 > All types should be declared in `Alexandria/lib/services/types.ts`.
 > These are the shapes every service function returns or accepts.
+>
+> `Alexandria/lib/auth/auth-contract.ts` may re-export these shared contracts
+> for auth-facing consumers, but it must not redefine them. Auth form-only
+> types remain local to that compatibility facade. See
+> [`api-contracts.md`](./api-contracts.md#canonical-type-ownership).
 
 ```ts
 // ─── Primitives ──────────────────────────────────────────────────────────────
@@ -61,7 +66,7 @@ export type DbUser = {
   id: string; // uuid — mirrors auth.users.id
   email: string;
   profile_name: string;
-  usc_id: number;
+  usc_id: number | null;
   role: UserRole;
   affiliation: Affiliation;
   created_at: string;
@@ -156,9 +161,10 @@ export type CurrentUser = {
   id: string;
   email: string;
   profile_name: string;
-  usc_id: number;
+  usc_id: number | null;
   role: UserRole;
   affiliation: Affiliation;
+  created_at: string;
 };
 /** Row shape for the admin review dashboard list. */
 export type AdminThesisRow = {
@@ -180,12 +186,13 @@ export type RegisterPayload = {
   email: string;
   password: string;
   profile_name: string;
-  usc_id: number;
+  usc_id?: number;
   affiliation: Affiliation;
 };
-export type ThesisAuthor = {
-  user_id: string | null;
-  display_name: string;
+export type ThesisAuthorInput = Omit<
+  ThesisAuthor,
+  "id" | "sort_order"
+> & {
   sort_order: number;
 };
 export type SubmitThesisPayload = {
@@ -299,7 +306,8 @@ export async function getFilterOptions(): Promise<ServiceResult<FilterOptions>>;
 import type { CurrentUser, RegisterPayload, ServiceResult } from "./types";
 /**
  * POST /auth/register
- * Creates a Supabase Auth user and inserts the public.users profile row.
+ * Creates a Supabase Auth user and supplies profile metadata.
+ * The on_auth_user_created database trigger owns the public.users insert.
  * Validates that email domain is "usc.edu.ph" and affiliation is valid.
  * Used by: Sign-up page.
  */
