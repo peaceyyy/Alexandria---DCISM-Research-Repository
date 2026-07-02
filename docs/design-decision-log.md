@@ -368,7 +368,7 @@ Status: Superseded by Decision 045
 
 Context: The live schema stores `thesis_files.file_url`, pointing to PDFs hosted on department/school server infrastructure.
 
-Decision: Store raw PDF URLs in `thesis_files.file_url`, but do not return them directly to unauthenticated clients. Authenticated PDF access should go through a proxy endpoint such as `GET /theses/:id/file`.
+Decision: Store raw PDF URLs in `thesis_files.file_url`, but do not return them directly to unauthenticated clients. Authenticated PDF access should go through a proxy endpoint such as `GET /api/theses/:id/file`.
 
 Consequences:
 
@@ -708,3 +708,37 @@ Consequences:
 - Navigation links to the repository target `/home`.
 - Future HTTP thesis routes live under `/api/theses`.
 - `/upload/theses` is not part of the current or future route contract.
+
+### Decision 047: Implement secure, atomic thesis submission
+
+Status: Accepted
+
+Context: Previous submission implementation relied on client-side ownership (sending `submitted_by_user_id`), separated file uploads from metadata, and lacked rollback capabilities if database insertion failed after file upload.
+
+Decision:
+1. Submission ownership is derived securely on the server from `auth.uid()` inside the Postgres RPC (`submit_thesis_transaction`). Client payloads cannot select or override `submitted_by_user_id`.
+2. The upload page sends both metadata and the PDF together to `submitThesis(FormData)` in a single packet.
+3. Authentication and server validation occur before any storage write.
+4. An RPC failure triggers compensatory removal of the newly uploaded storage object.
+
+Consequences:
+- Security is vastly improved; users cannot forge submissions for others.
+- Orphaned files in storage are heavily mitigated.
+- The backend handles complex transactional logic rather than the frontend.
+
+### Decision 048: Enforce strict thesis metadata and file validation
+
+Status: Accepted
+
+Context: Invalid data (future dates, non-PDF files, mismatched years) could compromise repository integrity and search functionality.
+
+Decision:
+1. `publication_date` is required and cannot exceed the current `Asia/Manila` calendar date.
+2. The frontend does not collect `year`; the server derives it from `publication_date` to guarantee consistency. The RPC enforces that `year` matches the publication date's calendar year.
+3. Initial submission accepts PDF only, with a maximum size of 10 MiB.
+4. PDF validation must check the extension, supplied MIME metadata, non-empty size, maximum size, and the `%PDF-` signature.
+
+Consequences:
+- The UI form drops the explicit "Year" input field (or derives it).
+- Submissions are guaranteed to have a valid publication date.
+- The storage bucket is protected from malicious non-PDF uploads.
