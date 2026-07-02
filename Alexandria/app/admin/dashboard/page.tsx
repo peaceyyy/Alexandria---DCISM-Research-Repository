@@ -1,16 +1,15 @@
 "use client";
 import { BookText, Clock, Users } from "lucide-react";
-import { DataTable, type Column } from "@/components/admin/data-table";
-import { StatCard } from "@/components/admin/stat-card";
-import { StatusBadge } from "@/components/admin/status-badge";
+import { DataTable, type Column } from "@/app/admin/_components/data-table";
+import { StatCard } from "@/app/admin/_components/stat-card";
+import { StatusBadge } from "@/app/admin/_components/status-badge";
 import {
   mockStats,
   mockUploads,
   mockActivity,
   mockByDepartment,
   type MockUpload,
-} from "@/components/admin/mock-data";
-
+} from "@/app/admin/_components/mock-data";
 
 const uploadColumns: Column<MockUpload>[] = [
   {
@@ -76,7 +75,9 @@ export default function AdminDashboardPage() {
           className="rounded-[10px] border border-white/[0.07] bg-[#1a1e23] p-5"
           aria-label="Recent Activity"
         >
-          <h2 className="mb-4 text-[15px] font-bold text-white">Recent Activity</h2>
+          <h2 className="mb-4 text-[15px] font-bold text-white">
+            Recent Activity
+          </h2>
           <ul className="flex flex-col gap-3" role="list">
             {mockActivity.map((item, i) => (
               <li key={i}>
@@ -94,10 +95,15 @@ export default function AdminDashboardPage() {
           className="rounded-[10px] border border-white/[0.07] bg-[#1a1e23] p-5"
           aria-label="Research by Department"
         >
-          <h2 className="mb-4 text-[15px] font-bold text-white">Research by Department</h2>
+          <h2 className="mb-4 text-[15px] font-bold text-white">
+            Research by Department
+          </h2>
           <ul className="flex flex-col gap-3" role="list">
             {mockByDepartment.map((dept) => (
-              <li key={dept.label} className="flex items-center justify-between">
+              <li
+                key={dept.label}
+                className="flex items-center justify-between"
+              >
                 <span className="text-sm text-[#d8dadc]">{dept.label}</span>
                 <div className="flex items-center gap-3">
                   {/* Progress bar */}
@@ -109,7 +115,9 @@ export default function AdminDashboardPage() {
                       }}
                     />
                   </div>
-                  <span className="text-sm font-bold text-white tabular-nums">{dept.count}</span>
+                  <span className="text-sm font-bold text-white tabular-nums">
+                    {dept.count}
+                  </span>
                 </div>
               </li>
             ))}

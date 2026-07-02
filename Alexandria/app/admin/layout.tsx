@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminSidebar } from "@/app/admin/_components/admin-sidebar";
 import { getCurrentUser } from "@/lib/services/auth-service";
 
 export default async function AdminLayout({

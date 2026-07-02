@@ -1,10 +1,12 @@
 "use client";
 import { UserCheck } from "lucide-react";
-import { DataTable, type Column } from "@/components/admin/data-table";
-import { RowActions } from "@/components/admin/row-actions";
-import { StatCard } from "@/components/admin/stat-card";
-import { mockModerators, type MockModerator } from "@/components/admin/mock-data";
-
+import { DataTable, type Column } from "@/app/admin/_components/data-table";
+import { RowActions } from "@/app/admin/_components/row-actions";
+import { StatCard } from "@/app/admin/_components/stat-card";
+import {
+  mockModerators,
+  type MockModerator,
+} from "@/app/admin/_components/mock-data";
 
 const moderatorColumns: Column<MockModerator>[] = [
   { key: "name", header: "Name" },
@@ -13,10 +15,7 @@ const moderatorColumns: Column<MockModerator>[] = [
     key: "actions",
     header: "Actions",
     render: (_row) => (
-      <RowActions
-        editLabel="Edit moderator"
-        deleteLabel="Remove moderator"
-      />
+      <RowActions editLabel="Edit moderator" deleteLabel="Remove moderator" />
     ),
   },
 ];
