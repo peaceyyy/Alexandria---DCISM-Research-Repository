@@ -61,6 +61,7 @@ export type DbThesisFile = {
   id: number;
   thesis_id: number;
   file_url: string; // NEVER returned to public payloads
+  file_type: string;
   is_primary: boolean;
   created_at: string;
 };
@@ -102,7 +103,7 @@ export type ThesisDetail = ThesisCard & {
   file_access: {
     has_primary_file: boolean;
     requires_auth: boolean;
-    download_path: string | null; // e.g. "/theses/1/file" — never a raw URL
+    download_path: string | null; // e.g. "/api/theses/1/file" — never a raw URL
   };
   related_theses: ThesisCard[]; // frontend-computed from tag overlap
 };
@@ -156,12 +157,18 @@ export type SubmitThesisPayload = {
   research_area: string;
   authors: ThesisAuthorInput[];
   tags: string[];
-  publication_date?: string;
+  file_url: string;
+  file_type: "application/pdf";
+  publication_date: string;
   publication_link?: string;
   conference?: string;
   recommendations?: string;
   lessons_learned?: string;
 };
+export type SubmitThesisInput = Omit<
+  SubmitThesisPayload,
+  "file_url" | "file_type" | "year"
+>;
 /** All fields optional — partial PATCH. */
 export type updateThesisStatusPayload = Partial<SubmitThesisPayload>;
 export type RegisterFilePayload = {
