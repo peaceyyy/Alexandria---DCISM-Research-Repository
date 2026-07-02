@@ -1,7 +1,7 @@
 import { AppHeader } from "@/components/layout/app-header";
 import { getCurrentUser } from "@/lib/services/auth-service";
 
-export default async function ThesesPage() {
+export default async function HomePage() {
   const userResult = await getCurrentUser();
   const role = userResult.data?.role ?? null;
 

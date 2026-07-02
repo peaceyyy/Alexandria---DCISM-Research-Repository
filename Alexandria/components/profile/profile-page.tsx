@@ -41,7 +41,7 @@ export function ProfilePage({
               </h1>
             </div>
             <Link
-              href="/theses"
+              href="/home"
               className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-[#b9bec3] transition-colors hover:bg-white/5 hover:text-white"
             >
               Back to Home

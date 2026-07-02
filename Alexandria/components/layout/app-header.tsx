@@ -1,5 +1,5 @@
 /**
- * AppHeader — the shared header for all content pages (/theses, etc.)
+ * AppHeader — the shared header for all content pages (/home, etc.)
  *
  * Layout (left → right):
  *   [Logo mark + wordmark]  [────── Search bar ──────]  [Role/Dashboard group | Contribute]
@@ -11,9 +11,10 @@
  *   • Admin   → role pill  +  "Dashboard →"  (no Contribute — admins don't submit)
  *
  * The search input is a placeholder skeleton for now; the
- * real search handler will be wired in the /theses feature phase.
+ * real search handler will be wired in the repository browsing feature phase.
  */
 import Image from "next/image";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import type { UserRole } from "@/lib/auth/auth-contract";
 import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
@@ -32,7 +33,7 @@ export function AppHeader({ role }: AppHeaderProps) {
 
       {/* ── Brand ──────────────────────────────────────────────────────── */}
       <a
-        href="/theses"
+        href="/home"
         className="flex shrink-0 items-center gap-2.5 text-white no-underline"
         aria-label="Alexandria repository home"
       >
@@ -84,12 +85,12 @@ export function AppHeader({ role }: AppHeaderProps) {
         {isGuest && <AuthInterceptModal />}
 
         {!isGuest && !isPrivileged && (
-          <a
-            href="/submit"
+          <Link
+            href="/upload"
             className="inline-flex h-9 items-center justify-center rounded-full bg-[#368bfe] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#2f78ff] active:bg-[#1752f0]"
           >
             Contribute
-          </a>
+          </Link>
         )}
         {/* Privileged users: Dashboard → is already rendered inside RoleIndicator */}
       </div>
