@@ -101,12 +101,29 @@ export default function UploadPage() {
     [currentStep],
   );
 
-  function handleNext() {
-    goToStep(currentStep + 1);
-  }
-
   function handleBack() {
     goToStep(currentStep - 1);
+  }
+
+  async function handleFormSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (currentStep < TOTAL_STEPS) {
+      const stepFields = Object.keys(FIELD_STEP_MAP)
+        .filter((k) => FIELD_STEP_MAP[k] === currentStep) as Array<keyof FormValues>;
+      
+      const isValid = stepFields.length > 0 ? await methods.trigger(stepFields) : true;
+      
+      if (currentStep === 6 && !selectedFile) {
+        setFileError("Please attach a thesis PDF before continuing.");
+        return;
+      }
+
+      if (isValid) {
+        goToStep(currentStep + 1);
+      }
+    } else {
+      await handleOpenSubmit();
+    }
   }
 
   // ── Logo click → exit warning ────────────────────────────────────────────
@@ -116,6 +133,42 @@ export default function UploadPage() {
     } else {
       router.push("/home");
     }
+  }
+
+  // ── Dev Tool: Quick Fill ─────────────────────────────────────────────────
+  function fillDummyData() {
+    methods.reset({
+      title: "An Analysis of Distributed Systems in Micro-Frontend Architectures",
+      abstract: "This paper explores the intricacies of implementing distributed systems concepts within the context of micro-frontend architectures, focusing on performance, state synchronization, and fault tolerance across decoupled UI domains. This study provides a comprehensive overview of modern web development paradigms.",
+      department: "DCISM",
+      type_of_study: "thesis",
+      research_areas: ["Web Development", "Algorithms"],
+      authors: [
+        {
+          user_id: null,
+          display_name: "Jane Doe",
+          contribution_role: "author",
+          sort_order: 1,
+        },
+        {
+          user_id: null,
+          display_name: "Dr. John Smith",
+          contribution_role: "adviser",
+          sort_order: 2,
+        }
+      ],
+      tags: ["frontend", "architecture", "distributed-systems"],
+      publication_date: "2026-05-15",
+      publication_link: "https://example.com/thesis",
+      conference: "International Conference on Web Engineering",
+      recommendations: "We recommend further study into the specific impacts of network latency on state synchronization in micro-frontends.",
+      lessons_learned: [
+        "State synchronization across domains requires strict contracts",
+        "Micro-frontends introduce significant networking overhead"
+      ],
+    });
+    // Jump straight to the upload step
+    goToStep(6);
   }
 
   // ── File handling ────────────────────────────────────────────────────────
@@ -165,6 +218,7 @@ export default function UploadPage() {
         conference: data.conference,
         recommendations: data.recommendations,
         lessons_learned: data.lessons_learned.join("\n"),
+        study_type: data.type_of_study,
       };
 
       const submissionPacket = new FormData();
@@ -176,13 +230,14 @@ export default function UploadPage() {
         throw new Error(result.error.message || "Failed to submit thesis");
       }
 
-      // Success → redirect to home repository
-      router.push("/home");
+      // Success → redirect to home with submission banner
+      router.push("/home?submitted=1");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred";
+      console.error("[upload] submission failed:", message);
       setSubmitError(message);
-      setShowSubmitConfirm(false);
+      // Keep the dialog open so the error is visible — do NOT close it
     } finally {
       setIsSubmitting(false);
     }
@@ -200,7 +255,7 @@ export default function UploadPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <FormProvider {...methods}>
-      <div className="flex min-h-screen flex-col bg-[#14181C]">
+      <form onSubmit={handleFormSubmit} className="flex min-h-screen flex-col bg-[#14181C]">
         {/* Focused-task header */}
         <UploadHeader onLogoClick={handleLogoClick} />
 
@@ -215,7 +270,7 @@ export default function UploadPage() {
         </div>
 
         {/* Step content — animated on navigation */}
-        <main className="flex-1 px-4 pt-10">
+        <main className="flex-1 px-4 pt-10 pb-24">
           <div
             key={animKey}
             className={cn(
@@ -247,37 +302,74 @@ export default function UploadPage() {
           </div>
         </main>
 
-        {/* ── Inline nav row — sits below the step, scrolls with the page ── */}
+        {/* ── Sticky footer nav bar ─────────────────────────────────────── */}
         {currentStep < TOTAL_STEPS && (
-          <div className="mx-auto mb-16 mt-10 flex max-w-[540px] items-center justify-between px-4">
-            {/* Back */}
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={currentStep === 1}
-              className="flex items-center gap-1.5 rounded-lg border border-white/8 px-4 py-2 text-sm text-white/50 transition-all hover:border-white/15 hover:text-white disabled:pointer-events-none disabled:opacity-20"
-            >
-              <ChevronLeft size={15} aria-hidden />
-              Back
-            </button>
+          <div className="sticky bottom-0 z-30 border-t border-white/[0.06] bg-[#14181C]/90 backdrop-blur-md">
+            <div className="mx-auto flex max-w-[540px] items-center gap-4 px-4 py-4">
 
-            {/* Step counter */}
-            <p className="text-[10px] font-medium uppercase tracking-widest text-white/20">
-              {currentStep} / {TOTAL_STEPS}
-            </p>
+              {/* Back — ghost, clearly subordinate */}
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={currentStep === 1}
+                className="flex h-9 items-center gap-1 rounded-md px-3 text-sm text-white/35 transition-all hover:text-white/70 disabled:pointer-events-none disabled:opacity-20"
+              >
+                <ChevronLeft size={14} aria-hidden />
+                Back
+              </button>
 
-            {/* Next */}
-            <button
-              type="button"
-              onClick={handleNext}
-              className="flex items-center gap-1.5 rounded-lg bg-[#1752F0] px-5 py-2 text-sm font-medium text-white transition-all hover:bg-[#368BFE]"
-            >
-              Next
-              <ChevronRight size={15} aria-hidden />
-            </button>
+              {/* Progress track — fills the remaining space */}
+              <div className="flex flex-1 flex-col items-center gap-2">
+                {/* Segmented dots */}
+                <div className="flex items-center gap-1.5" role="progressbar" aria-valuenow={currentStep} aria-valuemin={1} aria-valuemax={TOTAL_STEPS}>
+                  {Array.from({ length: TOTAL_STEPS - 1 }).map((_, i) => {
+                    const seg = i + 1;
+                    return (
+                      <div
+                        key={seg}
+                        className={cn(
+                          "h-1 rounded-full transition-all duration-300",
+                          seg < currentStep
+                            ? "w-4 bg-[#1752F0]"
+                            : seg === currentStep
+                              ? "w-5 bg-[#368BFE]"
+                              : "w-3 bg-white/10",
+                        )}
+                      />
+                    );
+                  })}
+                </div>
+                {/* Step label */}
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-white/20">
+                  Step {currentStep} of {TOTAL_STEPS - 1}
+                </span>
+              </div>
+
+              {/* Dev tool — muted, ghost, tucked away */}
+              {process.env.NODE_ENV === "development" && (
+                <button
+                  type="button"
+                  onClick={fillDummyData}
+                  title="Dev: Quick Fill"
+                  className="flex h-7 items-center rounded border border-white/8 px-2 text-[9px] font-semibold uppercase tracking-wider text-white/20 transition-colors hover:border-white/15 hover:text-white/40"
+                >
+                  Fill
+                </button>
+              )}
+
+              {/* Next — primary CTA */}
+              <button
+                type="submit"
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-[#1752F0] px-5 text-sm font-semibold text-white shadow-lg shadow-[#1752F0]/20 transition-all hover:bg-[#368BFE] hover:shadow-[#368BFE]/25"
+              >
+                Next
+                <ChevronRight size={14} aria-hidden />
+              </button>
+
+            </div>
           </div>
         )}
-      </div>
+      </form>
 
       {/* ── Dialogs ──────────────────────────────────────────────────────── */}
       <ExitWarningDialog
@@ -288,9 +380,10 @@ export default function UploadPage() {
 
       <SubmitConfirmDialog
         open={showSubmitConfirm}
-        onCancel={() => setShowSubmitConfirm(false)}
+        onCancel={() => { setShowSubmitConfirm(false); setSubmitError(null); }}
         onConfirm={handleConfirmSubmit}
         isSubmitting={isSubmitting}
+        error={submitError}
       />
     </FormProvider>
   );

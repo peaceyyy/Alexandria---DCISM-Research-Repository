@@ -296,7 +296,7 @@ export function LessonsModal({ value, onChange, error }: LessonsModalProps) {
                   onKeyDown={handleInputKeyDown}
                   placeholder="Type a lesson and press Enter to add…"
                   maxLength={220}
-                  className="flex-1 bg-transparent text-sm text-white placeholder-white/20 outline-none"
+                  className="flex-1 bg-transparent text-sm text-white placeholder-white/20 outline-none focus:outline-none"
                 />
                 {input.trim() && (
                   <button

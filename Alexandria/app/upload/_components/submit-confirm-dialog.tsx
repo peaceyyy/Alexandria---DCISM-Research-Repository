@@ -9,13 +9,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Send } from "lucide-react";
+import { AlertCircle, Send } from "lucide-react";
 
 interface SubmitConfirmDialogProps {
   open: boolean;
   onCancel: () => void;
   onConfirm: () => void;
   isSubmitting: boolean;
+  error?: string | null;
 }
 
 export function SubmitConfirmDialog({
@@ -23,6 +24,7 @@ export function SubmitConfirmDialog({
   onCancel,
   onConfirm,
   isSubmitting,
+  error,
 }: SubmitConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen && !isSubmitting) onCancel(); }}>
@@ -45,6 +47,14 @@ export function SubmitConfirmDialog({
             been reviewed — either approved or flagged with feedback.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Submission error */}
+        {error && (
+          <div className="flex items-start gap-2 rounded-lg border border-[#ff6b6b]/20 bg-[#ff6b6b]/8 px-3 py-2.5">
+            <AlertCircle size={13} className="mt-0.5 flex-shrink-0 text-[#ff6b6b]" aria-hidden />
+            <p className="text-xs leading-relaxed text-[#ff6b6b]">{error}</p>
+          </div>
+        )}
 
         <DialogFooter className="border-t border-white/5 bg-transparent">
           <Button

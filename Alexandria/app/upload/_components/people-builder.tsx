@@ -41,6 +41,7 @@ function PersonRow({
           <UserCircle size={13} className="flex-shrink-0 text-white/18" aria-hidden />
           <input
             type="text"
+            aria-label="Person's full name"
             value={person.display_name}
             onChange={(e) => onChangeName(e.target.value)}
             placeholder="Full name (e.g. Juan A. Dela Cruz)"

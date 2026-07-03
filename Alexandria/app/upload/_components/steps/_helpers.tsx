@@ -32,16 +32,18 @@ export function Field({
   label,
   required,
   hint,
+  htmlFor,
   children,
 }: {
   label: string;
   required?: boolean;
   hint?: string;
+  htmlFor?: string;
   children: ReactNode;
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-white/35">
+      <label htmlFor={htmlFor} className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-white/35">
         {label}
         {required && <span className="text-[#368BFE]" aria-hidden>*</span>}
       </label>
