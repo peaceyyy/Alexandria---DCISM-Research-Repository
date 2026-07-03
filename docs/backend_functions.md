@@ -77,6 +77,43 @@ export type DbThesis = {
   abstract: string | null;
   year: number;
   department: string;
+
+```ts
+// ─── Primitives ──────────────────────────────────────────────────────────────
+export type ReviewStatus = "for_review" | "flagged" | "accepted" | "trashed";
+export type UserRole = "admin" | "moderator" | "member";
+export type Affiliation = "student" | "alumni" | "professor";
+export type ContributionRole = "author" | "adviser";
+// ─── Pagination & Result Envelope ────────────────────────────────────────────
+export type PaginationMeta = {
+  total_count: number;
+  page: number;
+  limit: number;
+};
+export type ServiceError = {
+  code: string; // e.g. "VALIDATION_FAILED", "FORBIDDEN"
+  message: string;
+  details?: Record<string, unknown>;
+};
+export type ServiceResult<T> =
+  | { data: T; error: null; meta?: PaginationMeta }
+  | { data: null; error: ServiceError };
+// ─── Raw DB Row Types (never returned to UI directly) ────────────────────────
+export type DbUser = {
+  id: string; // uuid — mirrors auth.users.id
+  email: string;
+  profile_name: string;
+  usc_id: number | null;
+  role: UserRole;
+  affiliation: Affiliation;
+  created_at: string;
+};
+export type DbThesis = {
+  id: number; // bigint identity
+  title: string;
+  abstract: string | null;
+  year: number;
+  department: string;
   research_area: string | null;
   review_status: ReviewStatus;
   publication_date: string | null;
@@ -85,6 +122,7 @@ export type DbThesis = {
   recommendations: string | null;
   lessons_learned: string | null;
   submitted_by_user_id: string | null; // uuid — nullable for legacy/admin uploads
+  study_type: "thesis" | "capstone";
   created_at: string;
   updated_at: string;
 };
@@ -174,6 +212,7 @@ export type AdminThesisRow = {
   year: number;
   updated_at: string;
   submitted_by_user_id: string | null;
+  study_type: "thesis" | "capstone";
 };
 /** Row shape for the admin user management list. Alias of CurrentUser. */
 export type UserAdminRow = CurrentUser;
@@ -213,6 +252,7 @@ export type SubmitThesisPayload = {
   conference?: string;
   recommendations?: string;
   lessons_learned?: string;
+  study_type: "thesis" | "capstone";
 };
 export type SubmitThesisInput = Omit<
   SubmitThesisPayload,

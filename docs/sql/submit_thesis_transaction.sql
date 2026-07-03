@@ -1,6 +1,7 @@
 CREATE OR REPLACE FUNCTION public.submit_thesis_transaction(payload jsonb)
  RETURNS integer
  LANGUAGE plpgsql
+ SECURITY DEFINER
 AS $function$
     DECLARE
         new_thesis_id int;

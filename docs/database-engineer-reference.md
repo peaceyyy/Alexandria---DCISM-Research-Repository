@@ -139,6 +139,7 @@ Core thesis record.
 | publication_date | Required by the submission contract; actual publication/conference date and cannot exceed today using the `Asia/Manila` date boundary. Audit existing rows before changing the live nullable column to `NOT NULL` |
 | conference | Optional conference presentation name |
 | review_status | Required: `for_review`, `flagged`, `accepted`, or `trashed`. CHECK constraint enforced. Default `for_review` |
+| study_type | Required: `thesis` or `capstone`. CHECK constraint enforced. |
 | created_at, updated_at | Standard timestamps |
 
 ### `thesis_authors`

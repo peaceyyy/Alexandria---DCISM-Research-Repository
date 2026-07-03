@@ -361,13 +361,34 @@ API is introduced later, its equivalent route is `POST /api/theses`.
         "contribution_role": "adviser",
         "sort_order": 1
       }
+    "research_area": "Machine Learning",
+    "authors": [
+      {
+        "user_id": "uuid-or-null",
+        "display_name": "Author One",
+        "contribution_role": "author",
+        "sort_order": 1
+      },
+      {
+        "user_id": null,
+        "display_name": "Author Two",
+        "contribution_role": "author",
+        "sort_order": 2
+      },
+      {
+        "user_id": "uuid-or-null",
+        "display_name": "Dr. Adviser",
+        "contribution_role": "adviser",
+        "sort_order": 1
+      }
     ],
     "tags": ["#react", "#machine-learning"],
     "publication_date": "2026-05-14",
     "publication_link": "https://...",
     "conference": "ACM Web Conference 2026",
     "recommendations": "Explore mobile adaptation. Extend the recommendation engine with AI.",
-    "lessons_learned": "Start database design early. Do not underestimate PDF storage configuration."
+    "lessons_learned": "Start database design early. Do not underestimate PDF storage configuration.",
+    "study_type": "thesis"
   }
   ```
 
@@ -551,6 +572,7 @@ export type ReviewStatus = "for_review" | "flagged" | "accepted" | "trashed";
 export type UserRole = "admin" | "moderator" | "member";
 export type Affiliation = "student" | "alumni" | "professor";
 export type ContributionRole = "author" | "adviser";
+export type StudyType = "thesis" | "capstone";
 
 export type ThesisAuthor = {
   id: number;
@@ -586,6 +608,7 @@ export type ThesisDetail = ThesisCard & {
   conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
+  study_type: StudyType;
   file_access: {
     has_primary_file: boolean;
     requires_auth: boolean;
@@ -609,20 +632,6 @@ export type CurrentUser = {
   affiliation: Affiliation;
   created_at: string;
 };
-
-export type AdminThesisRow = {
-  id: number;
-  title: string;
-  review_status: ReviewStatus;
-  year: number;
-  updated_at: string;
-  submitted_by_user_id: string | null;
-};
-
-export type UserAdminRow = CurrentUser;
-
-export type ValidationErrorList = {
-  missing_fields: string[];
 };
 ```
 
