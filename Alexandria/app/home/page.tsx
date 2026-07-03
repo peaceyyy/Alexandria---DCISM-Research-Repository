@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { AppHeader } from "@/components/layout/app-header";
 import { getCurrentUser } from "@/lib/services/auth-service";
+import { SubmissionBanner } from "./_components/submission-banner";
 
 export default async function HomePage() {
   const userResult = await getCurrentUser();
@@ -8,6 +10,11 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-[#14181c] text-white">
       <AppHeader role={role} />
+
+      {/* Submission success banner — only visible after ?submitted=1 redirect */}
+      <Suspense fallback={null}>
+        <SubmissionBanner />
+      </Suspense>
 
       {/* Main Content */}
       <main className="mx-auto max-w-7xl px-6 py-12 sm:px-10 lg:px-16">
