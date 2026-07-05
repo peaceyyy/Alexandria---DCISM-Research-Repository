@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, LayoutDashboard, LogOut, Users, UserCheck } from "lucide-react";
+import { ClipboardCheck, ExternalLink, LayoutDashboard, LogOut, Users, UserCheck, BookOpenText } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -17,6 +17,9 @@ type NavLink = {
 
 const NAV_LINKS: NavLink[] = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "moderator"] },
+  { href: "/admin/review", label: "Review & Approval", icon: ClipboardCheck, roles: ["admin", "moderator"] },
+  { href: "/admin/allStudies", label: "All Studies", icon: BookOpenText, roles: ["admin", "moderator"] },
+  { href: "/admin/published-studies", label: "Published Studies", icon: BookOpenText, roles: ["admin", "moderator"] },
   { href: "/admin/members", label: "Members", icon: Users, roles: ["admin"] },
   { href: "/admin/moderators", label: "Moderators", icon: UserCheck, roles: ["admin"] },
 ];
