@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  BookOpenText,
+  ClipboardCheck,
   ExternalLink,
   LayoutDashboard,
   LogOut,
@@ -27,6 +29,24 @@ const NAV_LINKS: NavLink[] = [
     href: "/admin/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
+    roles: ["admin", "moderator"],
+  },
+  {
+    href: "/admin/review",
+    label: "Review & Approval",
+    icon: ClipboardCheck,
+    roles: ["admin", "moderator"],
+  },
+  {
+    href: "/admin/all-studies",
+    label: "All Studies",
+    icon: BookOpenText,
+    roles: ["admin", "moderator"],
+  },
+  {
+    href: "/admin/published-studies",
+    label: "Published Studies",
+    icon: BookOpenText,
     roles: ["admin", "moderator"],
   },
   {

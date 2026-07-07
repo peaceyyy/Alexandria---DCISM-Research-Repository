@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-export default async function LegacyAllstudyDetailPage({
+export default async function LegacyAllStudiesDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
