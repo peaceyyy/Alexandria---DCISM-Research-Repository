@@ -3,7 +3,7 @@ created: 2026-07-01
 schema: athena-default
 feature: alexandria-admin-dashboard-live-data
 owner: Homer
-status: ready
+status: human_review
 
 summary:
   workstream: admin-dashboard-supabase-linking
@@ -13,7 +13,7 @@ summary:
   current_codebase_audit: .agent/changes/phases/Homer/admin-dashboard/backend-integration/current-codebase-audit.md
   implementation_rule: Re-run read-only git status/diff and revalidate this baseline before the first coding agent starts.
   source_precedence:
-    - Alexandria/app/admin and Alexandria/components/admin for current UI paths and behavior
+    - Alexandria/app/admin and Alexandria/app/admin/_components for current UI paths and behavior
     - Alexandria/lib/services/types.ts and live service implementations for executable contracts
     - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
     - .agent/changes/phases/Homer/admin-dashboard/backend-integration/current-codebase-audit.md
@@ -22,22 +22,22 @@ summary:
     - docs/backend-readiness-plan.md
     - docs/database-engineer-reference.md
     - docs/design-decision-log.md
-    - docs/updated_db_fields.sql
+    - docs/sql/updated_db_fields.sql
     - docs/reports/ADMIN_DASHBOARD_FRONTEND_COMPLETION_REPORT.md
     - docs/reports/TASK_THESIS_SUBMISSION_HARDENING_COMPLETION_REPORT.md
     - .agent/changes/phases/Homer/admin-dashboard/frontend
 
 baseline:
   audited_at: 2026-07-02
-  commit: 2d4268da59e2842d63eae0e901cc5f2b8e7a7c2c
+  commit: c3b1dcd36b05720d0d08e437be77ecc12e2bef1f
   current_routes:
     public_repository: /home
     submission: /upload
     admin_dashboard: /admin/dashboard
   protected_submission_boundary: submitThesis(FormData) -> requireSession() -> Supabase Storage -> submit_thesis_transaction
   preserve_user_changes:
+    - Keep submission-page files outside this feature's write locks.
     - Do not restore deleted docs/page_backend_mapping.md.
-    - Do not restore deleted standalone SQL or other user-owned working-tree files.
 
 locked_decisions:
   dashboard_metric_semantics:
@@ -62,7 +62,7 @@ locked_decisions:
 global_rules:
   - Read git status before editing and preserve unrelated or user-owned changes.
   - Rebase the orchestrator if the live paths or service boundaries differ from the recorded baseline.
-  - Do not import a Supabase client in app/admin page components or components/admin presentation components.
+  - Do not import a Supabase client in app/admin page components or app/admin/_components presentation components.
   - Keep authentication and role checks inside every protected service and Server Action even when a layout already guards the route.
   - Never expose SUPABASE_SERVICE_ROLE_KEY through NEXT_PUBLIC variables, Client Components, or browser requests.
   - Do not invent create-user, hard-delete-user, or profile-edit behavior outside the approved contract freeze.
@@ -102,7 +102,7 @@ sub_phases:
       - docs/api-contracts.md
       - docs/backend_functions.md
       - Alexandria/app/admin
-      - Alexandria/components/admin/mock-data.ts
+      - Alexandria/app/admin/_components/mock-data.ts
     exclusive_writes:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
     exit_criteria:
@@ -126,7 +126,8 @@ sub_phases:
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/current-codebase-audit.md
-      - docs/updated_db_fields.sql
+      - docs/sql/updated_db_fields.sql
+      - docs/sql/submit_thesis_transaction.sql
       - docs/database-engineer-reference.md
       - docs/backend-readiness-plan.md
       - Alexandria/lib/services/submission-service.ts
@@ -134,7 +135,7 @@ sub_phases:
       - Alexandria/lib/supabase/server.ts
       - Alexandria/lib/services/_guards.ts
     allowed_writes:
-      - reviewed SQL migrations in the location selected and documented by this phase
+      - reviewed SQL artifacts under docs/sql in files owned by this phase
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/db-readiness-report.md
     required_schema_contract:
       - users.deactivated_at is nullable; null means active.
@@ -143,7 +144,7 @@ sub_phases:
       - Reactivation clears current deactivation state without deleting identity or profile rows.
     prohibited:
       - Applying SQL to live Supabase before human review
-      - Restoring deleted SQL documentation scripts as an implementation shortcut
+      - Rewriting submission SQL beyond the active-account guard required by this phase
       - Adding a service-role secret to frontend environment variables
       - Weakening public read policies to make admin queries work
     exit_criteria:
@@ -271,17 +272,17 @@ sub_phases:
     requires_phases: ["03-shared-service-contracts"]
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
-      - Alexandria/components/admin/data-table.tsx
-      - Alexandria/components/admin/row-actions.tsx
+      - Alexandria/app/admin/_components/data-table.tsx
+      - Alexandria/app/admin/_components/row-actions.tsx
       - docs/DESIGN.md
     exclusive_writes:
-      - Alexandria/components/admin/data-table.tsx
-      - Alexandria/components/admin/admin-data-state.tsx
+      - Alexandria/app/admin/_components/data-table.tsx
+      - Alexandria/app/admin/_components/admin-data-state.tsx
     allowed_writes:
       - matching component CSS modules
     test_writes:
-      - Alexandria/components/admin/data-table.test.tsx
-      - Alexandria/components/admin/admin-data-state.test.tsx
+      - Alexandria/app/admin/_components/data-table.test.tsx
+      - Alexandria/app/admin/_components/admin-data-state.test.tsx
     exit_criteria:
       - Server-fetched DTOs can cross into client views without functions or Supabase clients crossing the boundary.
       - DataTable supports controlled server pagination for user lists while preserving fixed five-row dashboard behavior.
@@ -304,12 +305,12 @@ sub_phases:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
       - Alexandria/lib/services/admin-dashboard-service.ts
       - Alexandria/app/admin/dashboard/page.tsx
-      - Alexandria/components/admin/mock-data.ts
+      - Alexandria/app/admin/_components/mock-data.ts
     exclusive_writes:
       - Alexandria/app/admin/dashboard/page.tsx
-      - Alexandria/components/admin/admin-dashboard-view.tsx
+      - Alexandria/app/admin/_components/admin-dashboard-view.tsx
     test_writes:
-      - Alexandria/components/admin/admin-dashboard-view.test.tsx
+      - Alexandria/app/admin/_components/admin-dashboard-view.test.tsx
     required_behavior:
       - page.tsx remains a Server Component and owns the service call.
       - The client view receives only serializable snapshot data.
@@ -323,43 +324,47 @@ sub_phases:
       - "10-human-review-handoff"
 
   - id: "08-user-management-binding"
-    title: Live Members and Moderators Binding
+    title: Unified Live User Management Binding
     owner: User-management frontend agent
     persona: nextjs-server-actions-engineer
     status: not_started
-    objective: Bind both management pages to getUsers and connect approved role and reversible status mutations through Server Actions.
+    objective: Bind one URL-backed role-tab page to live member, moderator, and protected administrator data, with approved member/moderator mutations through Server Actions.
     requires_phases:
       - "05-user-service"
       - "06-admin-data-boundary"
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
       - Alexandria/lib/services/user-service.ts
+      - Alexandria/app/admin/_components/user-management-view.tsx
+      - Alexandria/app/admin/users/page.tsx
       - Alexandria/app/admin/members/page.tsx
       - Alexandria/app/admin/moderators/page.tsx
-      - Alexandria/app/admin/members/layout.tsx
-      - Alexandria/app/admin/moderators/layout.tsx
     exclusive_writes:
       - Alexandria/app/admin/actions.ts
+      - Alexandria/app/admin/users/layout.tsx
+      - Alexandria/app/admin/users/page.tsx
       - Alexandria/app/admin/members/page.tsx
       - Alexandria/app/admin/moderators/page.tsx
-      - Alexandria/components/admin/members-management-view.tsx
-      - Alexandria/components/admin/moderators-management-view.tsx
+      - Alexandria/app/admin/_components/user-management-view.tsx
+      - Alexandria/app/admin/_components/admin-sidebar.tsx
     test_writes:
       - Alexandria/app/admin/actions.test.ts
-      - Alexandria/components/admin/members-management-view.test.tsx
-      - Alexandria/components/admin/moderators-management-view.test.tsx
+      - Alexandria/app/admin/_components/user-management-view.test.tsx
     required_behavior:
-      - Server pages fetch role-filtered lists and pass serializable props.
+      - One server page fetches role-filtered lists and per-role counts, then passes serializable props.
+      - Members, Moderators, and Administrators use URL-backed navigation rather than an ambiguous binary toggle.
       - Page search parameters drive server pagination; client-side slicing is not treated as complete pagination.
       - Server Actions re-check admin role through user-service.
-      - Success revalidates dashboard, members, and moderators paths.
+      - Success revalidates dashboard and unified user-management paths.
       - Pending and failed actions retain the current data and expose accessible feedback.
       - Active/deactivated status is visible and the action label changes between Deactivate and Reactivate.
+      - Administrator rows are visible but protected from browser mutations.
+      - Legacy members and moderators URLs redirect to their matching tabs.
       - Hard-delete and unsupported add/edit controls are removed, disabled, or relabeled exactly as frozen.
     exit_criteria:
-      - Both pages have no mock-data import.
-      - Every write control maps to an approved user-service role or status mutation.
-      - Existing admin-only nested layouts remain intact.
+      - The unified page and sidebar have no mock-data import.
+      - Every member/moderator write control maps to an approved user-service mutation.
+      - Administrator rows expose no write control and the unified route remains admin-only.
     blocks:
       - "10-human-review-handoff"
 
@@ -384,7 +389,7 @@ sub_phases:
       - Alexandria/lib/supabase/server.ts
       - Alexandria/lib/auth/actions.ts
       - Alexandria/lib/auth/auth-routing.ts
-      - Alexandria/components/auth/login-form.tsx
+      - Alexandria/app/(auth)/_components/login-form.tsx
     exclusive_writes:
       - Alexandria/proxy.ts
       - Alexandria/lib/supabase/proxy.ts
@@ -395,12 +400,12 @@ sub_phases:
       - Alexandria/lib/auth/auth-routing.ts
       - Alexandria/lib/auth/auth-routing.test.ts
       - Alexandria/app/(auth)/login/page.tsx
-      - Alexandria/components/auth/login-form.tsx
+      - Alexandria/app/(auth)/_components/login-form.tsx
       - Alexandria/app/admin/layout.tsx
       - Alexandria/app/profile/page.tsx
     test_writes:
       - Alexandria/lib/services/auth-service.test.ts
-      - Alexandria/components/auth/login-form.test.tsx
+      - Alexandria/app/(auth)/_components/login-form.test.tsx
     required_behavior:
       - Next.js 16 proxy.ts refreshes Supabase SSR auth cookies with getAll/setAll and a static-asset-safe matcher.
       - proxy.ts performs session refresh only; database role and active-account authorization remain in services and policies.

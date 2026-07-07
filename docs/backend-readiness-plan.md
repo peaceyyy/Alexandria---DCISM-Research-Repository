@@ -9,7 +9,7 @@ This document translates the latest API contracts and live Supabase SQL snapshot
 Current implementation source files:
 
 - `docs/api-contracts.md`
-- `docs/updated_db_fields.sql`
+- `docs/sql/updated_db_fields.sql`
 - `docs/DESIGN.md`
 
 ## Latest Backend State
@@ -24,7 +24,7 @@ The latest implementation direction has shifted from the earlier planning docs i
 | System roles | `admin`, `moderator`, `member` | Replace older Admin/Contributor/Student visitor language in implementation |
 | USC identity | `student`, `alumni`, `professor` in `users.affiliation` | Do not use affiliation for permission checks |
 | Thesis lifecycle | `for_review`, `flagged`, `accepted`, `trashed` | Public repository queries must filter to approved/accepted records only and hide trashed records |
-| PDF storage | Initial submissions upload to the public `thesis_files_bucket` in Supabase Storage; `thesis_files.file_url` stores the object URL | Keep raw storage URLs out of DTOs and expose `file_access.download_path`. Auth is not required for accepted PDF access per Decision 041 |
+| PDF storage | Initial submissions upload to the private `thesis_files_bucket`; `thesis_files.storage_path` stores the canonical object key | Keep raw paths out of DTOs. Guests may preview accepted PDFs inline; explicit download requires an active account |
 | Recommendations/lessons | Text fields on `theses` | Validate as required non-empty fields before acceptance |
 | Related theses | Frontend-computed from tag overlap | Backend/service layer should provide enough accepted thesis/tag data |
 | Audit trail | `thesis_audits.change_description` | Accept, flag, and trash actions should write readable descriptions |
@@ -51,7 +51,7 @@ These decisions came from project-lead clarification on 2026-06-26.
 | Trash authority | Both `admin` and `moderator` can trash invalid submissions. |
 | Trash recovery | Trashed records are not recoverable through the admin UI for MVP. |
 | Approved label | Keep the current DB value `accepted` unless the team chooses a migration; the UI can label it as `Approved`. |
-| Submission ownership | Use `theses.submitted_by_user_id uuid REFERENCES public.users(id)` for member edit/file permissions. Nullable is allowed for legacy/imported/admin-uploaded theses; member self-submissions must set it. The submission RPC derives the member id from `auth.uid()` and does not accept an ownership override from the client. Confirmed added in live Supabase on 2026-06-27. |
+| Submission ownership | Use `theses.submitted_by_user_id uuid REFERENCES public.users(id)` for submission-owner edit/file permissions. Nullable is allowed for legacy/imported rows. Every new ordinary submission—including one performed by an admin—derives the actor from `auth.uid()` and does not accept an ownership override from the client. Confirmed added in live Supabase on 2026-06-27. |
 | Primary thesis PDF | Exactly one `thesis_files` row per thesis should be primary for PDF preview/download. |
 
 ## Backend Work Homer Can Start Now
@@ -200,15 +200,16 @@ Output should be field-specific so Ethan can display publish-readiness errors cl
 
 ### 6. Public PDF Proxy
 
-The submission flow stores Supabase Storage object URLs. Keep that provider-specific
-detail behind the frontend-safe file-access contract.
+The submission flow stores private Supabase object paths. Keep that
+provider-specific detail behind the frontend-safe file-access contract.
 
 Recommended behavior:
 
 - Public thesis detail can say whether a file exists.
-- The raw `file_url` is never returned in public payloads.
-- `GET /api/theses/:id/file` or an equivalent route streams or redirects to the PDF without requiring a session (per Decision 041).
-- The route checks the thesis is `accepted` unless the user is `admin` or `moderator`.
+- Raw `storage_path` and transitional `file_url` values are never returned.
+- `GET /api/theses/:id/file` redirects to a short-lived inline URL.
+- Guests may preview complete accepted PDFs. Explicit download requires an active account.
+- Submitters may preview their own `for_review` or `flagged` PDF; active reviewers may access every review state.
 - The route streams or redirects to the Supabase object without placing the raw
   storage URL in thesis DTOs.
 
@@ -281,8 +282,12 @@ CREATE TABLE public.thesis_authors (
 Before frontend wiring, keep these backend/data constraints visible:
 
 - `submitted_by_user_id` exists on `theses` in the live Supabase database and should be used for member-owned edit and file-registration rules.
-- `submitted_by_user_id` may be nullable for legacy/imported/admin-uploaded theses. New member self-submissions should always set it.
+- `submitted_by_user_id` may be nullable for legacy/imported rows. Every new submission records the authenticated actor from `auth.uid()`; an admin submitting through the normal workflow is therefore the submitter.
+- Thesis authorship remains separate in `thesis_authors`: `display_name` is required and `user_id` is optional.
 - `review_status = 'trashed'` exists in the live database and is the MVP removal state.
+- Add reversible account state to `public.users`: `deactivated_at`, `deactivation_reason`, and `deactivated_by_user_id`.
+- Active-account checks must exist in shared service guards, restrictive RLS policies, Storage insert/delete policies, and every authenticated `SECURITY DEFINER` RPC.
+- Admin role/status writes should use guarded database functions rather than granting broad browser-driven `UPDATE` access to `public.users`.
 - Add or confirm a partial unique index so only one file per thesis can have `is_primary = true`.
 - Change `public.users.usc_id` from `NOT NULL` to nullable.
 - Update `handle_new_user()` to store a missing USC ID as `NULL`, not the sentinel value `0`.

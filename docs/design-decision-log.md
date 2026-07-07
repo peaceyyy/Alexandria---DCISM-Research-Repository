@@ -564,18 +564,18 @@ Consequences:
 
 ## 2026-06-27
 
-### Decision 039: Allow nullable thesis submission ownership for legacy and admin-uploaded records
+### Decision 039: Allow nullable thesis submission ownership for legacy/imported records
 
 Status: Accepted
 
-Context: Some thesis records may be imported or uploaded by an admin rather than submitted by a member with an Alexandria profile.
+Context: Historical or directly imported thesis records may predate an Alexandria submission actor.
 
-Decision: Allow `theses.submitted_by_user_id` to be nullable for legacy, imported, or admin-uploaded thesis records. Member self-submissions must set `submitted_by_user_id`.
+Decision: Allow `theses.submitted_by_user_id` to be nullable for legacy/imported records. Decision 049 governs new submissions: the authenticated actor is always recorded, including an administrator.
 
 Consequences:
 
-- Existing or admin-uploaded thesis records do not need fake owner accounts.
-- Member-owned edit and file-registration rules can still be enforced for self-submitted records.
+- Existing imported thesis records do not need fake owner accounts.
+- Submission-owner edit and file-registration rules remain enforceable for new submissions.
 - Services should treat `submitted_by_user_id = null` as "no member owner," not as publicly editable.
 
 ### Decision 040: Enforce one primary PDF file per thesis
@@ -597,7 +597,7 @@ Consequences:
 
 ### Decision 041: Allow guest access to all thesis content (including PDFs)
 
-Status: Accepted
+Status: Amended by Decision 050
 
 Context: The team discussed access controls and determined that requiring users to log in just to view thesis proposals or submissions creates unnecessary friction. 
 
@@ -606,7 +606,7 @@ Decision: Do not require login to view thesis submissions (including PDF files).
 Consequences:
 
 - The landing page "log in and sign up" options are removed in favor of a direct view page redirect to the home page.
-- PDF preview and download are no longer restricted to authenticated users.
+- PDF preview is no longer restricted to authenticated users.
 - Decision 004, 010, and 012 are superseded regarding PDF authentication.
 - API contracts must be updated so `requires_auth: false` for file access.
 
@@ -674,21 +674,20 @@ Consequences:
 
 ### Decision 045: Use Supabase Storage with a stable file-access contract
 
-Status: Accepted
+Status: Amended by Decision 050
 
 Context: The implemented submission flow uploads PDFs to
 `thesis_files_bucket` in Supabase Storage, while Decision 041 makes accepted
 PDFs public to guests.
 
-Decision: Keep Supabase Storage as the MVP file provider. Store its object URL
-in `thesis_files.file_url`, but expose only `file_access.download_path` in thesis
-DTOs. The current bucket is public, PDF-only, and limited to 10 MiB.
+Decision: Keep Supabase Storage as the MVP file provider. Decision 050 replaces
+the public-URL detail with a private canonical `storage_path`.
 
 Consequences:
 
 - Submission code uploads through the authenticated server action.
-- Accepted thesis PDFs remain publicly accessible.
-- A future `GET /api/theses/:id/file` route may stream or redirect to storage.
+- Accepted thesis PDFs remain available for guest inline preview.
+- `GET /api/theses/:id/file` mediates preview and authenticated download.
 - Frontend components remain independent of the storage provider.
 
 ### Decision 046: Separate repository UI routes from thesis API routes
@@ -742,3 +741,53 @@ Consequences:
 - The UI form drops the explicit "Year" input field (or derives it).
 - Submissions are guaranteed to have a valid publication date.
 - The storage bucket is protected from malicious non-PDF uploads.
+
+### Decision 049: Separate the submission actor from thesis authorship
+
+Status: Accepted
+
+Context: Administrators may submit thesis records, while many credited authors
+do not have Alexandria accounts. A future author network may optionally link a
+credited person to an account.
+
+Decision:
+
+1. `theses.submitted_by_user_id` records the authenticated account that
+   performed the submission and is derived from Supabase `auth.uid()`.
+2. An administrator using the ordinary submission workflow remains the
+   submitter; the browser cannot nominate another owner.
+3. Authorship is stored in `thesis_authors`. `display_name` is always required,
+   while `user_id` remains nullable for future account linking.
+
+Consequences:
+
+- Authors without accounts still receive stable credit.
+- A linked author does not automatically gain submission-owner edit rights.
+- “Submitted by me” and “Authored by me” are separate future queries.
+
+### Decision 050: Keep PDFs private while separating preview from download
+
+Status: Accepted
+
+Context: Guests should be able to preview the complete accepted PDF, while an
+explicit download action remains an account benefit. The live Storage bucket is
+private and the previous implementation stored a public-style URL.
+
+Decision:
+
+1. Keep `thesis_files_bucket` private, PDF-only, and limited to 10 MiB.
+2. Store the canonical private object key in `thesis_files.storage_path`.
+3. Preserve nullable `file_url` temporarily for migration rollback.
+4. Serve guests complete accepted PDFs inline through
+   `GET /api/theses/:id/file`.
+5. Require an active account for `?download=1`. Submitters may preview their
+   own pending/flagged PDF, and active reviewers may access all statuses.
+6. Use a server-only service-role client to create short-lived signed URLs.
+
+Consequences:
+
+- Hiding the download button is a UI distinction; a guest receiving the full
+  PDF bytes can still save them.
+- Neither the service-role key nor raw storage paths may reach browser code.
+- Deactivated users retain guest preview access after sign-out but lose
+  authenticated download and contribution privileges.

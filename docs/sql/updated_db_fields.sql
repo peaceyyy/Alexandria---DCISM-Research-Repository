@@ -1,5 +1,6 @@
 -- WARNING: This schema is for context only and is not meant to be run directly.
--- This reflects the actual Supabase schema as of 2026-06-27.
+-- This reflects the reviewed target schema after the 2026-07-06 admin/backend
+-- migration. It is a reference snapshot, not the deployable migration.
 -- Table names are lowercase to match Supabase's actual stored identifiers.
 
 -- users: single table for all authenticated users.
@@ -19,13 +20,18 @@ CREATE TABLE public.users (
   created_at   timestamp with time zone NOT NULL DEFAULT now(),
   email        text NOT NULL UNIQUE,
   profile_name text NOT NULL,
-  usc_id       bigint NOT NULL,
+  usc_id       bigint,
   role         text NOT NULL DEFAULT 'member'::text
                  CHECK (role = ANY (ARRAY['admin'::text, 'moderator'::text, 'member'::text])),
   affiliation  text NOT NULL
                  CHECK (affiliation = ANY (ARRAY['student'::text, 'alumni'::text, 'professor'::text])),
+  deactivated_at timestamp with time zone,
+  deactivation_reason text,
+  deactivated_by_user_id uuid,
   CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
+  CONSTRAINT users_deactivated_by_user_id_fkey
+    FOREIGN KEY (deactivated_by_user_id) REFERENCES public.users(id)
 );
 
 -- Trigger function: fires after every Supabase Auth signup.
@@ -40,7 +46,7 @@ BEGIN
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'profile_name', ''),
-    COALESCE((NEW.raw_user_meta_data->>'usc_id')::bigint, 0),
+    NULLIF(NEW.raw_user_meta_data->>'usc_id', '')::bigint,
     'member',
     COALESCE(NEW.raw_user_meta_data->>'affiliation', 'student')
   );
@@ -65,8 +71,9 @@ CREATE TRIGGER on_auth_user_created
 -- separately for filtering/sorting. The submission RPC requires both years to match.
 -- The live column remains nullable until existing rows are audited and a migration
 -- can safely add NOT NULL plus a matching-year constraint.
--- submitted_by_user_id is nullable so legacy/imported/admin-uploaded theses do not need a fake owner.
--- Member self-submissions must set submitted_by_user_id so ownership checks can be enforced.
+-- submitted_by_user_id is nullable so legacy/imported theses do not need a fake owner.
+-- Every new ordinary submission derives submitted_by_user_id from auth.uid(),
+-- including submissions performed by an administrator.
 CREATE TABLE public.theses (
   id               bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   created_at       timestamp with time zone NOT NULL DEFAULT now(),
@@ -90,9 +97,9 @@ CREATE TABLE public.theses (
   CONSTRAINT theses_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id)
 );
 
--- thesis_files: stores a URL pointer to the PDF in Supabase Storage.
--- file_url stores the Supabase public object URL but remains an internal DB field.
--- Frontend DTOs expose file_access.download_path instead of the raw storage URL.
+-- thesis_files: stores the private Supabase Storage object path.
+-- storage_path is canonical; nullable file_url remains temporarily for rollback.
+-- Frontend DTOs expose guarded preview/download paths, never storage_path.
 -- is_primary marks the main/current PDF for display; old files are retained for history.
 -- Project rule: each thesis should have exactly one primary file for preview/download.
 -- Initial submissions accept PDF only with a maximum object size of 10 MiB.
@@ -100,7 +107,8 @@ CREATE TABLE public.theses (
 CREATE TABLE public.thesis_files (
   id        bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   thesis_id bigint NOT NULL,
-  file_url  text NOT NULL,
+  file_url  text,
+  storage_path text NOT NULL,
   file_type text NOT NULL DEFAULT 'application/pdf',
   is_primary boolean NOT NULL DEFAULT false,
   CONSTRAINT thesis_files_pkey PRIMARY KEY (id),
@@ -141,14 +149,14 @@ CREATE TABLE public.thesis_tags (
 
 
 -- thesis_audits: tracks moderator/admin actions on thesis records.
--- changed_by_user_id is nullable to support system-level events.
--- action column was removed; all context is captured via change_description.
+-- changed_by_user_id is required by the inspected live schema.
+-- change_description is nullable; dashboard activity supplies a safe fallback.
 CREATE TABLE public.thesis_audits (
   id                  bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   updated_at          timestamp with time zone NOT NULL DEFAULT now(),
   thesis_id           bigint NOT NULL,
-  changed_by_user_id  uuid,
-  change_description  text NOT NULL,
+  changed_by_user_id  uuid NOT NULL,
+  change_description  text,
   CONSTRAINT thesis_audits_pkey                    PRIMARY KEY (id),
   CONSTRAINT thesis_audits_thesis_id_fkey          FOREIGN KEY (thesis_id)          REFERENCES public.theses(id),
   CONSTRAINT thesis_audits_changed_by_user_id_fkey FOREIGN KEY (changed_by_user_id) REFERENCES public.users(id)
