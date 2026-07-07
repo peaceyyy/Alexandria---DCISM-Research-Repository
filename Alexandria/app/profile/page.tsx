@@ -18,6 +18,10 @@ export default async function ProfileRoute({
     searchParams,
   ]);
 
+  if (userResult.error?.code === "ACCOUNT_DEACTIVATED") {
+    redirect("/login?reason=account-deactivated");
+  }
+
   if (!userResult.data) {
     redirect("/login");
   }

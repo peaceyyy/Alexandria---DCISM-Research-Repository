@@ -21,6 +21,12 @@ interface DataTableProps<T> {
   headerAction?: ReactNode;
   /** Unique key identifier for each row */
   rowKey: keyof T;
+  /** Controlled page number for server-paginated data. */
+  page?: number;
+  /** Controlled total page count for server-paginated data. */
+  totalPages?: number;
+  /** Receives controlled page changes instead of slicing data locally. */
+  onPageChange?: (page: number) => void;
 }
 
 export function DataTable<T extends object>({
@@ -30,10 +36,29 @@ export function DataTable<T extends object>({
   pageSize = 5,
   headerAction,
   rowKey,
+  page: controlledPage,
+  totalPages: controlledTotalPages,
+  onPageChange,
 }: DataTableProps<T>) {
-  const [page, setPage] = useState(1);
-  const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
-  const slicedData = data.slice((page - 1) * pageSize, page * pageSize);
+  const [localPage, setLocalPage] = useState(1);
+  const isControlled = controlledPage !== undefined;
+  const page = controlledPage ?? localPage;
+  const totalPages = isControlled
+    ? Math.max(1, controlledTotalPages ?? 1)
+    : Math.max(1, Math.ceil(data.length / pageSize));
+  const visibleData = isControlled
+    ? data
+    : data.slice((page - 1) * pageSize, page * pageSize);
+
+  function changePage(nextPage: number) {
+    const boundedPage = Math.min(totalPages, Math.max(1, nextPage));
+    if (onPageChange) {
+      onPageChange(boundedPage);
+      return;
+    }
+
+    setLocalPage(boundedPage);
+  }
 
   return (
     <section className={styles.wrapper}>
@@ -56,14 +81,14 @@ export function DataTable<T extends object>({
             </tr>
           </thead>
           <tbody>
-            {slicedData.length === 0 ? (
+            {visibleData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className={styles.empty}>
                   No records found.
                 </td>
               </tr>
             ) : (
-              slicedData.map((row) => (
+              visibleData.map((row) => (
                 <tr key={String(row[rowKey])} className={styles.tr}>
                   {columns.map((col) => (
                     <td key={String(col.key)} className={`${styles.td} ${col.className ?? ""}`}>
@@ -84,7 +109,7 @@ export function DataTable<T extends object>({
         <button
           type="button"
           className={styles.pageBtn}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          onClick={() => changePage(page - 1)}
           disabled={page === 1}
           aria-label="Previous page"
         >
@@ -97,7 +122,7 @@ export function DataTable<T extends object>({
         <button
           type="button"
           className={styles.pageBtn}
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          onClick={() => changePage(page + 1)}
           disabled={page === totalPages}
           aria-label="Next page"
         >

@@ -7,13 +7,16 @@ export const metadata: Metadata = { title: "Log In" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ registered?: string }>;
+  searchParams: Promise<{ registered?: string; reason?: string }>;
 }) {
-  const { registered } = await searchParams;
+  const { reason, registered } = await searchParams;
 
   return (
     <AuthShell>
-      <LoginForm registered={registered === "1"} />
+      <LoginForm
+        deactivated={reason === "account-deactivated"}
+        registered={registered === "1"}
+      />
     </AuthShell>
   );
 }

@@ -3,7 +3,7 @@
 import { Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   FieldErrors,
   LoginInput,
@@ -20,9 +20,11 @@ import { PasswordField } from "./password-field";
 
 export function LoginForm({
   gateway = authGateway,
+  deactivated = false,
   registered = false,
 }: {
   gateway?: AuthGateway;
+  deactivated?: boolean;
   registered?: boolean;
 }) {
   const router = useRouter();
@@ -31,6 +33,12 @@ export function LoginForm({
   const [serviceError, setServiceError] = useState("");
   const [recoveryNotice, setRecoveryNotice] = useState(false);
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (deactivated) {
+      void gateway.clearSession();
+    }
+  }, [deactivated, gateway]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,6 +75,12 @@ export function LoginForm({
       {registered ? (
         <p role="status" className="text-sm text-[var(--color-success)]">
           Account created. Log in with your USC email.
+        </p>
+      ) : null}
+      {deactivated ? (
+        <p role="alert" className="text-sm text-[var(--color-danger)]">
+          This account is deactivated. Contact an administrator to restore
+          access.
         </p>
       ) : null}
       <AuthField

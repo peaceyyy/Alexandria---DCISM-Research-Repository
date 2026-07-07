@@ -25,3 +25,15 @@
   color: #ff6b6b;
   border: 1px solid rgba(255, 107, 107, 0.2);
 }
+
+.deactivated {
+  background: rgba(150, 150, 150, 0.1);
+  color: #b8b8b8;
+  border: 1px solid rgba(150, 150, 150, 0.25);
+}
+
+.protected {
+  background: rgba(54, 139, 254, 0.12);
+  color: #78adff;
+  border: 1px solid rgba(54, 139, 254, 0.28);
+}

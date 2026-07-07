@@ -24,6 +24,11 @@
   display: inline;
 }
 
+.btn:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 /* Edit — reveals blue on hover */
 .edit:hover {
   color: #368bfe;
@@ -46,4 +51,10 @@
 
 .delete:focus-visible {
   outline-color: #ff6b6b;
+}
+
+.restore:hover {
+  color: #59c987;
+  background: rgba(89, 201, 135, 0.12);
+  border-color: rgba(89, 201, 135, 0.25);
 }

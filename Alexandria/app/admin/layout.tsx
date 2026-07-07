@@ -8,6 +8,10 @@ export default async function AdminLayout({
   const result = await getCurrentUser();
   const user = result.data;
 
+  if (result.error?.code === "ACCOUNT_DEACTIVATED") {
+    redirect("/login?reason=account-deactivated");
+  }
+
   // Route guard: Must be logged in, and must be admin or moderator
   if (!user) {
     redirect("/login");

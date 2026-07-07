@@ -1,13 +1,23 @@
-import type { UploadStatus } from "./mock-data";
 import styles from "./status-badge.module.css";
 
-const STATUS_MAP: Record<UploadStatus, { label: string; className: string }> = {
-  Pending: { label: "Pending", className: styles.pending },
-  Approved: { label: "Approved", className: styles.approved },
-  Flagged: { label: "Flagged", className: styles.flagged },
+export type AdminStatus =
+  | "for_review"
+  | "accepted"
+  | "flagged"
+  | "active"
+  | "deactivated"
+  | "protected";
+
+const STATUS_MAP: Record<AdminStatus, { label: string; className: string }> = {
+  for_review: { label: "Pending", className: styles.pending },
+  accepted: { label: "Approved", className: styles.approved },
+  flagged: { label: "Flagged", className: styles.flagged },
+  active: { label: "Active", className: styles.approved },
+  deactivated: { label: "Deactivated", className: styles.deactivated },
+  protected: { label: "Protected", className: styles.protected },
 };
 
-export function StatusBadge({ status }: { status: UploadStatus }) {
+export function StatusBadge({ status }: { status: AdminStatus }) {
   const { label, className } = STATUS_MAP[status];
   return <span className={`${styles.badge} ${className}`}>{label}</span>;
 }
