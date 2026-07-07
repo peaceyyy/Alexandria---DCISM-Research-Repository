@@ -65,7 +65,7 @@ export function AdminSidebar({ role }: { role: UserRole }) {
       {/* Browse Repository — lets admins/mods see the public site */}
       <div className={styles.viewSite}>
         <Link
-          href="/home"
+          href="/theses"
           className={styles.viewSiteLink}
           aria-label="Browse the public thesis repository"
         >
