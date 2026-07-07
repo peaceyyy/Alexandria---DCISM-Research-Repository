@@ -129,8 +129,12 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
       tags: thesis.thesis_tags.map((t: any) => t.tag),
       file_access: {
         has_primary_file: thesis.thesis_files?.some((f: any) => f.is_primary) || false,
-        requires_auth: false,
-        download_path: `/api/theses/${thesis.id}/file`,
+        preview_path: `/api/theses/${thesis.id}/file`,
+        download_path:
+          thesis.review_status === "accepted"
+            ? `/api/theses/${thesis.id}/file?download=1`
+            : null,
+        download_requires_auth: true,
       },
       related_theses: [], // Empty for own submissions list
     }));
@@ -196,6 +200,10 @@ export async function submitThesis(
       return err(makeError("VALIDATION_FAILED", "At least one tag is required"));
     }
 
+    if (!input.study_type || !["thesis", "capstone"].includes(input.study_type)) {
+      return err(makeError("VALIDATION_FAILED", "Study type must be either 'thesis' or 'capstone'"));
+    }
+
     const currentCalendarDate = getCurrentCalendarDate();
     if (
       !input.publication_date ||
@@ -231,7 +239,7 @@ export async function submitThesis(
     const payload: SubmitThesisPayload = {
       ...input,
       year: publicationYear,
-      file_url: storedFile.fileUrl,
+      storage_path: storedFile.filePath,
       file_type: THESIS_PDF_MIME_TYPE,
     };
 
@@ -245,11 +253,10 @@ export async function submitThesis(
 
     if (rpcError || !thesisId) {
       const cleanupError = await removeThesisFileFromStorage(storedFile.filePath);
-      const fullError = `RPC Error: ${rpcError?.message}. Details: ${rpcError?.details}. Hint: ${rpcError?.hint}. Code: ${rpcError?.code}`;
       return err(
         makeError(
           "SUPABASE_ERROR",
-          fullError,
+          "The thesis submission could not be completed.",
           cleanupError ? { storage_cleanup_error: cleanupError } : undefined,
         ),
       );
@@ -295,7 +302,7 @@ export async function registerThesisFile(
       .from("thesis_files")
       .insert({
         thesis_id: thesisId,
-        file_url: payload.file_url,
+        storage_path: payload.storage_path,
         is_primary: payload.is_primary,
       });
 

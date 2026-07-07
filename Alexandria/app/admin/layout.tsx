@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminSidebar } from "@/app/admin/_components/admin-sidebar";
 import { getCurrentUser } from "@/lib/services/auth-service";
 
 export default async function AdminLayout({
@@ -7,6 +7,10 @@ export default async function AdminLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const result = await getCurrentUser();
   const user = result.data;
+
+  if (result.error?.code === "ACCOUNT_DEACTIVATED") {
+    redirect("/login?reason=account-deactivated");
+  }
 
   // Route guard: Must be logged in, and must be admin or moderator
   if (!user) {

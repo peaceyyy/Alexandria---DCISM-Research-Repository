@@ -1,0 +1,60 @@
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #969696;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btnLabel {
+  display: inline;
+}
+
+.btn:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+/* Edit — reveals blue on hover */
+.edit:hover {
+  color: #368bfe;
+  background: rgba(54, 139, 254, 0.12);
+  border-color: rgba(54, 139, 254, 0.25);
+}
+
+/* Delete — reveals red on hover */
+.delete:hover {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.2);
+}
+
+/* Focus rings */
+.btn:focus-visible {
+  outline: 2px solid #368bfe;
+  outline-offset: 2px;
+}
+
+.delete:focus-visible {
+  outline-color: #ff6b6b;
+}
+
+.restore:hover {
+  color: #59c987;
+  background: rgba(89, 201, 135, 0.12);
+  border-color: rgba(89, 201, 135, 0.25);
+}

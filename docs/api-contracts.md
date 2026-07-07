@@ -6,7 +6,7 @@ This document defines the data-fetching and API contracts for the Alexandria MVP
 
 > **Status:** LOCKED FOR PHASE 1 - Last reviewed: 2026-07-01
 >
-> Reviewed against `docs/updated_db_fields.sql` and the 2026-06-27 team confirmation that `theses.submitted_by_user_id` has been added in the live Supabase database.
+> Reviewed against `docs/sql/updated_db_fields.sql` and the 2026-06-27 team confirmation that `theses.submitted_by_user_id` has been added in the live Supabase database.
 
 ### Architecture Strategy
 
@@ -29,7 +29,7 @@ Current UI routes and future HTTP routes use separate namespaces:
 ### Contract Terms
 
 - **DTO** means "data transfer object." In Alexandria, a DTO is the frontend-safe shape returned by a service function. It hides raw Supabase row details, joins, and sensitive fields.
-- DB row names stay close to the live schema, such as `thesis_authors`, `review_status`, and `file_url`.
+- DB row names stay close to the live schema, such as `thesis_authors`, `review_status`, and `storage_path`.
 - DTO names are frontend-facing, such as `ThesisCard`, `ThesisDetail`, `CurrentUser`, and `file_access`.
 - Thesis-related IDs are numbers because the live tables use `bigint` identity columns.
 - User IDs are UUID strings because `public.users.id` references `auth.users.id`.
@@ -89,7 +89,7 @@ All service calls resolve to a consistent shape.
 - Members can attach/register their own thesis PDF or file URL.
 - The database value `accepted` may be displayed as `Approved` in the UI.
 - Member-owned actions are checked against `theses.submitted_by_user_id`.
-- `submitted_by_user_id` may be `null` for legacy/imported/admin-uploaded theses. Member self-submissions must set it.
+- `submitted_by_user_id` may be `null` for legacy/imported rows. Every new ordinary submission records its authenticated actor, including submissions performed by an admin.
 
 ### 2.3 Pagination
 
@@ -205,8 +205,9 @@ Returns the full detail payload for a single accepted thesis.
       "lessons_learned": "Start database design early. Do not underestimate PDF storage configuration.",
       "file_access": {
         "has_primary_file": true,
-        "requires_auth": false,
-        "download_path": "/api/theses/1/file"
+        "preview_path": "/api/theses/1/file",
+        "download_path": "/api/theses/1/file?download=1",
+        "download_requires_auth": true
       },
       "related_theses": [
         {
@@ -231,10 +232,9 @@ Returns the full detail payload for a single accepted thesis.
   }
   ```
 
-> **Note on PDF access:** The Supabase Storage `file_url` stored in the database
-> is never returned directly. The future route
-> `GET /api/theses/:id/file` streams or redirects to the accepted thesis PDF.
-> Authentication is not required for this route.
+> **Note on PDF access:** `thesis_files.storage_path` is never returned directly.
+> `GET /api/theses/:id/file` redirects to a short-lived inline URL. Guests may
+> preview complete accepted PDFs. `?download=1` requires an active account.
 
 > **Note on `related_theses`:** Populated by the frontend by matching overlapping tags from the current thesis against other accepted records. The backend returns the raw thesis data needed for this computation.
 
@@ -361,13 +361,34 @@ API is introduced later, its equivalent route is `POST /api/theses`.
         "contribution_role": "adviser",
         "sort_order": 1
       }
+    "research_area": "Machine Learning",
+    "authors": [
+      {
+        "user_id": "uuid-or-null",
+        "display_name": "Author One",
+        "contribution_role": "author",
+        "sort_order": 1
+      },
+      {
+        "user_id": null,
+        "display_name": "Author Two",
+        "contribution_role": "author",
+        "sort_order": 2
+      },
+      {
+        "user_id": "uuid-or-null",
+        "display_name": "Dr. Adviser",
+        "contribution_role": "adviser",
+        "sort_order": 1
+      }
     ],
     "tags": ["#react", "#machine-learning"],
     "publication_date": "2026-05-14",
     "publication_link": "https://...",
     "conference": "ACM Web Conference 2026",
     "recommendations": "Explore mobile adaptation. Extend the recommendation engine with AI.",
-    "lessons_learned": "Start database design early. Do not underestimate PDF storage configuration."
+    "lessons_learned": "Start database design early. Do not underestimate PDF storage configuration.",
+    "study_type": "thesis"
   }
   ```
 
@@ -392,14 +413,14 @@ Updates any field of a `for_review` or `flagged` thesis. Accepts partial payload
 ### `POST /api/theses/:id/files` — Register File URL (Future HTTP Equivalent)
 
 Called when attaching a file to an existing thesis after initial submission.
-Stores the Supabase Storage URL pointer in `thesis_files`.
+Stores the private Supabase object path in `thesis_files.storage_path`.
 
 - **Auth Required:** Yes. `member` may register a file for their own submission. `admin` and `moderator` may register a file for reviewable submissions.
 - **Primary File Rule:** A thesis has exactly one current primary file for PDF preview/download. If `is_primary` is `true`, the service must ensure no other file for that thesis remains primary.
 - **Request Body:**
   ```json
   {
-    "file_url": "https://<project>.supabase.co/storage/v1/object/public/thesis_files_bucket/...",
+    "storage_path": "uploads/<user-id>/<upload-id>/thesis.pdf",
     "file_type": "application/pdf",
     "is_primary": true
   }
@@ -474,12 +495,27 @@ If a future recovery or audit workflow needs soft delete, add `deleted_at` to th
 
 ---
 
+### `getAdminDashboardSnapshot()` — Admin Dashboard Snapshot
+
+Current server service used by `/admin/dashboard`.
+
+- **Auth Required:** Yes (active `admin` or `moderator`)
+- **Metrics:** non-trashed research count, active registered-user count, and `for_review` count
+- **Activity:** newest five `thesis_audits` rows by `updated_at`
+- **Departments:** non-trashed theses grouped by the stored `department`; future departments appear automatically
+- **Uploads:** newest five non-trashed theses, with the first ordered author display name
+
+The service returns frontend-safe JSON only. It does not expose raw storage URLs, deactivation reasons, or database credentials.
+
+---
+
 ### `GET /api/admin/users` — User List
 
-Returns a paginated list of all users with their role and affiliation. Used by the admin users management view.
+Returns a paginated, role-filtered account list for unified `/admin/users` tabs.
 
 - **Auth Required:** Yes (Role: `admin`)
-- **Parameters:** `page`, `limit`, `role` (`admin` / `moderator` / `member`)
+- **Parameters:** `page`, `limit`, `role` (`member` / `moderator` / `admin`), `account_status` (`active` / `deactivated`)
+- **Administrator behavior:** Administrator rows are listable but read-only; role and account-state mutations remain limited to members and moderators
 - **Response:**
   ```json
   {
@@ -491,7 +527,10 @@ Returns a paginated list of all users with their role and affiliation. Used by t
         "usc_id": null,
         "role": "member",
         "affiliation": "alumni",
-        "created_at": "2026-07-01T08:00:00.000Z"
+        "created_at": "2026-07-01T08:00:00.000Z",
+        "deactivated_at": null,
+        "deactivation_reason": null,
+        "deactivated_by_user_id": null
       }
     ],
     "meta": { "total_count": 42, "page": 1, "limit": 20 }
@@ -507,7 +546,28 @@ Updates a user's system role in `users.role`. Used by the admin role access mana
 - **Auth Required:** Yes (Role: `admin`)
 - **Request Body:** `{ "role": "moderator" }`
 - **Response:** `200 OK`
-- **Errors:** `400 Bad Request` if `role` is not one of `admin`, `moderator`, `member`.
+- **Allowed transitions:** `member → moderator` and `moderator → member`
+- **Errors:** `400 Bad Request` for any other role; `403 Forbidden` for protected administrator targets.
+
+---
+
+### `deactivateUser(userId, reason)` — Deactivate Account
+
+Current server service used by the member and moderator tabs in unified User Management.
+
+- **Auth Required:** Yes (active `admin`)
+- **Targets:** `member` or `moderator` only
+- **Behavior:** Sets `deactivated_at`, `deactivation_reason`, and `deactivated_by_user_id`
+- **Safety:** The acting administrator cannot deactivate themselves; Auth and profile rows are preserved
+- **User effect:** Existing sessions are rejected on the next protected request and new login attempts return `ACCOUNT_DEACTIVATED`
+
+---
+
+### `reactivateUser(userId)` — Reactivate Account
+
+- **Auth Required:** Yes (active `admin`)
+- **Behavior:** Clears the three current deactivation-state fields
+- **Safety:** Does not create a new identity, profile, or role
 
 ---
 
@@ -551,6 +611,7 @@ export type ReviewStatus = "for_review" | "flagged" | "accepted" | "trashed";
 export type UserRole = "admin" | "moderator" | "member";
 export type Affiliation = "student" | "alumni" | "professor";
 export type ContributionRole = "author" | "adviser";
+export type StudyType = "thesis" | "capstone";
 
 export type ThesisAuthor = {
   id: number;
@@ -586,10 +647,12 @@ export type ThesisDetail = ThesisCard & {
   conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
+  study_type: StudyType;
   file_access: {
     has_primary_file: boolean;
-    requires_auth: boolean;
+    preview_path: string | null;
     download_path: string | null;
+    download_requires_auth: boolean;
   };
   related_theses: ThesisCard[];
 };
@@ -609,33 +672,19 @@ export type CurrentUser = {
   affiliation: Affiliation;
   created_at: string;
 };
-
-export type AdminThesisRow = {
-  id: number;
-  title: string;
-  review_status: ReviewStatus;
-  year: number;
-  updated_at: string;
-  submitted_by_user_id: string | null;
-};
-
-export type UserAdminRow = CurrentUser;
-
-export type ValidationErrorList = {
-  missing_fields: string[];
 };
 ```
 
 ## 8. Phase 1 Contract Review Notes
 
 - `submitted_by_user_id` is treated as a locked DB field because the team confirmed it exists in live Supabase on 2026-06-27.
-- `submitted_by_user_id` is nullable for legacy/imported/admin-uploaded theses, but required for member self-submissions.
+- `submitted_by_user_id` is nullable for legacy/imported rows, but every new ordinary submission records the authenticated actor.
 - A thesis has exactly one primary PDF file for preview/download.
-- `GET /api/theses/:id/file` may stream or redirect publicly. The frontend contract is only `file_access.download_path`.
+- `GET /api/theses/:id/file` provides inline preview according to thesis visibility; `?download=1` requires an active authorized account.
 - All public thesis reads filter to `review_status = 'accepted'`.
 - Normal admin/review lists exclude `trashed` unless explicitly filtered.
 - Frontend status labels display `accepted` as `Approved`.
-- Public DTOs never expose raw `thesis_files.file_url`.
+- Public DTOs never expose `thesis_files.storage_path` or the transitional `file_url`.
 - `users.usc_id` is nullable because not every member has a USC ID. The current
   SQL snapshot still marks it `NOT NULL`; the database migration must land
   before live registration relies on omitted IDs.

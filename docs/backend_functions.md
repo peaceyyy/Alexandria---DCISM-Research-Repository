@@ -1,11 +1,11 @@
 # Alexandria — Backend Function Headers Blueprint
 
-> **Status:** Draft · Phase 1 Skeleton
-> Last updated: 2026-07-01
+> **Status:** Active contract · admin dashboard services implemented pending verification
+> Last updated: 2026-07-06
 >
 > This document is the **function-level blueprint** for the Alexandria service layer (`Alexandria/lib/services/`).
-> Function bodies are intentionally left empty (`TODO`). This file is the single source of truth for
-> what the frontend pages will call — not raw Supabase queries.
+> This file records the service-layer contracts the frontend calls instead of
+> raw Supabase queries. Some future thesis/review services remain blueprints.
 >
 > Source contracts: [`api-contracts.md`](./api-contracts.md) · [`backend-readiness-plan.md`](./backend-readiness-plan.md)
 
@@ -24,8 +24,9 @@ Alexandria/lib/
     ├── thesis-service.ts      ← public browsing & search
     ├── auth-service.ts        ← registration, login, session, current user
     ├── submission-service.ts  ← member thesis submission & member-owned updates
+    ├── admin-dashboard-service.ts ← guarded dashboard snapshot
     ├── admin-thesis-service.ts← admin/moderator review actions
-    ├── file-service.ts        ← public PDF proxy / file registration
+    ├── ../app/api/theses/[id]/file/route.ts ← guarded PDF preview/download
     └── user-service.ts        ← admin user management
 ```
 
@@ -70,6 +71,9 @@ export type DbUser = {
   role: UserRole;
   affiliation: Affiliation;
   created_at: string;
+  deactivated_at: string | null;
+  deactivation_reason: string | null;
+  deactivated_by_user_id: string | null;
 };
 export type DbThesis = {
   id: number; // bigint identity
@@ -84,7 +88,8 @@ export type DbThesis = {
   conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
-  submitted_by_user_id: string | null; // uuid — nullable for legacy/admin uploads
+  submitted_by_user_id: string | null; // uuid — nullable for legacy/imported rows
+  study_type: "thesis" | "capstone";
   created_at: string;
   updated_at: string;
 };
@@ -104,16 +109,17 @@ export type DbThesisTag = {
 export type DbThesisFile = {
   id: number;
   thesis_id: number;
-  file_url: string; // NEVER returned to public payloads
+  file_url: string | null; // transitional legacy field
+  storage_path: string; // NEVER returned to public payloads
+  file_type: string;
   is_primary: boolean;
-  created_at: string;
 };
 export type DbThesisAudit = {
   id: number;
   thesis_id: number;
   changed_by_user_id: string;
-  change_description: string;
-  created_at: string;
+  change_description: string | null;
+  updated_at: string;
 };
 // ─── UI / Service DTOs (frontend-safe shapes) ────────────────────────────────
 export type ThesisAuthor = {
@@ -145,8 +151,9 @@ export type ThesisDetail = ThesisCard & {
   lessons_learned: string | null;
   file_access: {
     has_primary_file: boolean;
-    requires_auth: boolean;
-    download_path: string | null; // e.g. "/api/theses/1/file" — never a raw URL
+    preview_path: string | null;
+    download_path: string | null;
+    download_requires_auth: boolean;
   };
   related_theses: ThesisCard[]; // frontend-computed from tag overlap
 };
@@ -174,9 +181,42 @@ export type AdminThesisRow = {
   year: number;
   updated_at: string;
   submitted_by_user_id: string | null;
+  study_type: "thesis" | "capstone";
 };
-/** Row shape for the admin user management list. Alias of CurrentUser. */
-export type UserAdminRow = CurrentUser;
+export type DashboardUploadRow = {
+  id: number;
+  title: string;
+  author: string;
+  created_at: string;
+  review_status: Exclude<ReviewStatus, "trashed">;
+};
+export type DashboardActivityRow = {
+  id: number;
+  thesis_id: number;
+  text: string;
+  occurred_at: string;
+};
+export type DepartmentResearchCount = {
+  department: string;
+  count: number;
+};
+export type AdminDashboardSnapshot = {
+  viewer: { profile_name: string };
+  metrics: {
+    total_research: number;
+    registered_users: number;
+    pending_docs: number;
+  };
+  recent_uploads: DashboardUploadRow[];
+  recent_activity: DashboardActivityRow[];
+  research_by_department: DepartmentResearchCount[];
+};
+export type UserAccountStatus = "active" | "deactivated";
+export type UserAdminRow = CurrentUser & {
+  deactivated_at: string | null;
+  deactivation_reason: string | null;
+  deactivated_by_user_id: string | null;
+};
 /** Returned inside a VALIDATION_FAILED ServiceError's details. */
 export type ValidationErrorList = {
   missing_fields: string[];
@@ -205,7 +245,7 @@ export type SubmitThesisPayload = {
   authors: ThesisAuthorInput[];
   tags: string[];
   /** Added by the server after storage upload; never accepted from the browser. */
-  file_url: string;
+  storage_path: string;
   file_type: "application/pdf";
   /** Required YYYY-MM-DD; cannot exceed today. */
   publication_date: string;
@@ -213,15 +253,16 @@ export type SubmitThesisPayload = {
   conference?: string;
   recommendations?: string;
   lessons_learned?: string;
+  study_type: "thesis" | "capstone";
 };
 export type SubmitThesisInput = Omit<
   SubmitThesisPayload,
-  "file_url" | "file_type" | "year"
+  "storage_path" | "file_type" | "year"
 >;
 /** All fields optional — partial PATCH. */
 export type updateThesisStatusPayload = Partial<SubmitThesisPayload>;
 export type RegisterFilePayload = {
-  file_url: string;
+  storage_path: string;
   file_type?: string;
   is_primary: boolean;
 };
@@ -240,9 +281,11 @@ export type AdminThesisListParams = {
 };
 export type UserListParams = {
   role?: UserRole;
+  account_status?: "active" | "deactivated";
   page?: number;
   limit?: number;
 };
+export type UserRoleCounts = Record<UserRole, number>;
 ```
 
 ---
@@ -460,8 +503,9 @@ export async function getAdminTheses(
 ): Promise<ServiceResult<AdminThesisRow[]>>;
 /**
  * Future HTTP equivalent: POST /api/admin/theses
- * Admin/moderator creates a new thesis on behalf of a member or for import.
- * submitted_by_user_id may be null for admin-uploaded/imported theses.
+ * Admin/moderator creates a new thesis record for import.
+ * New submissions record the authenticated actor from auth.uid().
+ * Only legacy/imported rows may retain a null submitted_by_user_id.
  * Used by: Admin thesis import / manual upload.
  */
 export async function createThesis(
@@ -523,64 +567,84 @@ export function validateThesisForAcceptance(thesis: {
 
 ---
 
-## 7. `file-service.ts` — Public PDF Access
+## 7. `app/api/theses/[id]/file/route.ts` — PDF Access
 
 > **Used by:** Thesis Detail page (PDF viewer / download button).
-> **Auth required:** No for access (per Decision 041). Public payload only exposes `download_path`.
+> **Auth required:** No for accepted inline preview. Explicit download requires an active account.
 
 ```ts
 import type { ServiceResult } from "./types";
 /**
  * Future HTTP equivalent: GET /api/theses/:id/file
- * Returns the public URL or stream path for the thesis PDF.
- * No longer requires a Supabase session (per Decision 041).
- * Checks the thesis is accepted.
- * Never exposes the raw thesis_files.file_url to the caller.
- *
- * Implementation options (to be decided):
- *   (a) Return a short-lived signed/proxy URL.
- *   (b) Stream the file through a Next.js Route Handler.
- *   (c) Redirect to the public Supabase Storage object.
- *
+ * Redirects to a short-lived signed URL for the private thesis PDF.
+ * Guests may preview accepted PDFs inline.
+ * Active accounts may explicitly download accepted PDFs.
+ * Submitters may preview their own for_review/flagged PDF.
+ * Active reviewers may access every review state.
+ * Never exposes thesis_files.storage_path or the service-role key.
  * Used by: Thesis Detail page PDF viewer / download button.
  */
-export async function getPublicFileUrl(
-  thesisId: number,
-): Promise<ServiceResult<{ url: string }>>;
+export async function GET(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> },
+): Promise<NextResponse>;
 ```
 
 ---
 
-## 8. `user-service.ts` — Admin User Management
+## 8. `admin-dashboard-service.ts` and `user-service.ts` — Admin Data
 
-> **Used by:** Admin Users Management page.
-> **Auth required:** Yes — `admin` only.
+> **Used by:** Admin dashboard and user-management pages.
+> **Auth required:** Dashboard snapshot — active `admin` or `moderator`.
+> User lists and mutations — active `admin` only.
 
 ```ts
 import type {
+  AdminDashboardSnapshot,
   UserAdminRow,
   UserListParams,
   UserRole,
   ServiceResult,
 } from "./types";
 /**
+ * Returns the guarded, serializable snapshot for /admin/dashboard.
+ * Available to active admin and moderator accounts.
+ */
+export async function getAdminDashboardSnapshot(): Promise<
+  ServiceResult<AdminDashboardSnapshot>
+>;
+/**
  * Future HTTP equivalent: GET /api/admin/users
  * Returns a paginated list of all users with role and affiliation.
- * Supports filtering by role.
+ * Supports filtering by role and active/deactivated status.
  * Used by: Admin Users Management page.
  */
 export async function getUsers(
   params?: UserListParams,
 ): Promise<ServiceResult<UserAdminRow[]>>;
 /**
+ * Returns live member, moderator, and administrator totals for the
+ * URL-backed User Management tabs.
+ */
+export async function getUserRoleCounts(): Promise<
+  ServiceResult<UserRoleCounts>
+>;
+/**
  * Future HTTP equivalent: PATCH /api/admin/users/:id/role
- * Updates a user's system role (admin | moderator | member).
+ * Applies only member-to-moderator or moderator-to-member transitions.
  * Only admin may call this.
  * Used by: Admin Users Management page — role dropdown.
  */
 export async function updateUserRole(
   userId: string,
   role: UserRole,
+): Promise<ServiceResult<null>>;
+export async function deactivateUser(
+  userId: string,
+  reason: string,
+): Promise<ServiceResult<null>>;
+export async function reactivateUser(
+  userId: string,
 ): Promise<ServiceResult<null>>;
 ```
 
@@ -636,15 +700,17 @@ export async function requireOwnership(
 > | **Admin Review Queue** | `getAdminTheses()`, `acceptThesis()`, `flagThesis()`, `trashThesis()` |
 > | **Admin Thesis Detail / Edit** | `updateThesisStatus()`, `replacePrimaryFile()`, `validateThesisForAcceptance()` |
 > | **Admin Create / Import Thesis** | `createThesis()` |
-> | **Admin Users Management** | `getUsers()`, `updateUserRole()` |
+> | **Admin Dashboard** | `getAdminDashboardSnapshot()` |
+> | **Admin Users Management (`/admin/users`)** | `getUsers()`, `getUserRoleCounts()`, `updateUserRole()`, `deactivateUser()`, `reactivateUser()` |
 
-## | **Nav / Session State** | `getCurrentUser()`, `logout()` |
+> | **Nav / Session State** | `getCurrentUser()`, `logout()` |
 
 ## 11. Error Code Reference
 
 | Code                   | When It Is Thrown                                           |
 | ---------------------- | ----------------------------------------------------------- |
 | `UNAUTHENTICATED`      | No valid Supabase session on a protected call               |
+| `ACCOUNT_DEACTIVATED`  | Supabase identity is valid but the profile is deactivated    |
 | `FORBIDDEN`            | Valid session but insufficient role or not the thesis owner |
 | `NOT_FOUND`            | Thesis or user record does not exist                        |
 | `VALIDATION_FAILED`    | Thesis missing required fields before acceptance            |
@@ -652,7 +718,7 @@ export async function requireOwnership(
 | `INVALID_ROLE`         | Role value outside `admin`, `moderator`, `member`           |
 | `FILE_ACCESS_DENIED`   | Request to unaccepted/unavailable PDF endpoint              |
 | `FILE_UNAVAILABLE`     | No primary file recorded for the thesis                     |
-| `SUPABASE_ERROR`       | Raw Supabase/PostgREST error passthrough                    |
+| `SUPABASE_ERROR`       | Client-safe failure from Supabase/PostgREST                 |
 
 ---
 

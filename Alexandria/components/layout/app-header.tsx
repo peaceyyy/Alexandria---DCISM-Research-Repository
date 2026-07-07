@@ -17,8 +17,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import type { UserRole } from "@/lib/auth/auth-contract";
-import { AuthInterceptModal } from "@/components/auth/auth-intercept-modal";
-import { RoleIndicator } from "@/components/auth/role-indicator";
+import { AuthInterceptModal } from "@/app/(auth)/_components/auth-intercept-modal";
+import { RoleIndicator } from "@/app/(auth)/_components/role-indicator";
 
 interface AppHeaderProps {
   role: UserRole | null;

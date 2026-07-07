@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { ProfilePage } from "@/components/profile/profile-page";
+import { ProfilePage } from "./_components/profile-page";
 import { getCurrentUser } from "@/lib/services/auth-service";
 
 export const metadata: Metadata = {
@@ -17,6 +17,10 @@ export default async function ProfileRoute({
     getCurrentUser(),
     searchParams,
   ]);
+
+  if (userResult.error?.code === "ACCOUNT_DEACTIVATED") {
+    redirect("/login?reason=account-deactivated");
+  }
 
   if (!userResult.data) {
     redirect("/login");

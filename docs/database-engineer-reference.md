@@ -24,19 +24,19 @@ Alexandria is a web-based thesis repository for DCISM. The MVP must let students
 | File storage fallback | External PDF/repository links only if storage is blocked | Keep `publication_link` on the `theses` table as fallback path |
 | Authentication | Supabase Auth + `users` table | Supabase Auth owns passwords and email verification. A single `users` table (id = Supabase UUID) stores role, affiliation, and display data. A Postgres trigger (`on_auth_user_created`) auto-populates `users` on every signup. If migrating away from Supabase, add `password_hash` via ALTER TABLE and issue force-password-resets |
 | Related theses | Frontend computation from overlapping keywords | No `thesis_related` table needed for MVP; frontend derives related theses at render time |
-| PDF access | Public access for accepted theses via `file_access.download_path` | PDFs are stored in Supabase Storage. `thesis_files.file_url` remains internal to the data/service layer even though the underlying object is public |
+| PDF access | Guest inline preview for accepted theses; active-account download | PDFs remain in a private bucket. `storage_path` stays server-only and a guarded route issues short-lived access |
 | Moderator review workflow | Moderators review uploads; review_status tracks state | Records start as `for_review`; moderators set `accepted` or `flagged` |
 | Admin workflow | Admins manage users and role access | Admins have a users list and role management view; they do not own the review/publish flow |
 | Metadata entry | Upload PDF and manually enter metadata | Upload flow should attach a PDF and require manual metadata entry before a record can be accepted |
 | Author and adviser handling | Unified in `thesis_authors` | Authors and advisers are both rows in `thesis_authors` with `contribution_role = 'author'` or `'adviser'`. `user_id` is nullable; unregistered people are credited by `display_name` only. `display_name` is always stored at submission time for stable rendering. |
 | Recommendations and lessons | Free-form text fields | Store `recommendations` and `lessons_learned` as text columns directly on the `theses` table |
 | Account creation | School-email self-registration | Accounts may self-register with `usc.edu.ph` email addresses; role defaults to `member` |
-| Metadata visibility | Full accepted metadata is public | Anonymous users can inspect thesis metadata but cannot access PDFs |
+| Metadata visibility | Full accepted metadata is public | Anonymous users can inspect metadata and inline-preview the complete accepted PDF |
 | Delete behavior | Trash invalid submissions | `review_status = 'trashed'` hides records from normal UI; trashed records are not recoverable through the admin UI for MVP |
 | User role | `admin`, `moderator`, `member` | Stored in `users.role`; controls system access level. `member` = registered user with upload access and PDF access |
 | User affiliation | `student`, `alumni`, `professor` | Stored in `users.affiliation`; describes USC identity type, distinct from system role |
 | Review status | `for_review`, `flagged`, `accepted`, `trashed` | Replaces `publication_status`; controls public visibility and moderator workflow |
-| PDF replacement | Retain old file metadata | Mark the current file as primary and keep old file_url for history |
+| PDF replacement | Retain old file metadata | Mark the current file as primary and keep old storage-path metadata for history |
 | Search behavior | Search plus filters plus sort | Repository queries should support all three discovery modes |
 | Default sort | Newest thesis year first | Use year-descending ordering by default |
 | Classification | Free-text research area plus free hashtag-style tags | `research_area` is a text field on `theses`; distinct values are derived at query time for filter dropdowns. Tags are member-assigned narrow keywords |
@@ -105,16 +105,22 @@ Single table for all authenticated users. `id` is a UUID matching `auth.users.id
 | role | System access level. CHECK: `admin`, `moderator`, `member`. Default `member` |
 | affiliation | USC identity type. CHECK: `student`, `alumni`, `professor` |
 | created_at | Standard timestamp |
+| deactivated_at | Nullable timestamp; `NULL` means the account is active |
+| deactivation_reason | Nullable administrator-provided current-state reason |
+| deactivated_by_user_id | Nullable FK to the administrator who deactivated the account |
 
 > **Portability note:** If migrating away from Supabase Auth, add `password_hash text` via `ALTER TABLE` and issue force-password-resets. UUID `id` values can be preserved in most auth systems that accept custom UUIDs.
 
 > **Role semantics:** `member` means a registered user with upload access and PDF access — not necessarily someone who has submitted a thesis. The name reflects permission level, not activity.
 
-> **Required schema follow-up:** The current SQL snapshot still declares
-> `users.usc_id bigint NOT NULL` and the signup trigger substitutes `0` when the
-> metadata is absent. Change the column to nullable and store `NULL` instead.
+> **USC ID migration:** The reviewed migration makes `users.usc_id` nullable,
+> converts the old `0` sentinel to `NULL`, and updates the signup trigger.
 > `registerMember()` supplies profile metadata, while `on_auth_user_created`
 > remains the only owner of the `public.users` insert.
+
+> **Account lifecycle:** Deactivation preserves both `auth.users` and
+> `public.users`. Admin mutations use guarded `SECURITY DEFINER` functions;
+> authenticated browser clients are not granted broad table-update rights.
 
 ```sql
 ALTER TABLE public.users
@@ -139,6 +145,7 @@ Core thesis record.
 | publication_date | Required by the submission contract; actual publication/conference date and cannot exceed today using the `Asia/Manila` date boundary. Audit existing rows before changing the live nullable column to `NOT NULL` |
 | conference | Optional conference presentation name |
 | review_status | Required: `for_review`, `flagged`, `accepted`, or `trashed`. CHECK constraint enforced. Default `for_review` |
+| study_type | Required: `thesis` or `capstone`. CHECK constraint enforced. |
 | created_at, updated_at | Standard timestamps |
 
 ### `thesis_authors`
@@ -171,21 +178,21 @@ Stores free hashtag-style tags directly on each thesis. Tags are member-assigned
 
 ### `thesis_files`
 
-Stores the Supabase Storage URL pointer for the PDF.
+Stores the private Supabase Storage object path for the PDF.
 
 | Column | Notes |
 | --- | --- |
 | id | Primary key |
 | thesis_id | Foreign key to `theses` |
-| file_url | Required Supabase Storage object URL; NOT NULL; never returned in thesis DTOs |
+| file_url | Nullable transitional legacy URL retained for rollback |
+| storage_path | Required private object key; never returned in thesis DTOs |
 | file_type | Required; MIME type of the file; NOT NULL DEFAULT 'application/pdf' |
 | is_primary | Marks the current active PDF; old file rows are retained for history |
 
 > **Retrieval pattern:** The frontend receives
-> `file_access.download_path`, currently shaped as
-> `GET /api/theses/:id/file`, rather than `file_url`. The future route may
-> stream or redirect to the public Supabase object after confirming the thesis
-> is accepted.
+> `file_access.preview_path` and `file_access.download_path`, both mediated by
+> `GET /api/theses/:id/file`. The route authorizes access and redirects to a
+> short-lived signed URL without exposing `storage_path`.
 
 ### `thesis_audits`
 
@@ -232,8 +239,8 @@ Use Supabase Row Level Security for database authorization.
 | Accepted theses | Read full accepted metadata | `moderator` reads all statuses; `admin` reads all records |
 | `for_review` / `flagged` theses | No access | `moderator` and `admin` read/write |
 | Thesis metadata tables | Read records connected to accepted theses | `moderator` creates/updates; `admin` full access |
-| `users` | No public browsing | Users read/update own row; `admin` reads all, updates `role` |
-| Storage objects | No anonymous PDF access | `member` streams PDFs via backend proxy; `moderator`/`admin` upload and manage |
+| `users` | No public browsing | Active users read their own row; active admins read all rows and use guarded RPCs for role/status changes |
+| Storage objects | No direct anonymous object access; accepted PDFs use the guarded preview route | Active users upload/delete only within their own folder; guarded server routes issue short-lived preview/download access |
 | `thesis_audits` | No access | Insert automatically; `admin` and `moderator` can read |
 
 Recommended policy direction:
@@ -243,7 +250,7 @@ Recommended policy direction:
 - Store system role in `users.role`: `admin`, `moderator`, `member`.
 - Store USC identity in `users.affiliation`: `student`, `alumni`, `professor`.
 - Restrict self-registration to `usc.edu.ph` email addresses.
-- PDF access via backend proxy only; never expose raw `file_url` to unauthenticated clients.
+- PDF access via the guarded route only; never expose `storage_path` or the service-role key.
 - Publicly visible theses = `review_status = 'accepted'` only.
 
 ## Suggested Indexes
@@ -281,8 +288,10 @@ Use these as the early API/database boundary:
 | `POST /api/moderator/theses/:id/accept` | Validate required metadata/file presence, then set `review_status = 'accepted'` |
 | `POST /api/moderator/theses/:id/flag` | Set `review_status = 'flagged'` and optionally record a reason in `thesis_audits` |
 | `POST /api/admin/theses/:id/trash` | Move a record to trashed state and remove it from public and active review results |
-| `GET /api/admin/users` | Future paginated user list |
-| `PATCH /api/admin/users/:id/role` | Future route to update a user's role |
+| `getAdminDashboardSnapshot()` | Current guarded aggregate RPC/service for metrics, uploads, audits, and departments |
+| `GET /api/admin/users` | Future HTTP equivalent of the current paginated user service |
+| `PATCH /api/admin/users/:id/role` | Future HTTP equivalent of the guarded role-transition function |
+| `deactivateUser()` / `reactivateUser()` | Current reversible account-status services |
 
 ## Seed Data Needed
 
@@ -318,7 +327,7 @@ Minimum seed data for frontend/backend integration:
    - Accepted: Users may self-register with `usc.edu.ph` email addresses. `role` defaults to `member`.
 
 6. Metadata visibility:
-   - Accepted: Full accepted thesis metadata is public; PDF access requires authentication via backend proxy.
+   - Accepted: Full accepted thesis metadata is public. Guests may inline-preview complete accepted PDFs through the guarded server route; explicit download requires an active account.
 
 7. Delete behavior:
    - Accepted: Invalid or removed submissions use `review_status = 'trashed'`. Trashed records are hidden from normal UI and are not recoverable through the admin UI for MVP.
@@ -340,7 +349,7 @@ Minimum seed data for frontend/backend integration:
 These choices affect schema, storage policy, and backend API behavior.
 
 1. PDF access policy:
-   - Accepted: Both preview and download authenticated.
+   - Accepted: Guests may inline-preview complete accepted PDFs. Explicit download requires an active account; submitters and reviewers receive the additional review-state access frozen in the backend contract.
 
 2. Review and acceptance workflow:
    - Accepted: Uploaded records start as `for_review`; moderators set `accepted` or `flagged`.
@@ -355,9 +364,9 @@ These choices affect schema, storage policy, and backend API behavior.
    - Accepted: Free text on `theses.research_area`. Filter dropdown is populated via `SELECT DISTINCT research_area FROM theses WHERE review_status = 'accepted'`.
 
 6. PDF file storage:
-   - Superseded: the current implementation uploads PDFs to Supabase Storage,
-     allows public access for accepted theses, and keeps the provider URL behind
-     `file_access.download_path`.
+   - Accepted: PDFs stay in a private Supabase Storage bucket. The database
+     stores canonical `storage_path`; browser DTOs expose guarded application
+     routes rather than provider URLs or raw object paths.
 
 ## Recommended First Task For DB Engineer
 
