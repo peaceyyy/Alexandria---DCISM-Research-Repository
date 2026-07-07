@@ -1,24 +1,19 @@
 import { AppHeader } from "@/components/layout/app-header";
-import FaqRail from "@/components/layout/faq";
+import ThesesBrowser from "@/components/layout/theses-browser";
 import { getCurrentUser } from "@/lib/services/auth-service";
-import Image from "next/image";
 
 const items = [
   {
     authors: [
-      {
-        id: "james-ang",
-        name: "James Ang"
-      },
-      {
-        id: "jared-minoza",
-        name: "Jared Minoza"
-      }
+      { id: "james-ang", name: "James Ang" },
+      { id: "jared-minoza", name: "Jared Minoza" },
     ],
     year: 2025,
     title: "AI-Based Student Attendance Monitoring Using Facial Recognition",
-    abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["AI/ML", "Data Science", "Godwin"]
+    abstract:
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+    research_area: ["AI / ML", "Data Science"],
+    department: "Computer Science",
   },
   {
     authors: [
@@ -34,7 +29,8 @@ const items = [
     year: 2023,
     title: "A Mobile Inventory Management System for Small Businesses",
     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["Algorithms", "Data Science", "Pena"]
+    research_area: ["Mobile Development", "Cybersecurity"],
+    department: "Information Technology"
   },
   {
     authors: [
@@ -50,7 +46,8 @@ const items = [
     year: 2025,
     title: "Cybersecurity Risk Assessment Framework for Small Enterprises",
     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["Web Development", "Data Science", "Elalto"]
+    research_area: ["Web Development", "Data Science"],
+    department: "Information Systems"
   },
   {
     authors: [
@@ -64,9 +61,10 @@ const items = [
       }
     ],
     year: 2024,
-    title: "Web-Based Appointment Scheduling System for Local Clinics",
+    title: "Project Title",
     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["AI/ML", "Data Science", "Godwin"]
+    research_area: ["AI / ML", "Data Science"],
+    department: "Information Technology"
   },
   {
     authors: [
@@ -80,9 +78,10 @@ const items = [
       }
     ],
     year: 2024,
-    title: "Web-Based Appointment Scheduling System for Local Clinics",
+    title: "Project Title 2",
     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["AI/ML", "Data Science", "Godwin"]
+    research_area: ["AI / ML", "Data Science"],
+    department: "Computer Science"
   },
   {
     authors: [
@@ -96,9 +95,10 @@ const items = [
       }
     ],
     year: 2024,
-    title: "Web-Based Appointment Scheduling System for Local Clinics",
+    title: "Project Title 3",
     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["AI/ML", "Data Science", "Godwin"]
+    research_area: ["IoT", "Data Science"],
+    department: "Computer Science"
   },
   {
     authors: [
@@ -112,9 +112,10 @@ const items = [
       }
     ],
     year: 2024,
-    title: "Web-Based Appointment Scheduling System for Local Clinics",
+    title: "Project Title 4",
     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["AI/ML", "Data Science", "Godwin"]
+    research_area: ["AI / ML", "Data Science"],
+    department: "Information Technology"
   },
   {
     authors: [
@@ -128,9 +129,10 @@ const items = [
       }
     ],
     year: 2024,
-    title: "Web-Based Appointment Scheduling System for Local Clinics",
+    title: "Project Title 5",
     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["AI/ML", "Data Science", "Godwin"]
+    research_area: ["IoT", "Data Science"],
+    department: "Information Systems"
   },
   {
     authors: [
@@ -144,9 +146,10 @@ const items = [
       }
     ],
     year: 2024,
-    title: "Web-Based Appointment Scheduling System for Local Clinics",
+    title: "Project Title 6",
     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["AI/ML", "Data Science", "Godwin"]
+    research_area: ["AI / ML", "Data Science"],
+    department: "Information Systems"
   },
   {
     authors: [
@@ -160,11 +163,12 @@ const items = [
       }
     ],
     year: 2024,
-    title: "Web-Based Appointment Scheduling System for Local Clinics",
+    title: "Project Title 7",
     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
-    tags: ["AI/ML", "Data Science", "Godwin"]
+    research_area: ["AI / ML", "Data Science"],
+    department: "Computer Science"
   },
-]
+];
 
 export default async function ThesesPage() {
   const userResult = await getCurrentUser();
@@ -173,116 +177,293 @@ export default async function ThesesPage() {
   return (
     <main className="h-screen overflow-hidden bg-[#14181c] text-white">
       <AppHeader role={role} />
-      <div className="grid min-h-[calc(100vh-72px)] grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)_360px]">
-        <aside className="border-r border-white/15 px-3 py-4">
-
-          <div className="">
-            <div className="mb-4 text-sm font-semibold text-white/60">Filter</div>
-
-            <section className="space-y-4 text-xs text-white/80">
-              <div>
-                <div className="mb-2 font-semibold">Year</div>
-                <div className="flex gap-2">
-                  <input className="w-full rounded border border-white/25 bg-transparent px-2 py-1 outline-none" placeholder="From" />
-                  <input className="w-full rounded border border-white/25 bg-transparent px-2 py-1 outline-none" placeholder="To" />
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 font-semibold">Categories</div>
-                <div className="space-y-1">
-                  {["AI / Machine Learning", "Web Development", "Mobile Development", "Cybersecurity", "IoT", "Data Science"].map((item) => (
-                    <label key={item} className="flex items-center gap-2">
-                      <input type="checkbox" />
-                      <span>{item}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 font-semibold">Advisor</div>
-                <div className="space-y-1">
-                  {["Sogbo", "Patric", "S. M. Rivera", "Randy", "King Natul", "Gary"].map((item) => (
-                    <label key={item} className="flex items-center gap-2">
-                      <input type="checkbox" />
-                      <span>{item}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 font-semibold">Department</div>
-                <div className="space-y-1">
-                  {["Computer Science", "Information Technology", "Information System", "Mathematics"].map((item) => (
-                    <label key={item} className="flex items-center gap-2">
-                      <input type="checkbox" />
-                      <span>{item}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="mb-2 font-semibold">Tags</div>
-                <select className="w-full rounded border border-white/25 bg-transparent px-2 py-1 outline-none">
-                  <option>Add Tag</option>
-                </select>
-              </div>
-            </section>
-          </div>
-        </aside>
-
-        <section className="border-r border-white/15 px-4 py-5 lg:px-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="grid h-[calc(100vh-72px)] grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {items.map((item) => (
-              <article
-                key={item.title}
-                className="group rounded-xl border border-white/15 bg-white/[0.03] p-4 transition hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[0.06]"
-              >
-                <div className="mb-3 overflow-hidden rounded-lg border border-white/10 bg-white/5">
-                  <Image
-                    src="/placeholder.svg"
-                    alt="Article preview"
-                    width={640}
-                    height={360}
-                    className="h-36 w-full object-cover"
-                  />
-                </div>
-
-                <div className="mb-2 text-[11px] uppercase tracking-wide text-white/50">
-                  {item.authors.map((a) => a.name).join(" • ")} | {item.year}
-                </div>
-
-                <h2 className="text-base font-extrabold leading-tight text-white">
-                  {item.title}
-                </h2>
-
-                <p className="mt-2 line-clamp-3 text-sm leading-5 text-white/70"> 
-                  {item.abstract}
-                </p>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {item.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-[#1da0c9]/50 bg-[#1da0c9]/10 px-2 py-0.5 text-[11px] font-medium text-[#9ddff2]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <FaqRail />
-      </div>
+      <ThesesBrowser items={items} />
     </main>
   );
 }
+
+
+
+
+
+
+// import { AppHeader } from "@/components/layout/app-header";
+// import FaqRail from "@/components/layout/faq";
+// import { getCurrentUser } from "@/lib/services/auth-service";
+// import Image from "next/image";
+
+// const items = [
+//   {
+//     authors: [
+//       {
+//         id: "james-ang",
+//         name: "James Ang"
+//       },
+//       {
+//         id: "jared-minoza",
+//         name: "Jared Minoza"
+//       }
+//     ],
+//     year: 2025,
+//     title: "AI-Based Student Attendance Monitoring Using Facial Recognition",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["AI / ML", "Data Science"],
+//     department: "Computer Science"
+//   },
+//   {
+//     authors: [
+//       {
+//         id: "avryl-joie",
+//         name: "Avryl Joie Arranguez"
+//       },
+//       {
+//         id: "homer-dorin",
+//         name: "Homer Adriel Dorin"
+//       }
+//     ],
+//     year: 2023,
+//     title: "A Mobile Inventory Management System for Small Businesses",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["Mobile Development", "Cybersecurity"],
+//     department: "Information Technology"
+//   },
+//   {
+//     authors: [
+//       {
+//         id: "matt-erron",
+//         name: "Matt Erron Cabarrubias"
+//       },
+//       {
+//         id: "dustin-jesse",
+//         name: "Dustin Jesse Balansag"
+//       }
+//     ],
+//     year: 2025,
+//     title: "Cybersecurity Risk Assessment Framework for Small Enterprises",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["Web Development", "Data Science"],
+//     department: "Information Systems"
+//   },
+//   {
+//     authors: [
+//       {
+//         id: "leira-bengil",
+//         name: "Leira Bengil"
+//       },
+//       {
+//         id: "jian-bryce",
+//         name: "Jian Bryce Machacon"
+//       }
+//     ],
+//     year: 2024,
+//     title: "Project Title",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["AI / ML", "Data Science"],
+//     department: "Information Technology"
+//   },
+//   {
+//     authors: [
+//       {
+//         id: "leira-bengil",
+//         name: "Leira Bengil"
+//       },
+//       {
+//         id: "jian-bryce",
+//         name: "Jian Bryce Machacon"
+//       }
+//     ],
+//     year: 2024,
+//     title: "Project Title",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["AI / ML", "Data Science"],
+//     department: "Computer Science"
+//   },
+//   {
+//     authors: [
+//       {
+//         id: "leira-bengil",
+//         name: "Leira Bengil"
+//       },
+//       {
+//         id: "jian-bryce",
+//         name: "Jian Bryce Machacon"
+//       }
+//     ],
+//     year: 2024,
+//     title: "Project Title",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["IoT", "Data Science"],
+//     department: "Computer Science"
+//   },
+//   {
+//     authors: [
+//       {
+//         id: "leira-bengil",
+//         name: "Leira Bengil"
+//       },
+//       {
+//         id: "jian-bryce",
+//         name: "Jian Bryce Machacon"
+//       }
+//     ],
+//     year: 2024,
+//     title: "Project Title",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["AI / ML", "Data Science"],
+//     department: "Information Technology"
+//   },
+//   {
+//     authors: [
+//       {
+//         id: "leira-bengil",
+//         name: "Leira Bengil"
+//       },
+//       {
+//         id: "jian-bryce",
+//         name: "Jian Bryce Machacon"
+//       }
+//     ],
+//     year: 2024,
+//     title: "Project Title",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["IoT", "Data Science"],
+//     department: "Information Systems"
+//   },
+//   {
+//     authors: [
+//       {
+//         id: "leira-bengil",
+//         name: "Leira Bengil"
+//       },
+//       {
+//         id: "jian-bryce",
+//         name: "Jian Bryce Machacon"
+//       }
+//     ],
+//     year: 2024,
+//     title: "Project Title",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["AI / ML", "Data Science"],
+//     department: "Information Systems"
+//   },
+//   {
+//     authors: [
+//       {
+//         id: "leira-bengil",
+//         name: "Leira Bengil"
+//       },
+//       {
+//         id: "jian-bryce",
+//         name: "Jian Bryce Machacon"
+//       }
+//     ],
+//     year: 2024,
+//     title: "Project Title",
+//     abstract: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod  tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim  veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea  commodo consequat. Duis aute irure dolor in reprehenderit in voluptate  velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint  occaecat cupidatat non proident, sunt in culpa qui officia deserunt  mollit anim id est laborum",
+//     research_area: ["AI / ML", "Data Science"],
+//     department: "Computer Science"
+//   },
+// ]
+
+// export default async function ThesesPage() {
+//   const userResult = await getCurrentUser();
+//   const role = userResult.data?.role ?? null;
+
+//   return (
+//     <main className="h-screen overflow-hidden bg-[#14181c] text-white">
+//       <AppHeader role={role} />
+//       <div className="grid h-[calc(100vh-72px)] grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)_360px]">
+//         <aside className="border-r border-white/15 px-3 py-4">
+
+//           <div className="">
+//             <div className="mb-4 text-sm font-semibold text-white/60">Filter</div>
+
+//             <section className="space-y-4 text-xs text-white/80">
+//               <div>
+//                 <div className="mb-2 font-semibold">Year</div>
+//                 <div className="flex gap-2">
+//                   <input className="w-full rounded border border-white/25 bg-transparent px-2 py-1 outline-none" placeholder="From" />
+//                   <input className="w-full rounded border border-white/25 bg-transparent px-2 py-1 outline-none" placeholder="To" />
+//                 </div>
+//               </div>
+
+//               <div>
+//                 <div className="mb-2 font-semibold">Research Area</div>
+//                 <div className="space-y-1">
+//                   {["AI / ML", "Web Development", "Mobile Development", "Cybersecurity", "IoT", "Data Science"].map((item) => (
+//                     <label key={item} className="flex items-center gap-2">
+//                       <input type="checkbox" />
+//                       <span>{item}</span>
+//                     </label>
+//                   ))}
+//                 </div>
+//               </div>
+
+//               <div>
+//                 <div className="mb-2 font-semibold">Department</div>
+//                 <div className="space-y-1">
+//                   {["Computer Science", "Information Technology", "Information System"].map((item) => (
+//                     <label key={item} className="flex items-center gap-2">
+//                       <input type="checkbox" />
+//                       <span>{item}</span>
+//                     </label>
+//                   ))}
+//                 </div>
+//               </div>
+//             </section>
+//           </div>
+//         </aside>
+
+//         <section className="border-r border-white/15 px-4 py-5 lg:px-6 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+//           <div className="grid h-[calc(100vh-72px)] grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+//             {items.map((item) => (
+//               <article
+//                 key={item.title}
+//                 className="group rounded-xl border border-white/15 bg-white/[0.03] p-4 transition hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[0.06]"
+//               >
+//                 <div className="mb-3 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+//                   <Image
+//                     src="/placeholder.svg"
+//                     alt="Article preview"
+//                     width={640}
+//                     height={360}
+//                     className="h-36 w-full object-cover"
+//                   />
+//                 </div>
+
+//                 <div className="mb-2 text-[11px] uppercase tracking-wide text-white/50">
+//                   {item.authors.map((a) => a.name).join(" • ")} | {item.year}
+//                 </div>
+
+//                 <h2 className="text-base font-extrabold leading-tight text-white">
+//                   {item.title}
+//                 </h2>
+
+//                 {/* put abstract here */}
+//                 <p className="mt-2 line-clamp-3 text-sm leading-5 text-white/70"> 
+//                   {item.abstract}
+//                 </p>
+
+//                 <div className="mt-3 flex flex-wrap gap-2">
+//                   {item.research_area.map((tag) => (
+//                     <span
+//                       key={tag}
+//                       className="rounded-full border border-[#1da0c9]/50 bg-[#1da0c9]/10 px-2 py-0.5 text-[11px] font-medium text-[#9ddff2]"
+//                     >
+//                       {tag}
+//                     </span>
+//                   ))}
+//                 </div>
+//               </article>
+//             ))}
+//           </div>
+//         </section>
+
+//         <FaqRail />
+//       </div>
+//     </main>
+//   );
+// }
 
 
 /*
@@ -310,6 +491,19 @@ FAQ section
     </div>
   </div>
 </aside>
+
+research_area
+<div>
+  <div className="mb-2 font-semibold">research_area</div>
+  <select className="w-full rounded border border-white/25 bg-transparent px-2 py-1 outline-none">
+    <option>Add Tag</option>
+  </select>
+</div>
+
+abstract
+<p className="mt-2 line-clamp-3 text-sm leading-5 text-white/70"> 
+  {item.abstract}
+</p>
 
 
       <main className="mx-auto max-w-7xl px-6 py-12 sm:px-10 lg:px-16">
@@ -356,7 +550,7 @@ FAQ section
               <h2 className="mt-1 text-xl font-black leading-tight">{item.title}</h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-white/70">{item.summary}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {item.tags.map((tag) => (
+                {item.research_area.map((tag) => (
                   <span key={tag} className="rounded-full border border-white/25 px-2 py-0.5 text-[11px] text-white/80">
                     {tag}
                   </span>
