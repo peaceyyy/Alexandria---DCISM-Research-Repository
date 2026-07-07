@@ -3,7 +3,7 @@
  *
  * Shows: brand mark + wordmark (left), GitHub repo link (right).
  * No auth chrome, no role indicator, no CTA. The landing page's
- * sole job is to introduce Alexandria and point to /theses.
+ * sole job is to introduce Alexandria and point to /home.
  */
 import Image from "next/image";
 import { GitFork } from "lucide-react";
@@ -13,7 +13,7 @@ export function MinimalHeader() {
     <header className="relative z-10 flex h-16 items-center justify-between px-6 sm:px-10">
       {/* Brand */}
       <a
-        href="/theses"
+        href="/home"
         className="flex items-center gap-2.5 text-white no-underline"
         aria-label="Alexandria — go to repository"
       >

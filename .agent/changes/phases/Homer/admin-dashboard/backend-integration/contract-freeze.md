@@ -3,10 +3,20 @@
 Status: Approved  
 Owner: Homer  
 Approved: 2026-07-01
+Rebased: 2026-07-02
 
 ## Scope
 
-This contract governs live Supabase data for `/admin/dashboard`, `/admin/members`, and `/admin/moderators`, plus reversible account deactivation as observed by authenticated users.
+This contract governs live Supabase data for `/admin/dashboard`, `/admin/members`, and `/admin/moderators`, plus reversible account deactivation as observed by authenticated users. Public repository redirects and signed-out fallback target `/home`.
+
+## Current-Code Addendum
+
+- Initial thesis submission is an existing `submitThesis(FormData)` server action using `requireSession()`, server-side PDF validation, Supabase Storage, and `submit_thesis_transaction`. This phase preserves that boundary.
+- All current protected submission-service exports already use `requireSession()`; account enforcement belongs in the shared principal/guard plus database and Storage policy layers, not in a submission-service rewrite.
+- `auth-contract.ts` already re-exports shared contracts from `services/types.ts`.
+- `DbThesisAudit` must use the live `updated_at` column, not its stale `created_at` property.
+- The current repository has no admin dashboard/user services and no Next.js 16 `proxy.ts`.
+- Deleted page-mapping and standalone SQL files are not sources for implementation.
 
 ## Dashboard Snapshot
 
@@ -60,7 +70,7 @@ type DepartmentResearchCount = {
 
 - `/admin/members` requests `getUsers({ role: "member" })`.
 - `/admin/moderators` requests `getUsers({ role: "moderator" })`.
-- Default page size is 20; list results include pagination metadata.
+- Both routes use a `page` search parameter, default limit 20, and controlled server pagination from `PaginationMeta`.
 - Only an active `admin` may read these lists or mutate roles/account status.
 - UI role transitions are limited to `member → moderator` and `moderator → member`.
 - Admin creation, profile editing, hard deletion, and assigning the `admin` role are not part of this phase.
@@ -90,17 +100,24 @@ type DepartmentResearchCount = {
 
 - `ACCOUNT_DEACTIVATED` is a stable `ServiceError.code`.
 - After valid credentials, `login()` checks the profile. A deactivated profile is immediately signed out and receives `ACCOUNT_DEACTIVATED`.
-- `getCurrentUser()` and `requireSession()` reject deactivated profiles even when an older Supabase session cookie remains valid.
-- Existing protected services that read `supabase.auth.getUser()` directly must move to the active-session guard.
+- `getCurrentUser()` is the canonical, request-memoized principal resolver; `requireSession()` and `requireRole()` consume it.
+- `getCurrentUser()` and all shared guards reject deactivated profiles even when an older Supabase session cookie remains valid.
+- Existing protected submission functions remain `requireSession()` consumers and must not be split away from the transactional FormData/RPC/Storage flow.
+- Next.js 16 `proxy.ts` refreshes Supabase SSR cookies; it performs no database role decision and does not replace service guards.
 - Protected routes redirect a deactivated session to `/login?reason=account-deactivated`.
 - The login page explains that an administrator must reactivate the account.
-- Public repository browsing remains available as a signed-out guest.
+- Public repository browsing at `/home` remains available as a signed-out guest.
+- Moderator login resolves directly to `/admin/dashboard`; it must not bounce through the admin-only `/admin/moderators` route.
 
 ## Security and Data Rules
 
 - RLS must enforce active-account and role checks; layouts alone are not authorization.
+- Every `SECURITY DEFINER` function callable by `authenticated` users, including the live thesis-submission RPC, must explicitly reject `users.deactivated_at IS NOT NULL` because it can bypass table RLS.
+- Storage insert/delete policies must reject deactivated users even when their Supabase Auth JWT remains valid.
+- Live RPC, RLS, and Storage-policy state must be inspected before local SQL is authored; repository snapshots do not prove deployment state.
 - No Supabase service-role key may enter a `NEXT_PUBLIC_*` variable, Client Component, or browser request.
 - No runtime mock fallback is allowed when a live service fails.
+- SQL must use the migration location approved during database readiness; deleted documentation scripts must not be restored implicitly.
 - SQL migrations and live Supabase changes remain behind human review.
 
 ## Human Review Gate

@@ -7,20 +7,37 @@ status: ready
 
 summary:
   workstream: admin-dashboard-supabase-linking
-  goal: Replace admin mock data with guarded Supabase reads, approved role mutations, and reversible account deactivation reflected throughout authenticated user flows.
+  goal: Replace admin mock data with guarded Supabase reads, approved role mutations, and reversible account deactivation without regressing the current /home route or transactional thesis-submission flow.
   root_plan: admin-dashboard-backend-integration.md
   frontend_handoff: docs/reports/ADMIN_DASHBOARD_FRONTEND_COMPLETION_REPORT.md
-  implementation_rule: No coding agent starts until 01-contract-freeze is approved.
+  current_codebase_audit: .agent/changes/phases/Homer/admin-dashboard/backend-integration/current-codebase-audit.md
+  implementation_rule: Re-run read-only git status/diff and revalidate this baseline before the first coding agent starts.
   source_precedence:
     - Alexandria/app/admin and Alexandria/components/admin for current UI paths and behavior
-    - Alexandria/lib/services/types.ts and current service implementations for executable contracts
+    - Alexandria/lib/services/types.ts and live service implementations for executable contracts
+    - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
+    - .agent/changes/phases/Homer/admin-dashboard/backend-integration/current-codebase-audit.md
     - docs/api-contracts.md
     - docs/backend_functions.md
     - docs/backend-readiness-plan.md
-    - docs/page_backend_mapping.md
+    - docs/database-engineer-reference.md
+    - docs/design-decision-log.md
     - docs/updated_db_fields.sql
     - docs/reports/ADMIN_DASHBOARD_FRONTEND_COMPLETION_REPORT.md
+    - docs/reports/TASK_THESIS_SUBMISSION_HARDENING_COMPLETION_REPORT.md
     - .agent/changes/phases/Homer/admin-dashboard/frontend
+
+baseline:
+  audited_at: 2026-07-02
+  commit: 2d4268da59e2842d63eae0e901cc5f2b8e7a7c2c
+  current_routes:
+    public_repository: /home
+    submission: /upload
+    admin_dashboard: /admin/dashboard
+  protected_submission_boundary: submitThesis(FormData) -> requireSession() -> Supabase Storage -> submit_thesis_transaction
+  preserve_user_changes:
+    - Do not restore deleted docs/page_backend_mapping.md.
+    - Do not restore deleted standalone SQL or other user-owned working-tree files.
 
 locked_decisions:
   dashboard_metric_semantics:
@@ -44,12 +61,17 @@ locked_decisions:
 
 global_rules:
   - Read git status before editing and preserve unrelated or user-owned changes.
+  - Rebase the orchestrator if the live paths or service boundaries differ from the recorded baseline.
   - Do not import a Supabase client in app/admin page components or components/admin presentation components.
   - Keep authentication and role checks inside every protected service and Server Action even when a layout already guards the route.
   - Never expose SUPABASE_SERVICE_ROLE_KEY through NEXT_PUBLIC variables, Client Components, or browser requests.
   - Do not invent create-user, hard-delete-user, or profile-edit behavior outside the approved contract freeze.
   - Deactivation must preserve the Supabase Auth row and public.users row and must be reversible.
   - A deactivated account must fail authenticated service guards even if an older Supabase session cookie remains valid.
+  - A deactivated account must also fail direct RLS, Storage-policy, and SECURITY DEFINER RPC authorization.
+  - Preserve submitThesis(FormData), PDF validation, storage cleanup, and submit_thesis_transaction ownership semantics.
+  - Do not edit submission-service.ts merely to propagate deactivation; it already consumes requireSession().
+  - Public and post-auth member navigation uses /home, not /theses.
   - Do not change visual styling, route names, sidebar permissions, or mock-era layout behavior unless data binding requires an approved state.
   - Test files may be written but must not be executed before the human review gate is approved.
   - Unit tests, smoke tests, lint, type-checking, builds, dev servers, and browser automation are forbidden during implementation.
@@ -75,10 +97,10 @@ sub_phases:
     objective: Record the approved metric scope plus the resolved audit-only activity and reversible deactivation contracts before production code changes.
     reads:
       - admin-dashboard-backend-integration.md
+      - .agent/changes/phases/Homer/admin-dashboard/backend-integration/current-codebase-audit.md
       - docs/reports/ADMIN_DASHBOARD_FRONTEND_COMPLETION_REPORT.md
       - docs/api-contracts.md
       - docs/backend_functions.md
-      - docs/page_backend_mapping.md
       - Alexandria/app/admin
       - Alexandria/components/admin/mock-data.ts
     exclusive_writes:
@@ -93,21 +115,26 @@ sub_phases:
       - "03-shared-service-contracts"
 
   - id: "02-supabase-policy-readiness"
-    title: Supabase Schema and RLS Readiness
+    title: Live Supabase Schema, RLS, RPC, and Storage Readiness
     owner: Shane
     fallback_owner: Homer
     shared_with: [Backend services agent]
     persona: database-and-security-engineer
     status: not_started
-    objective: Confirm dashboard reads, admin role/status updates, and active-account enforcement are supported by the live schema and RLS.
+    objective: Inspect live Supabase first, choose a durable migration location, and close schema/policy gaps for dashboard reads, admin role/status writes, and deactivated-account denial.
+    requires_phases: ["01-contract-freeze"]
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
+      - .agent/changes/phases/Homer/admin-dashboard/backend-integration/current-codebase-audit.md
       - docs/updated_db_fields.sql
       - docs/database-engineer-reference.md
+      - docs/backend-readiness-plan.md
+      - Alexandria/lib/services/submission-service.ts
+      - Alexandria/lib/upload/storage-helper.ts
       - Alexandria/lib/supabase/server.ts
       - Alexandria/lib/services/_guards.ts
     allowed_writes:
-      - reviewed SQL migration or policy artifacts in a human-approved repository location
+      - reviewed SQL migrations in the location selected and documented by this phase
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/db-readiness-report.md
     required_schema_contract:
       - users.deactivated_at is nullable; null means active.
@@ -116,10 +143,14 @@ sub_phases:
       - Reactivation clears current deactivation state without deleting identity or profile rows.
     prohibited:
       - Applying SQL to live Supabase before human review
+      - Restoring deleted SQL documentation scripts as an implementation shortcut
       - Adding a service-role secret to frontend environment variables
       - Weakening public read policies to make admin queries work
     exit_criteria:
-      - Required SELECT and UPDATE policy paths are documented against live Supabase.
+      - Live columns, policies, functions, grants, indexes, and Storage policies are recorded before migration SQL is proposed.
+      - Required admin/moderator SELECT and admin-only UPDATE policy paths are documented.
+      - Authenticated direct calls from deactivated users are denied by table RLS and Storage policies.
+      - Every callable SECURITY DEFINER function, including submit_thesis_transaction if deployed, explicitly rejects deactivated users.
       - Any schema or policy gap has reviewable, idempotent SQL.
       - Dashboard source columns and indexes are confirmed.
       - Deactivated users can be identified by server guards without granting broader user-table access.
@@ -129,24 +160,33 @@ sub_phases:
       - "09-account-status-enforcement"
 
   - id: "03-shared-service-contracts"
-    title: Shared Dashboard and User DTOs
+    title: Canonical Dashboard/User DTO and Documentation Alignment
     owner: Backend contracts agent
     persona: typescript-contract-engineer
     status: not_started
-    objective: Add approved frontend-safe dashboard, account-status, and deactivation error contracts without duplicating database row types.
+    objective: Align executable types and canonical backend documentation with the rebased dashboard, audit timestamp, account status, /home, and service contracts.
+    requires_phases: ["01-contract-freeze"]
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
       - Alexandria/lib/services/types.ts
       - Alexandria/lib/services/result.ts
     exclusive_writes:
       - Alexandria/lib/services/types.ts
+    allowed_writes:
+      - docs/api-contracts.md
+      - docs/backend_functions.md
+      - docs/backend-readiness-plan.md
+      - docs/database-engineer-reference.md
     test_writes:
-      - Alexandria/lib/services/__tests__/types.contract.test.ts
+      - Alexandria/lib/services/types.test.ts
     exit_criteria:
       - DTO names and fields match the contract freeze.
+      - DbThesisAudit uses updated_at to match the live schema snapshot.
+      - UserAdminRow extends the active CurrentUser view with account-status fields without duplicating auth contracts.
       - All reads use ServiceResult and paginated lists use PaginationMeta.
       - UI labels are mapped outside raw DB row types.
       - ACCOUNT_DEACTIVATED has a stable ServiceError code and client-safe message.
+      - Canonical docs describe deactivation/reactivation and no longer depend on deleted page mappings.
     blocks:
       - "04-dashboard-read-service"
       - "05-user-service"
@@ -159,6 +199,10 @@ sub_phases:
     persona: supabase-query-engineer
     status: not_started
     objective: Implement one guarded server service that returns the approved dashboard snapshot and audit-only activity from Supabase.
+    requires_phases:
+      - "02-supabase-policy-readiness"
+      - "03-shared-service-contracts"
+      - "09-account-status-enforcement"
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/db-readiness-report.md
@@ -168,10 +212,12 @@ sub_phases:
     exclusive_writes:
       - Alexandria/lib/services/admin-dashboard-service.ts
     test_writes:
-      - Alexandria/lib/services/__tests__/admin-dashboard-service.test.ts
+      - Alexandria/lib/services/admin-dashboard-service.test.ts
     required_behavior:
       - Enforce requireRole for admin and moderator according to the frozen field-level scope.
       - Return one serializable snapshot containing metrics, recent uploads, activity, and department counts.
+      - Select explicit columns; never use select("*") in the new service.
+      - Read thesis_audits.updated_at and map it to DashboardActivityRow.occurred_at.
       - Use stable ordering and bounded query limits.
       - Convert Supabase failures to ServiceError without leaking raw data.
     exit_criteria:
@@ -187,6 +233,10 @@ sub_phases:
     persona: authorization-and-mutation-engineer
     status: not_started
     objective: Implement role/status-filtered user reads, approved role transitions, and reversible deactivation/reactivation.
+    requires_phases:
+      - "02-supabase-policy-readiness"
+      - "03-shared-service-contracts"
+      - "09-account-status-enforcement"
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/db-readiness-report.md
@@ -196,9 +246,10 @@ sub_phases:
     exclusive_writes:
       - Alexandria/lib/services/user-service.ts
     test_writes:
-      - Alexandria/lib/services/__tests__/user-service.test.ts
+      - Alexandria/lib/services/user-service.test.ts
     required_behavior:
       - getUsers requires admin and returns pagination metadata.
+      - getUsers selects explicit frontend-safe columns and supports role, account status, page, and limit.
       - updateUserRole validates the role and approved transition before writing.
       - deactivateUser records deactivated_at, reason, and acting admin without deleting Auth or profile rows.
       - reactivateUser clears current deactivation state.
@@ -217,6 +268,7 @@ sub_phases:
     persona: nextjs-server-client-boundary-engineer
     status: not_started
     objective: Prepare serializable client views, controlled table pagination if required, and reusable loading/error/empty feedback without changing the design language.
+    requires_phases: ["03-shared-service-contracts"]
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
       - Alexandria/components/admin/data-table.tsx
@@ -228,10 +280,11 @@ sub_phases:
     allowed_writes:
       - matching component CSS modules
     test_writes:
-      - Alexandria/components/admin/__tests__/data-table.test.tsx
-      - Alexandria/components/admin/__tests__/admin-data-state.test.tsx
+      - Alexandria/components/admin/data-table.test.tsx
+      - Alexandria/components/admin/admin-data-state.test.tsx
     exit_criteria:
       - Server-fetched DTOs can cross into client views without functions or Supabase clients crossing the boundary.
+      - DataTable supports controlled server pagination for user lists while preserving fixed five-row dashboard behavior.
       - Empty, service-error, mutation-pending, mutation-error, and success states have defined rendering.
       - Existing uncontrolled mock-compatible table behavior is preserved if still used elsewhere.
     blocks:
@@ -244,6 +297,9 @@ sub_phases:
     persona: nextjs-integration-engineer
     status: not_started
     objective: Replace dashboard mocks with the guarded dashboard snapshot while preserving the completed layout.
+    requires_phases:
+      - "04-dashboard-read-service"
+      - "06-admin-data-boundary"
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
       - Alexandria/lib/services/admin-dashboard-service.ts
@@ -253,7 +309,7 @@ sub_phases:
       - Alexandria/app/admin/dashboard/page.tsx
       - Alexandria/components/admin/admin-dashboard-view.tsx
     test_writes:
-      - Alexandria/components/admin/__tests__/admin-dashboard-view.test.tsx
+      - Alexandria/components/admin/admin-dashboard-view.test.tsx
     required_behavior:
       - page.tsx remains a Server Component and owns the service call.
       - The client view receives only serializable snapshot data.
@@ -272,6 +328,9 @@ sub_phases:
     persona: nextjs-server-actions-engineer
     status: not_started
     objective: Bind both management pages to getUsers and connect approved role and reversible status mutations through Server Actions.
+    requires_phases:
+      - "05-user-service"
+      - "06-admin-data-boundary"
     reads:
       - .agent/changes/phases/Homer/admin-dashboard/backend-integration/contract-freeze.md
       - Alexandria/lib/services/user-service.ts
@@ -286,11 +345,12 @@ sub_phases:
       - Alexandria/components/admin/members-management-view.tsx
       - Alexandria/components/admin/moderators-management-view.tsx
     test_writes:
-      - Alexandria/app/admin/__tests__/actions.test.ts
-      - Alexandria/components/admin/__tests__/members-management-view.test.tsx
-      - Alexandria/components/admin/__tests__/moderators-management-view.test.tsx
+      - Alexandria/app/admin/actions.test.ts
+      - Alexandria/components/admin/members-management-view.test.tsx
+      - Alexandria/components/admin/moderators-management-view.test.tsx
     required_behavior:
       - Server pages fetch role-filtered lists and pass serializable props.
+      - Page search parameters drive server pagination; client-side slicing is not treated as complete pagination.
       - Server Actions re-check admin role through user-service.
       - Success revalidates dashboard, members, and moderators paths.
       - Pending and failed actions retain the current data and expose accessible feedback.
