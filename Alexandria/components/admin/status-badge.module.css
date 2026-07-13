@@ -25,3 +25,9 @@
   color: #ff6b6b;
   border: 1px solid rgba(255, 107, 107, 0.2);
 }
+
+.trashed {
+  background: rgba(150, 150, 150, 0.08);
+  color: #696969;
+  border: 1px solid rgba(150, 150, 150, 0.15);
+}

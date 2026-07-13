@@ -1,310 +1,895 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, CheckCircle2, FileText, MessageSquareText, Plus, XCircle } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  FileText,
+} from "lucide-react";
 import { useParams } from "next/navigation";
-import { mockReviewSubmissions, updateReviewSubmission, type UploadStatus } from "@/components/admin/mock-data";
+import {
+  mockReviewSubmissions,
+  updateReviewSubmission,
+  addFieldComment,
+} from "@/components/admin/mock-data";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { ReviewableField } from "@/components/review/reviewable-field";
+import { ReviewDecisionActions } from "@/components/review/review-decision-actions";
+import { ReviewAuditTimeline } from "@/components/review/review-audit-timeline";
+import { CommentSidePanel } from "@/components/review/comment-side-panel";
+import type { ReviewFieldKey, ReviewAuditEvent } from "@/components/review/types";
+import { REVIEW_STATUS_LABEL } from "@/components/review/types";
+import type { ReviewStatus, UserRole } from "@/lib/services/types";
 
-export default function ReviewStudyDetailPage() {
+// ─── Mock role ────────────────────────────────────────────────────────────────
+// TODO: Replace with `user.role` from the auth session when backend is live.
+// The AdminLayout already fetches the current user and has role available.
+const MOCK_ROLE: UserRole = "admin";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+// Faint rule between field groups — much more Notion-like than a solid line
+function FieldGroupDivider() {
+  return (
+    <div
+      aria-hidden
+      style={{
+        height: 1,
+        background: "rgba(255,255,255,0.035)",
+        margin: "2px 0",
+      }}
+    />
+  );
+}
+
+// ─── Pill chip ────────────────────────────────────────────────────────────────
+
+function Chip({ label, accent = false }: { label: string; accent?: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "3px 10px",
+        borderRadius: 9,
+        fontSize: 12,
+        fontWeight: 500,
+        background: accent
+          ? "rgba(54,139,254,0.1)"
+          : "rgba(255,255,255,0.05)",
+        border: accent
+          ? "1px solid rgba(54,139,254,0.2)"
+          : "1px solid rgba(255,255,255,0.08)",
+        color: accent ? "#8ec5ff" : "#d8dadc",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function ReviewDetailPage() {
   const params = useParams<{ id: string }>();
   const submissionId = Number(params?.id ?? 0);
-  const containerRef = useRef<HTMLDivElement>(null);
+
   const [submissions, setSubmissions] = useState(mockReviewSubmissions);
-  const [comment, setComment] = useState("");
-  const [comments, setComments] = useState<string[]>([]);
-  const [splitRatio, setSplitRatio] = useState(60);
-  const [isResizing, setIsResizing] = useState(false);
   const [pdfPreviewFailed, setPdfPreviewFailed] = useState(false);
+  const [reviewPanelOpen, setReviewPanelOpen] = useState(true);
+  const [activeCommentField, setActiveCommentField] = useState<ReviewFieldKey | null>(null);
+  const [commentAnchorY, setCommentAnchorY] = useState(120);
 
-  const selectedSubmission = useMemo(() => {
-    return submissions.find((item) => item.id === submissionId) ?? null;
-  }, [submissionId, submissions]);
+  const submission = useMemo(
+    () => submissions.find((s) => s.id === submissionId) ?? null,
+    [submissions, submissionId],
+  );
 
-  useEffect(() => {
-    if (selectedSubmission) {
-      setComments(selectedSubmission.comments ?? []);
-    }
-  }, [selectedSubmission]);
+  // ── Comment handlers (mock — replace with API call) ─────────────────────────
+  const CURRENT_USER_NAME = MOCK_ROLE === "admin" ? "Admin" : "Moderator";
 
-  useEffect(() => {
-    if (!isResizing) {
-      return;
-    }
+  const handleAddComment = useCallback(
+    (fieldKey: ReviewFieldKey, comment: string) => {
+      if (!submission) return;
 
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!containerRef.current) {
-        return;
+      const newComment = addFieldComment(submission.id, {
+        thesisId: submission.id,
+        fieldKey,
+        comment,
+        createdByUserId: "current-user",
+        createdByName: CURRENT_USER_NAME,
+        createdAt: new Date().toISOString(),
+        resolvedAt: null,
+      });
+
+      // Append the new audit event locally
+      const newAuditEvent: ReviewAuditEvent = {
+        id: Date.now(),
+        thesisId: submission.id,
+        event: "comment_added",
+        description: `Moderator added feedback on ${fieldKey.replace(/_/g, " ")}.`,
+        createdByName: newComment.createdByName,
+        createdAt: newComment.createdAt,
+      };
+
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === submission.id
+            ? {
+                ...s,
+                fieldComments: s.fieldComments,
+                auditEvents: [newAuditEvent, ...s.auditEvents],
+              }
+            : s,
+        ),
+      );
+    },
+    [submission, CURRENT_USER_NAME],
+  );
+
+  const handleEditComment = useCallback((commentId: string, newText: string) => {
+    setSubmissions((prev) =>
+      prev.map((s) => ({
+        ...s,
+        fieldComments: s.fieldComments.map((c) =>
+          c.id === commentId ? { ...c, comment: newText } : c
+        ),
+      }))
+    );
+  }, []);
+
+  const handleDeleteComment = useCallback((commentId: string) => {
+    setSubmissions((prev) =>
+      prev.map((s) => ({
+        ...s,
+        fieldComments: s.fieldComments.filter((c) => c.id !== commentId),
+      }))
+    );
+  }, []);
+
+  // ── Status change handler (mock — replace with API call) ────────────────────
+  const handleDecision = useCallback(
+    (nextStatus: ReviewStatus) => {
+      if (!submission) return;
+
+      const statusLabel = REVIEW_STATUS_LABEL[nextStatus];
+      const descriptions: Record<ReviewStatus, string> = {
+        accepted: "Submission approved for publication.",
+        flagged:  "Submission flagged for member revision.",
+        trashed:  "Submission moved to trash.",
+        for_review: "Submission returned to pending review.",
+      };
+
+      const newAuditEvent: ReviewAuditEvent = {
+        id: Date.now(),
+        thesisId: submission.id,
+        event: "status_changed",
+        description: descriptions[nextStatus],
+        createdByName: MOCK_ROLE === "admin" ? "Admin" : "Moderator",
+        createdAt: new Date().toISOString(),
+      };
+
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === submission.id
+            ? {
+                ...s,
+                reviewStatus: nextStatus,
+                auditEvents: [newAuditEvent, ...s.auditEvents],
+              }
+            : s,
+        ),
+      );
+    },
+    [submission],
+  );
+
+  // ── Helper: get comments for a specific field ────────────────────────────────
+  const fieldComments = useCallback(
+    (key: ReviewFieldKey) =>
+      (submission?.fieldComments ?? []).filter((c) => c.fieldKey === key),
+    [submission],
+  );
+
+  // ── Comment icon click → open floating panel at field's vertical position ───
+  const handleCommentIconClick = useCallback(
+    (key: ReviewFieldKey, anchorY: number) => {
+      // Toggle — click same icon again to close
+      if (activeCommentField === key) {
+        setActiveCommentField(null);
+      } else {
+        setActiveCommentField(key);
+        setCommentAnchorY(anchorY);
       }
+    },
+    [activeCommentField],
+  );
 
-      const rect = containerRef.current.getBoundingClientRect();
-      const nextRatio = ((event.clientX - rect.left) / rect.width) * 100;
-      setSplitRatio(Math.min(75, Math.max(25, nextRatio)));
-    };
+  const canComment = MOCK_ROLE === "admin" || MOCK_ROLE === "moderator";
 
-    const handleMouseUp = () => setIsResizing(false);
+  // ─── 404 state ───────────────────────────────────────────────────────────────
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
-
-  const handleStatusChange = (status: UploadStatus) => {
-    if (!selectedSubmission) {
-      return;
-    }
-
-    const updatedSubmission = updateReviewSubmission(selectedSubmission.id, {
-      status,
-      moderatorComment: comment,
-      comments,
-    });
-
-    if (!updatedSubmission) {
-      return;
-    }
-
-    setSubmissions((current) =>
-      current.map((submission) => (submission.id === selectedSubmission.id ? updatedSubmission : submission)),
-    );
-  };
-
-  const handleAddComment = () => {
-    const trimmed = comment.trim();
-    if (!trimmed || !selectedSubmission) {
-      return;
-    }
-
-    const updatedComments = [...comments, trimmed];
-    setComments(updatedComments);
-
-    const updatedSubmission = updateReviewSubmission(selectedSubmission.id, {
-      comments: updatedComments,
-      moderatorComment: trimmed,
-    });
-
-    if (!updatedSubmission) {
-      return;
-    }
-
-    setSubmissions((current) =>
-      current.map((submission) => (submission.id === selectedSubmission.id ? updatedSubmission : submission)),
-    );
-    setComment("");
-  };
-
-  if (!selectedSubmission) {
+  if (!submission) {
     return (
-      <div className="flex flex-col gap-6 p-8">
-        <Link
-          href="/admin/review"
-          className="flex w-fit items-center gap-2 rounded-[7px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[13px] font-semibold text-[#d8dadc] transition hover:bg-white/[0.08]"
+      <div style={{ display: "flex", flexDirection: "column", gap: 20, padding: "32px" }}>
+        <BackLink />
+        <div
+          style={{
+            borderRadius: 10,
+            border: "1px dashed rgba(255,255,255,0.1)",
+            background: "#1a1e23",
+            padding: "32px 24px",
+            textAlign: "center",
+            fontSize: 14,
+            color: "#5a6070",
+          }}
         >
-          <ArrowLeft size={14} aria-hidden />
-          Back to Review Queue
-        </Link>
-        <div className="rounded-[10px] border border-dashed border-white/10 bg-[#1a1e23] p-6 text-sm text-[#9ea4ad]">
-          This review submission could not be found.
+          Submission not found.
         </div>
       </div>
     );
   }
 
-  const statusMessage =
-    selectedSubmission.status === "Pending"
-      ? "No decision has been made yet."
-      : `Last updated to ${selectedSubmission.status.toLowerCase()} with moderator notes.`;
+  // ─── Layout ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col gap-6 p-8">
-      <Link
-        href="/admin/review"
-        className="flex w-fit items-center gap-2 rounded-[7px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[13px] font-semibold text-[#d8dadc] transition hover:bg-white/[0.08]"
+    <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "32px 32px 64px" }}>
+
+      {/* ── Two-column layout ─────────────────────────────────────────────── */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: reviewPanelOpen ? "300px 1fr" : "44px 1fr",
+          gap: 24,
+          alignItems: "start",
+          transition: "grid-template-columns 280ms cubic-bezier(0.4,0,0.2,1)",
+        }}
       >
-        <ArrowLeft size={14} aria-hidden />
-        Back to Review Queue
-      </Link>
-
-      <div ref={containerRef} className="flex flex-col gap-4 xl:flex-row xl:gap-0">
-        <section
-          className="rounded-[10px] border border-white/[0.07] bg-[#1a1e23] p-5"
-          style={{ flexBasis: `${splitRatio}%`, minWidth: 0 }}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#969696]">Study Review</p>
-              <h1 className="mt-1 text-[20px] font-bold text-white">{selectedSubmission.title}</h1>
-            </div>
-            <StatusBadge status={selectedSubmission.status} />
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <div className="rounded-[8px] border border-white/[0.07] bg-[#14181c] p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#969696]">Authors</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedSubmission.authors.map((author) => (
-                  <span key={author} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-sm text-[#d8dadc]">
-                    {author}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-[8px] border border-white/[0.07] bg-[#14181c] p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#969696]">Department</p>
-              <p className="mt-1 text-sm font-medium text-white">{selectedSubmission.department}</p>
-            </div>
-            <div className="rounded-[8px] border border-white/[0.07] bg-[#14181c] p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#969696]">Study Type</p>
-              <p className="mt-1 text-sm font-medium text-white">{selectedSubmission.studyType}</p>
-            </div>
-            <div className="rounded-[8px] border border-white/[0.07] bg-[#14181c] p-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#969696]">Publication Date</p>
-              <p className="mt-1 text-sm font-medium text-white">{selectedSubmission.publicationDate}</p>
-            </div>
-            <div className="rounded-[8px] border border-white/[0.07] bg-[#14181c] p-3 md:col-span-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#969696]">Research Area</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {selectedSubmission.researchArea.map((area) => (
-                  <span key={area} className="rounded-full border border-[#368bfe]/30 bg-[#368bfe]/10 px-3 py-1 text-sm text-[#8ec5ff]">
-                    {area}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-[8px] border border-white/[0.07] bg-[#14181c] p-4">
-            <div className="flex items-center gap-2 text-white">
-              <MessageSquareText size={16} aria-hidden />
-              <h2 className="text-[14px] font-semibold">Research Abstract</h2>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-[#d8dadc]">{selectedSubmission.abstract}</p>
-          </div>
-
-          <div className="mt-5 rounded-[8px] border border-white/[0.07] bg-[#14181c] p-4">
-            <div className="flex items-center gap-2 text-white">
-              <FileText size={16} aria-hidden />
-              <h2 className="text-[14px] font-semibold">Lessons Learned</h2>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-[#d8dadc]">{selectedSubmission.lessonsLearned}</p>
-          </div>
-
-          <div className="mt-5 rounded-[8px] border border-white/[0.07] bg-[#14181c] p-4">
-            <div className="flex items-center gap-2 text-white">
-              <FileText size={16} aria-hidden />
-              <h2 className="text-[14px] font-semibold">Attached PDF</h2>
-            </div>
-            <div className="mt-3 rounded-[8px] border border-white/[0.07] bg-white/[0.03] p-3">
-              <p className="text-sm font-medium text-white">{selectedSubmission.fileName}</p>
-              <p className="mt-1 text-xs text-[#9ea4ad]">{selectedSubmission.fileSize}</p>
-              <a
-                href={selectedSubmission.pdfUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex rounded-[7px] bg-[#368bfe] px-3 py-2 text-[12px] font-semibold text-white transition hover:opacity-90"
-              >
-                Open PDF in new tab
-              </a>
-              {!pdfPreviewFailed ? (
-                <iframe
-                  src={selectedSubmission.pdfUrl}
-                  title={`${selectedSubmission.title} PDF preview`}
-                  className="mt-4 h-[320px] w-full rounded-[8px] border border-white/10 bg-white"
-                  onError={() => setPdfPreviewFailed(true)}
-                />
-              ) : (
-                <div className="mt-4 rounded-[8px] border border-dashed border-white/10 bg-[#0f1317] p-4 text-sm text-[#d8dadc]">
-                  The embedded preview is blocked in this browser. Open the PDF directly using the button above.
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
+        {/* ════════════════════════════════════════════════════════════════
+            LEFT PANEL — sticky review controls (collapsible)
+            ════════════════════════════════════════════════════════════════ */}
         <div
-          className="hidden cursor-col-resize rounded-full bg-white/10 xl:block"
-          style={{ width: "8px", alignSelf: "stretch" }}
-          onMouseDown={() => setIsResizing(true)}
-          aria-label="Resize review panels"
-          role="separator"
-        />
+          style={{
+            position: "sticky",
+            top: 24,
+            display: "flex",
+            flexDirection: "column",
+            gap: 0,
+            maxHeight: "calc(100vh - 48px)",
+          }}
+        >
+          {/* Collapse/Expand toggle strip */}
+          <button
+            type="button"
+            onClick={() => setReviewPanelOpen((prev) => !prev)}
+            aria-expanded={reviewPanelOpen}
+            aria-controls="review-panel"
+            aria-label={reviewPanelOpen ? "Collapse review panel" : "Expand review panel"}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: reviewPanelOpen ? "space-between" : "center",
+              gap: 6,
+              width: "100%",
+              padding: reviewPanelOpen ? "12px 16px" : "12px 0",
+              borderRadius: "7px 7px 0 0",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderBottom: "none",
+              background: "#1a1e23",
+              color: "#5a6070",
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
+              fontFamily: "inherit",
+              cursor: "pointer",
+              transition: "color 120ms ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "#ffffff";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "#5a6070";
+            }}
+          >
+            {reviewPanelOpen && <span>Review Panel</span>}
+            {reviewPanelOpen ? (
+              <ChevronLeft size={14} aria-hidden />
+            ) : (
+              <ChevronRight size={14} aria-hidden />
+            )}
+          </button>
 
-        <section className="rounded-[10px] border border-white/[0.07] bg-[#1a1e23] p-5" style={{ flexBasis: `${100 - splitRatio}%`, minWidth: 0 }}>
-          <div className="flex items-center gap-2 text-white">
-            <CheckCircle2 size={16} aria-hidden />
-            <h2 className="text-[14px] font-semibold">Moderator Review</h2>
-          </div>
+          {/* Panel body */}
+          <div
+            id="review-panel"
+            style={{
+              overflowY: "auto",
+              overflowX: "hidden",
+              borderRadius: "0 0 7px 7px",
+              border: "1px solid rgba(255,255,255,0.07)",
+              background: "#1a1e23",
+              transition: "max-height 280ms cubic-bezier(0.4,0,0.2,1), opacity 200ms ease",
+              maxHeight: reviewPanelOpen ? "calc(100vh - 84px)" : 0,
+              opacity: reviewPanelOpen ? 1 : 0,
+              flex: 1,
+            }}
+            aria-hidden={!reviewPanelOpen}
+          >
+            <div style={{ padding: "24px 16px", display: "flex", flexDirection: "column", gap: 24 }}>
+              <BackLink />
+              
+              {/* Current status */}
+              <div>
+                <p
+                  style={{
+                    margin: "0 0 8px",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.15em",
+                    color: "#5a6070",
+                  }}
+                >
+                  Current Status
+                </p>
+                <StatusBadge status={submission.reviewStatus} />
+              </div>
 
-          <div className="mt-4 rounded-[8px] border border-white/[0.07] bg-[#14181c] p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#969696]">Add Comment</p>
-            <textarea
-              value={comment}
-              onChange={(event) => setComment(event.target.value)}
-              placeholder="Write a moderator comment..."
-              className="mt-3 min-h-[100px] w-full rounded-[8px] border border-white/10 bg-[#0f1317] px-3 py-3 text-sm text-white outline-none"
-            />
-            <button
-              type="button"
-              onClick={handleAddComment}
-              className="mt-3 inline-flex items-center gap-2 rounded-[7px] bg-[#368bfe] px-3 py-2 text-[13px] font-semibold text-white transition hover:opacity-90"
-            >
-              <Plus size={14} aria-hidden />
-              Add Comment
-            </button>
-          </div>
+              <div
+                style={{
+                  height: 1,
+                  background: "rgba(255,255,255,0.06)",
+                }}
+              />
 
-          <div className="mt-5 rounded-[8px] border border-white/[0.07] bg-[#14181c] p-4">
-            <div className="flex items-center gap-2 text-white">
-              <MessageSquareText size={16} aria-hidden />
-              <h3 className="text-[14px] font-semibold">Moderator Comments</h3>
+              {/* Decision actions */}
+              <ReviewDecisionActions
+                status={submission.reviewStatus}
+                role={MOCK_ROLE}
+                onDecision={handleDecision}
+              />
+
+              <div
+                style={{
+                  height: 1,
+                  background: "rgba(255,255,255,0.06)",
+                }}
+              />
+
+              {/* Audit timeline */}
+              <ReviewAuditTimeline events={submission.auditEvents} />
             </div>
-            <div className="mt-3 flex flex-col gap-3">
-              {comments.map((item, index) => (
-                <div key={`${item}-${index}`} className="rounded-[8px] border border-white/[0.07] bg-white/[0.03] p-3">
-                  <p className="text-sm text-[#d8dadc]">{item}</p>
+          </div>
+
+          {/* Collapsed mini — shows only when panel is hidden */}
+          {!reviewPanelOpen && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8,
+                padding: "12px 0",
+                borderRadius: "0 0 7px 7px",
+                border: "1px solid rgba(255,255,255,0.07)",
+                background: "#1a1e23",
+                overflow: "hidden",
+              }}
+            >
+              <BackLink collapsed />
+              
+              {/* Compact status dot */}
+              <span
+                aria-label={`Status: ${submission.reviewStatus}`}
+                title={submission.reviewStatus === "for_review" ? "Pending" : submission.reviewStatus === "accepted" ? "Approved" : submission.reviewStatus === "flagged" ? "Flagged" : "Trashed"}
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  background:
+                    submission.reviewStatus === "for_review" ? "#f0b83b" :
+                    submission.reviewStatus === "accepted"   ? "#59c987" :
+                    submission.reviewStatus === "flagged"    ? "#ff6b6b" :
+                    "#696969",
+                  boxShadow:
+                    submission.reviewStatus === "for_review" ? "0 0 6px rgba(240,184,59,0.5)" :
+                    submission.reviewStatus === "accepted"   ? "0 0 6px rgba(89,201,135,0.5)" :
+                    submission.reviewStatus === "flagged"    ? "0 0 6px rgba(255,107,107,0.5)" :
+                    "none",
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ════════════════════════════════════════════════════════════════
+            RIGHT PANEL (Main Content) — scrollable field content
+            ════════════════════════════════════════════════════════════════ */}
+        {/* ════════════════════════════════════════════════════════════════
+            LEFT PANEL — scrollable field content
+            ════════════════════════════════════════════════════════════════ */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+
+          {/* ── Submission header ───────────────────────────────────────── */}
+          <div
+            style={{
+              borderRadius: 7,
+              border: "1px solid rgba(255,255,255,0.07)",
+              background: "#1a1e23",
+              padding: "24px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 12,
+                marginBottom: 8,
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.15em",
+                    color: "#5a6070",
+                  }}
+                >
+                  Study Review
+                </p>
+                <h1
+                  style={{
+                    margin: "6px 0 0",
+                    fontSize: 19,
+                    fontWeight: 700,
+                    color: "#ffffff",
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {submission.title}
+                </h1>
+              </div>
+              <StatusBadge status={submission.reviewStatus} />
+            </div>
+
+            {/* Quick meta */}
+            <p
+              style={{
+                margin: 0,
+                fontSize: 12,
+                color: "#5a6070",
+                lineHeight: 1.5,
+              }}
+            >
+              {submission.studyType === "thesis" ? "Thesis" : "Capstone"} ·{" "}
+              {submission.department} · Submitted {formatDate(submission.submittedAt)}
+            </p>
+          </div>
+
+          {/* ── Reviewable fields ───────────────────────────────────────── */}
+          <div
+            style={{
+              borderRadius: 7,
+              border: "1px solid rgba(255,255,255,0.07)",
+              background: "#1a1e23",
+              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            {/* Authors */}
+            <ReviewableField
+              fieldKey="authors"
+              label="Authors"
+              comments={fieldComments("authors")}
+              isActive={activeCommentField === "authors"}
+              onCommentIconClick={handleCommentIconClick}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {submission.authors.map((a) => (
+                  <Chip key={a} label={a} />
+                ))}
+              </div>
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            {/* Advisers */}
+            <ReviewableField
+              fieldKey="advisers"
+              label="Advisers"
+              comments={fieldComments("advisers")}
+              isActive={activeCommentField === "advisers"}
+              onCommentIconClick={handleCommentIconClick}
+            >
+              {submission.advisers.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {submission.advisers.map((a) => (
+                    <Chip key={a} label={a} />
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+              )}
+            </ReviewableField>
 
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => handleStatusChange("Approved")}
-              className="rounded-[7px] bg-[#368bfe] px-3 py-2 text-[13px] font-semibold text-white transition hover:opacity-90"
-            >
-              Approve
-            </button>
-            <button
-              type="button"
-              onClick={() => handleStatusChange("Flagged")}
-              className="rounded-[7px] border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-[13px] font-semibold text-rose-300 transition hover:bg-rose-500/20"
-            >
-              Flag
-            </button>
-            <button
-              type="button"
-              onClick={() => handleStatusChange("Pending")}
-              className="rounded-[7px] border border-white/10 bg-white/[0.04] px-3 py-2 text-[13px] font-semibold text-[#d8dadc] transition hover:bg-white/[0.08]"
-            >
-              Pending
-            </button>
-          </div>
+            <FieldGroupDivider />
 
-          <div className="mt-5 rounded-[8px] border border-white/[0.07] bg-[#14181c] p-4">
-            <div className="flex items-center gap-2 text-white">
-              <XCircle size={16} aria-hidden />
-              <h3 className="text-[14px] font-semibold">Decision History</h3>
+            {/* Metadata row */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                gap: 12,
+              }}
+            >
+              <ReviewableField
+                fieldKey="department"
+                label="Department"
+                comments={fieldComments("department")}
+                isActive={activeCommentField === "department"}
+                onCommentIconClick={handleCommentIconClick}
+              >
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                  {submission.department}
+                </p>
+              </ReviewableField>
+
+              <ReviewableField
+                fieldKey="study_type"
+                label="Study Type"
+                comments={fieldComments("study_type")}
+                isActive={activeCommentField === "study_type"}
+                onCommentIconClick={handleCommentIconClick}
+              >
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                  {submission.studyType === "thesis" ? "Thesis" : "Capstone"}
+                </p>
+              </ReviewableField>
+
+              <ReviewableField
+                fieldKey="publication_date"
+                label="Publication Date"
+                comments={fieldComments("publication_date")}
+                isActive={activeCommentField === "publication_date"}
+                onCommentIconClick={handleCommentIconClick}
+              >
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                  {submission.publicationDate}
+                </p>
+              </ReviewableField>
             </div>
-            <p className="mt-3 text-sm text-[#d8dadc]">{statusMessage}</p>
+
+            <FieldGroupDivider />
+
+            {/* Research area */}
+            <ReviewableField
+              fieldKey="research_area"
+              label="Research Area"
+              comments={fieldComments("research_area")}
+              isActive={activeCommentField === "research_area"}
+              onCommentIconClick={handleCommentIconClick}
+            >
+              {submission.researchArea ? (
+                <Chip label={submission.researchArea} accent />
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+              )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            {/* Tags */}
+            <ReviewableField
+              fieldKey="tags"
+              label="Tags"
+              comments={fieldComments("tags")}
+              isActive={activeCommentField === "tags"}
+              onCommentIconClick={handleCommentIconClick}
+            >
+              {submission.tags.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {submission.tags.map((t) => (
+                    <Chip key={t} label={t} />
+                  ))}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+              )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            {/* Publication link */}
+            <ReviewableField
+              fieldKey="publication_link"
+              label="Publication Link"
+              comments={fieldComments("publication_link")}
+              isActive={activeCommentField === "publication_link"}
+              onCommentIconClick={handleCommentIconClick}
+            >
+              {submission.publicationLink ? (
+                <a
+                  href={submission.publicationLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 13,
+                    color: "#368bfe",
+                    textDecoration: "none",
+                    wordBreak: "break-all",
+                  }}
+                >
+                  <ExternalLink size={12} aria-hidden />
+                  {submission.publicationLink}
+                </a>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+              )}
+            </ReviewableField>
           </div>
-        </section>
+          {/* ── Content fields ────────────────────────────────────────────── */}
+          <div
+            style={{
+              borderRadius: 7,
+              border: "1px solid rgba(255,255,255,0.07)",
+              background: "#1a1e23",
+              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 24,
+            }}
+          >
+            {/* Abstract */}
+          <ReviewableField
+            fieldKey="abstract"
+            label="Abstract"
+            comments={fieldComments("abstract")}
+            isActive={activeCommentField === "abstract"}
+            onCommentIconClick={handleCommentIconClick}
+            expandable
+          >
+            <p
+              style={{
+                margin: 0,
+                fontSize: 14,
+                lineHeight: 1.7,
+                color: "#d8dadc",
+              }}
+            >
+              {submission.abstract}
+            </p>
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            {/* Recommendations */}
+          <ReviewableField
+            fieldKey="recommendations"
+            label="Recommendations"
+            comments={fieldComments("recommendations")}
+            isActive={activeCommentField === "recommendations"}
+            onCommentIconClick={handleCommentIconClick}
+            expandable
+          >
+            {submission.recommendations ? (
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "#d8dadc" }}>
+                {submission.recommendations}
+              </p>
+            ) : (
+              <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>
+                No recommendations provided.
+              </p>
+            )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            {/* Lessons Learned */}
+          <ReviewableField
+            fieldKey="lessons_learned"
+            label="Lessons Learned"
+            comments={fieldComments("lessons_learned")}
+            isActive={activeCommentField === "lessons_learned"}
+            onCommentIconClick={handleCommentIconClick}
+            expandable
+          >
+            {submission.lessonsLearned ? (
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "#d8dadc" }}>
+                {submission.lessonsLearned}
+              </p>
+            ) : (
+              <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>
+                No lessons learned provided.
+              </p>
+            )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            {/* PDF Section */}
+          {submission.primaryFile && (
+            <ReviewableField
+              fieldKey="pdf_general"
+              label="PDF / Paper"
+              comments={fieldComments("pdf_general")}
+              isActive={activeCommentField === "pdf_general"}
+              onCommentIconClick={handleCommentIconClick}
+            >
+              {/* File info row */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 7,
+                      background: "rgba(54,139,254,0.1)",
+                      border: "1px solid rgba(54,139,254,0.15)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <FileText size={16} color="#368bfe" aria-hidden />
+                  </span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#ffffff" }}>
+                      {submission.primaryFile.fileName}
+                    </p>
+                    <p style={{ margin: 0, fontSize: 11, color: "#5a6070" }}>
+                      {submission.primaryFile.fileSize}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <a
+                    href={submission.primaryFile.pdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 12px",
+                      borderRadius: 6,
+                      border: "1px solid rgba(54,139,254,0.3)",
+                      background: "rgba(54,139,254,0.08)",
+                      color: "#368bfe",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      transition: "background 150ms ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background = "rgba(54,139,254,0.15)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background = "rgba(54,139,254,0.08)";
+                    }}
+                  >
+                    <ExternalLink size={12} aria-hidden />
+                    Open PDF
+                  </a>
+                  <a
+                    href={submission.primaryFile.pdfUrl}
+                    download={submission.primaryFile.fileName}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      padding: "6px 12px",
+                      borderRadius: 6,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "rgba(255,255,255,0.04)",
+                      color: "#a8b0c0",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      transition: "background 150ms ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.08)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.04)";
+                    }}
+                  >
+                    <Download size={12} aria-hidden />
+                    Download
+                  </a>
+                </div>
+              </div>
+            </ReviewableField>
+          )}
+          </div>
+        </div>
       </div>
+
+      {/* ── Floating Comment Panel ───────────────────────────────────────── */}
+      <CommentSidePanel
+        fieldKey={activeCommentField}
+        anchorY={commentAnchorY}
+        comments={submission.fieldComments}
+        canComment={canComment}
+        onAddComment={handleAddComment}
+        onEditComment={handleEditComment}
+        onDeleteComment={handleDeleteComment}
+        currentUserName={CURRENT_USER_NAME}
+        onClose={() => setActiveCommentField(null)}
+      />
     </div>
+  );
+}
+
+// ─── Back Link ────────────────────────────────────────────────────────────────
+
+function BackLink({ collapsed }: { collapsed?: boolean }) {
+  return (
+    <Link
+      href="/admin/review"
+      title={collapsed ? "Back to Review Queue" : undefined}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        width: collapsed ? 32 : "fit-content",
+        height: 32,
+        padding: collapsed ? 0 : "0 12px",
+        borderRadius: 7,
+        border: "1px solid rgba(255,255,255,0.1)",
+        background: "rgba(255,255,255,0.04)",
+        color: "#d8dadc",
+        fontSize: 13,
+        fontWeight: 600,
+        textDecoration: "none",
+        transition: "background 150ms ease",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.background =
+          "rgba(255,255,255,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLAnchorElement).style.background =
+          "rgba(255,255,255,0.04)";
+      }}
+    >
+      <ArrowLeft size={14} aria-hidden />
+      {!collapsed && "Back to Review Queue"}
+    </Link>
   );
 }

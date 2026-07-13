@@ -1,0 +1,281 @@
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #5a6070;
+  margin-bottom: 2px;
+}
+
+/* ─── Primary Action Buttons ─────────────────────────────────────────────── */
+
+.primaryActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.btnAccept {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 16px;
+  border-radius: 7px;
+  border: none;
+  background: #1752f0;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease, opacity 120ms ease;
+}
+
+.btnAccept:hover:not(:disabled) {
+  background: #1a5bff;
+}
+
+.btnAccept:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.btnFlag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 16px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 180, 60, 0.25);
+  background: rgba(255, 180, 60, 0.07);
+  color: #f0b83b;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.btnFlag:hover:not(:disabled) {
+  background: rgba(255, 180, 60, 0.13);
+  border-color: rgba(255, 180, 60, 0.4);
+}
+
+.btnFlag:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* Unflag — same shape, muted blue-gray to signal "undo" */
+.btnUnflag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 16px;
+  border-radius: 7px;
+  border: 1px solid rgba(100, 120, 160, 0.25);
+  background: rgba(100, 120, 160, 0.07);
+  color: #8898b8;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.btnUnflag:hover:not(:disabled) {
+  background: rgba(100, 120, 160, 0.14);
+  border-color: rgba(100, 120, 160, 0.4);
+  color: #aab8d0;
+}
+
+.btnUnflag:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.btnTrash {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 16px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 107, 107, 0.15);
+  background: transparent;
+  color: #7a7a7a;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.btnTrash:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.08);
+  border-color: rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.btnTrash:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ─── Admin-Only Section ─────────────────────────────────────────────────── */
+
+.adminDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 4px 0;
+}
+
+.adminSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adminLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #1da0c9;
+}
+
+.adminNote {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #5a6070;
+}
+
+.btnAdminEdit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: 1px solid rgba(29, 160, 201, 0.2);
+  background: rgba(29, 160, 201, 0.05);
+  color: #1da0c9;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ─── Confirm Trash Dialog ───────────────────────────────────────────────── */
+
+.confirmOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 150ms ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.confirmDialog {
+  width: 340px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  background: #1a1e23;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: slideUp 180ms ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+.confirmTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.confirmBody {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #9ea4ad;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btnConfirmCancel {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: #d8dadc;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.btnConfirmCancel:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.btnConfirmTrash {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.btnConfirmTrash:hover {
+  background: rgba(255, 107, 107, 0.25);
+}
+
+/* ─── Already-decided state label ────────────────────────────────────────── */
+
+.statusNote {
+  font-size: 12px;
+  color: #5a6070;
+  text-align: center;
+  padding: 8px 0 4px;
+}
