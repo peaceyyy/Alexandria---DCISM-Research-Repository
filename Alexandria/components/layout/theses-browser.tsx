@@ -6,27 +6,16 @@ import Image from "next/image";
 import FaqRail from "@/components/layout/faq";
 import FilterSidebar from "@/components/layout/filter-sidebar";
 import Link from "next/link";
-
-type ThesisItem = {
-  id: number;
-  authors: { id: string; name: string }[];
-  year: number;
-  title: string;
-  abstract: string;
-  research_area: string[];
-  department: string;
-};
+import type { ThesisCard } from "@/lib/services/types";
 
 type ThesesBrowserProps = {
-  items: ThesisItem[];
+  items: ThesisCard[];
 };
 
 export default function ThesesBrowser({ items }: ThesesBrowserProps) {
   const [fromYear, setFromYear] = useState("");
   const [toYear, setToYear] = useState("");
-  const [selectedResearchAreas, setSelectedResearchAreas] = useState<string[]>(
-    []
-  );
+  const [selectedResearchAreas, setSelectedResearchAreas] = useState<string[]>([]);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
 
   const filteredItems = items.filter((item) => {
@@ -34,27 +23,29 @@ export default function ThesesBrowser({ items }: ThesesBrowserProps) {
       (!fromYear || item.year >= Number(fromYear)) &&
       (!toYear || item.year <= Number(toYear));
 
+    // research_area may be a comma-separated string e.g. "Web Development, Algorithm"
     const researchAreaMatch =
       selectedResearchAreas.length === 0 ||
-      selectedResearchAreas.some((area) =>
-        item.research_area.includes(area)
-      );
+      (item.research_area !== null &&
+        item.research_area
+          .split(",")
+          .map((a) => a.trim())
+          .some((a) => selectedResearchAreas.includes(a)));
 
-    const departmentMatch =
-      selectedDepartments.length === 0 ||
-      selectedDepartments.includes(item.department);
+    // Department filter is UI-only for now (sidebar has hardcoded values)
+    const departmentMatch = selectedDepartments.length === 0;
 
     return yearMatch && researchAreaMatch && departmentMatch;
   });
 
   const toggleValue = (
     value: string,
-    setValues: React.Dispatch<React.SetStateAction<string[]>>
+    setValues: React.Dispatch<React.SetStateAction<string[]>>,
   ) => {
     setValues((current) =>
       current.includes(value)
         ? current.filter((entry) => entry !== value)
-        : [...current, value]
+        : [...current, value],
     );
   };
 
@@ -80,7 +71,6 @@ export default function ThesesBrowser({ items }: ThesesBrowserProps) {
           {filteredItems.map((item) => (
             <Link key={item.id} href={`/theses/${item.id}`} className="block">
               <article
-                key={item.title}
                 className="group rounded-xl border border-white/15 bg-white/[0.03] p-4 transition hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[0.06]"
               >
                 <div className="mb-3 overflow-hidden rounded-lg border border-white/10 bg-white/5">
@@ -94,7 +84,7 @@ export default function ThesesBrowser({ items }: ThesesBrowserProps) {
                 </div>
 
                 <div className="mb-2 text-[11px] uppercase tracking-wide text-white/50">
-                  {item.authors.map((a) => a.name).join(" • ")} | {item.year}
+                  {item.authors.map((a) => a.display_name).join(" • ")} | {item.year}
                 </div>
 
                 <h2 className="text-base font-extrabold leading-tight text-white">
@@ -102,14 +92,27 @@ export default function ThesesBrowser({ items }: ThesesBrowserProps) {
                 </h2>
 
                 <p className="mt-2 line-clamp-3 text-sm leading-5 text-white/70">
-                  {item.abstract}
+                  {item.abstract_preview}
                 </p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {item.research_area.map((tag) => (
+                  {item.research_area &&
+                    item.research_area
+                      .split(",")
+                      .map((a) => a.trim())
+                      .filter(Boolean)
+                      .map((area) => (
+                        <span
+                          key={area}
+                          className="rounded-full border border-[#1da0c9]/50 bg-[#1da0c9]/10 px-2 py-0.5 text-[11px] font-medium text-[#9ddff2]"
+                        >
+                          {area}
+                        </span>
+                      ))}
+                  {item.tags.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-[#1da0c9]/50 bg-[#1da0c9]/10 px-2 py-0.5 text-[11px] font-medium text-[#9ddff2]"
+                      className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-medium text-white/40"
                     >
                       {tag}
                     </span>

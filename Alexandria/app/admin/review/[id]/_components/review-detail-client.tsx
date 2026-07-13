@@ -1,0 +1,577 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  FileText,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { ReviewableField } from "@/components/review/reviewable-field";
+import { ReviewDecisionActions } from "@/components/review/review-decision-actions";
+import { ReviewAuditTimeline } from "@/components/review/review-audit-timeline";
+import { CommentSidePanel } from "@/components/review/comment-side-panel";
+import type { ReviewFieldKey, ReviewAuditEvent, ReviewSubmission } from "@/components/review/types";
+import { REVIEW_STATUS_LABEL } from "@/components/review/types";
+import type { ReviewStatus, UserRole } from "@/lib/services/types";
+import {
+  acceptThesis,
+  flagThesis,
+  trashThesis,
+  unflagThesis,
+} from "@/lib/services/admin-thesis-service";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(iso: string): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function FieldGroupDivider() {
+  return (
+    <div
+      aria-hidden
+      style={{ height: 1, background: "rgba(255,255,255,0.035)", margin: "2px 0" }}
+    />
+  );
+}
+
+function Chip({ label, accent = false }: { label: string; accent?: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "3px 10px",
+        borderRadius: 9,
+        fontSize: 12,
+        fontWeight: 500,
+        background: accent ? "rgba(54,139,254,0.1)" : "rgba(255,255,255,0.05)",
+        border: accent
+          ? "1px solid rgba(54,139,254,0.2)"
+          : "1px solid rgba(255,255,255,0.08)",
+        color: accent ? "#8ec5ff" : "#d8dadc",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface ReviewDetailClientProps {
+  initialSubmission: ReviewSubmission;
+  role: UserRole;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export function ReviewDetailClient({
+  initialSubmission,
+  role,
+}: ReviewDetailClientProps) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  // Local optimistic state — mirrors what the server will confirm on refresh
+  const [submission, setSubmission] = useState<ReviewSubmission>(initialSubmission);
+  const [reviewPanelOpen, setReviewPanelOpen] = useState(true);
+  const [activeCommentField, setActiveCommentField] = useState<ReviewFieldKey | null>(null);
+  const [commentAnchorY, setCommentAnchorY] = useState(120);
+
+  const currentUserName = role === "admin" ? "Admin" : "Moderator";
+
+  // ── Comment handlers (local only — no DB table yet) ──────────────────────
+
+  const handleAddComment = useCallback(
+    (fieldKey: ReviewFieldKey, comment: string) => {
+      const newComment = {
+        id: Date.now(),
+        thesisId: submission.id,
+        fieldKey,
+        comment,
+        createdByUserId: "current-user",
+        createdByName: currentUserName,
+        createdAt: new Date().toISOString(),
+        resolvedAt: null,
+      };
+
+      const newAuditEvent: ReviewAuditEvent = {
+        id: Date.now() + 1,
+        thesisId: submission.id,
+        event: "comment_added",
+        description: `${currentUserName} added feedback on ${fieldKey.replace(/_/g, " ")}.`,
+        createdByName: currentUserName,
+        createdAt: new Date().toISOString(),
+      };
+
+      setSubmission((prev) => ({
+        ...prev,
+        fieldComments: [...prev.fieldComments, newComment],
+        auditEvents: [newAuditEvent, ...prev.auditEvents],
+      }));
+    },
+    [submission.id, currentUserName],
+  );
+
+  const handleEditComment = useCallback((commentId: string, newText: string) => {
+    setSubmission((prev) => ({
+      ...prev,
+      fieldComments: prev.fieldComments.map((c) =>
+        String(c.id) === commentId ? { ...c, comment: newText } : c,
+      ),
+    }));
+  }, []);
+
+  const handleDeleteComment = useCallback((commentId: string) => {
+    setSubmission((prev) => ({
+      ...prev,
+      fieldComments: prev.fieldComments.filter((c) => String(c.id) !== commentId),
+    }));
+  }, []);
+
+  // ── Decision handler — calls server action, then refreshes ───────────────
+
+  const handleDecision = useCallback(
+    (nextStatus: ReviewStatus) => {
+      const descriptions: Record<ReviewStatus, string> = {
+        accepted:   "Submission approved for publication.",
+        flagged:    "Submission flagged for member revision.",
+        trashed:    "Submission moved to trash.",
+        for_review: "Flag removed — submission returned to pending review.",
+      };
+
+      // Optimistic local update
+      const newAuditEvent: ReviewAuditEvent = {
+        id: Date.now(),
+        thesisId: submission.id,
+        event: "status_changed",
+        description: descriptions[nextStatus],
+        createdByName: currentUserName,
+        createdAt: new Date().toISOString(),
+      };
+
+      setSubmission((prev) => ({
+        ...prev,
+        reviewStatus: nextStatus,
+        auditEvents: [newAuditEvent, ...prev.auditEvents],
+      }));
+
+      // Persist to DB
+      startTransition(async () => {
+        let result;
+        if (nextStatus === "accepted") {
+          result = await acceptThesis(submission.id);
+        } else if (nextStatus === "flagged") {
+          result = await flagThesis(submission.id);
+        } else if (nextStatus === "trashed") {
+          result = await trashThesis(submission.id);
+        } else {
+          result = await unflagThesis(submission.id);
+        }
+
+        if (result.error) {
+          // Roll back optimistic update on failure
+          setSubmission(initialSubmission);
+          console.error("Decision failed:", result.error.message);
+          return;
+        }
+
+        // Refresh server data to sync audit trail
+        router.refresh();
+      });
+    },
+    [submission.id, currentUserName, initialSubmission, router],
+  );
+
+  // ── Field comments by key ────────────────────────────────────────────────
+
+  const fieldComments = useCallback(
+    (key: ReviewFieldKey) =>
+      submission.fieldComments.filter((c) => c.fieldKey === key),
+    [submission],
+  );
+
+  const handleCommentIconClick = useCallback(
+    (key: ReviewFieldKey, anchorY: number) => {
+      if (activeCommentField === key) {
+        setActiveCommentField(null);
+      } else {
+        setActiveCommentField(key);
+        setCommentAnchorY(anchorY);
+      }
+    },
+    [activeCommentField],
+  );
+
+  const canComment = role === "admin" || role === "moderator";
+
+  // ─── Layout ───────────────────────────────────────────────────────────────
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "32px 32px 64px" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: reviewPanelOpen ? "300px 1fr" : "44px 1fr",
+          gap: 24,
+          alignItems: "start",
+          transition: "grid-template-columns 280ms cubic-bezier(0.4,0,0.2,1)",
+        }}
+      >
+        {/* ═══ LEFT PANEL — review controls ═══════════════════════════════ */}
+        <div
+          style={{
+            position: "sticky",
+            top: 24,
+            display: "flex",
+            flexDirection: "column",
+            gap: 0,
+            maxHeight: "calc(100vh - 48px)",
+          }}
+        >
+          {/* Collapse toggle strip */}
+          <button
+            type="button"
+            onClick={() => setReviewPanelOpen((prev) => !prev)}
+            aria-expanded={reviewPanelOpen}
+            aria-controls="review-panel"
+            aria-label={reviewPanelOpen ? "Collapse review panel" : "Expand review panel"}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: reviewPanelOpen ? "space-between" : "center",
+              gap: 6,
+              width: "100%",
+              padding: reviewPanelOpen ? "12px 16px" : "12px 0",
+              borderRadius: "7px 7px 0 0",
+              border: "1px solid rgba(255,255,255,0.07)",
+              borderBottom: "none",
+              background: "#1a1e23",
+              color: "#5a6070",
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
+              fontFamily: "inherit",
+              cursor: "pointer",
+              transition: "color 120ms ease",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#ffffff"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#5a6070"; }}
+          >
+            {reviewPanelOpen && <span>Review Panel</span>}
+            {reviewPanelOpen ? <ChevronLeft size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
+          </button>
+
+          {/* Panel body */}
+          <div
+            id="review-panel"
+            style={{
+              overflowY: "auto",
+              overflowX: "hidden",
+              borderRadius: "0 0 7px 7px",
+              border: "1px solid rgba(255,255,255,0.07)",
+              background: "#1a1e23",
+              transition: "max-height 280ms cubic-bezier(0.4,0,0.2,1), opacity 200ms ease",
+              maxHeight: reviewPanelOpen ? "calc(100vh - 84px)" : 0,
+              opacity: reviewPanelOpen ? 1 : 0,
+              flex: 1,
+            }}
+            aria-hidden={!reviewPanelOpen}
+          >
+            <div style={{ padding: "24px 16px", display: "flex", flexDirection: "column", gap: 24 }}>
+              <BackLink />
+
+              <div>
+                <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em", color: "#5a6070" }}>
+                  Current Status
+                </p>
+                <StatusBadge status={submission.reviewStatus} />
+              </div>
+
+              <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+
+              <ReviewDecisionActions
+                status={submission.reviewStatus}
+                role={role}
+                onDecision={handleDecision}
+                isSubmitting={isPending}
+              />
+
+              <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+
+              <ReviewAuditTimeline events={submission.auditEvents} />
+            </div>
+          </div>
+
+          {/* Collapsed mini */}
+          {!reviewPanelOpen && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8,
+                padding: "12px 0",
+                borderRadius: "0 0 7px 7px",
+                border: "1px solid rgba(255,255,255,0.07)",
+                background: "#1a1e23",
+                overflow: "hidden",
+              }}
+            >
+              <BackLink collapsed />
+              <span
+                aria-label={`Status: ${submission.reviewStatus}`}
+                title={REVIEW_STATUS_LABEL[submission.reviewStatus]}
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  background:
+                    submission.reviewStatus === "for_review" ? "#f0b83b" :
+                    submission.reviewStatus === "accepted"   ? "#59c987" :
+                    submission.reviewStatus === "flagged"    ? "#ff6b6b" :
+                    "#696969",
+                  boxShadow:
+                    submission.reviewStatus === "for_review" ? "0 0 6px rgba(240,184,59,0.5)" :
+                    submission.reviewStatus === "accepted"   ? "0 0 6px rgba(89,201,135,0.5)" :
+                    submission.reviewStatus === "flagged"    ? "0 0 6px rgba(255,107,107,0.5)" :
+                    "none",
+                }}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ═══ RIGHT PANEL — field content ════════════════════════════════ */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+
+          {/* Submission header */}
+          <div style={{ borderRadius: 7, border: "1px solid rgba(255,255,255,0.07)", background: "#1a1e23", padding: "24px" }}>
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em", color: "#5a6070" }}>
+                  Study Review
+                </p>
+                <h1 style={{ margin: "6px 0 0", fontSize: 19, fontWeight: 700, color: "#ffffff", lineHeight: 1.35 }}>
+                  {submission.title}
+                </h1>
+              </div>
+              <StatusBadge status={submission.reviewStatus} />
+            </div>
+            <p style={{ margin: 0, fontSize: 12, color: "#5a6070", lineHeight: 1.5 }}>
+              {submission.studyType === "thesis" ? "Thesis" : "Capstone"} ·{" "}
+              {submission.department} · Submitted {formatDate(submission.submittedAt)}
+            </p>
+          </div>
+
+          {/* Metadata fields */}
+          <div style={{ borderRadius: 7, border: "1px solid rgba(255,255,255,0.07)", background: "#1a1e23", padding: "24px", display: "flex", flexDirection: "column", gap: 16 }}>
+
+            <ReviewableField fieldKey="authors" label="Authors" comments={fieldComments("authors")} isActive={activeCommentField === "authors"} onCommentIconClick={handleCommentIconClick}>
+              {submission.authors.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {submission.authors.map((a) => <Chip key={a} label={a} />)}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+              )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            <ReviewableField fieldKey="advisers" label="Advisers" comments={fieldComments("advisers")} isActive={activeCommentField === "advisers"} onCommentIconClick={handleCommentIconClick}>
+              {submission.advisers.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {submission.advisers.map((a) => <Chip key={a} label={a} />)}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+              )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
+              <ReviewableField fieldKey="department" label="Department" comments={fieldComments("department")} isActive={activeCommentField === "department"} onCommentIconClick={handleCommentIconClick}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>{submission.department}</p>
+              </ReviewableField>
+
+              <ReviewableField fieldKey="study_type" label="Study Type" comments={fieldComments("study_type")} isActive={activeCommentField === "study_type"} onCommentIconClick={handleCommentIconClick}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                  {submission.studyType === "thesis" ? "Thesis" : "Capstone"}
+                </p>
+              </ReviewableField>
+
+              <ReviewableField fieldKey="publication_date" label="Publication Date" comments={fieldComments("publication_date")} isActive={activeCommentField === "publication_date"} onCommentIconClick={handleCommentIconClick}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                  {submission.publicationDate ? formatDate(submission.publicationDate) : "—"}
+                </p>
+              </ReviewableField>
+            </div>
+
+            <FieldGroupDivider />
+
+            <ReviewableField fieldKey="research_area" label="Research Area" comments={fieldComments("research_area")} isActive={activeCommentField === "research_area"} onCommentIconClick={handleCommentIconClick}>
+              {submission.researchArea ? (
+                <Chip label={submission.researchArea} accent />
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+              )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            <ReviewableField fieldKey="tags" label="Tags" comments={fieldComments("tags")} isActive={activeCommentField === "tags"} onCommentIconClick={handleCommentIconClick}>
+              {submission.tags.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {submission.tags.map((t) => <Chip key={t} label={t} />)}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+              )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            <ReviewableField fieldKey="publication_link" label="Publication Link" comments={fieldComments("publication_link")} isActive={activeCommentField === "publication_link"} onCommentIconClick={handleCommentIconClick}>
+              {submission.publicationLink ? (
+                <a href={submission.publicationLink} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#368bfe", textDecoration: "none", wordBreak: "break-all" }}>
+                  <ExternalLink size={12} aria-hidden />
+                  {submission.publicationLink}
+                </a>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+              )}
+            </ReviewableField>
+          </div>
+
+          {/* Content fields */}
+          <div style={{ borderRadius: 7, border: "1px solid rgba(255,255,255,0.07)", background: "#1a1e23", padding: "24px", display: "flex", flexDirection: "column", gap: 24 }}>
+
+            <ReviewableField fieldKey="abstract" label="Abstract" comments={fieldComments("abstract")} isActive={activeCommentField === "abstract"} onCommentIconClick={handleCommentIconClick} expandable>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "#d8dadc" }}>
+                {submission.abstract || "—"}
+              </p>
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            <ReviewableField fieldKey="recommendations" label="Recommendations" comments={fieldComments("recommendations")} isActive={activeCommentField === "recommendations"} onCommentIconClick={handleCommentIconClick} expandable>
+              {submission.recommendations ? (
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "#d8dadc" }}>{submission.recommendations}</p>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>No recommendations provided.</p>
+              )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            <ReviewableField fieldKey="lessons_learned" label="Lessons Learned" comments={fieldComments("lessons_learned")} isActive={activeCommentField === "lessons_learned"} onCommentIconClick={handleCommentIconClick} expandable>
+              {submission.lessonsLearned ? (
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "#d8dadc" }}>{submission.lessonsLearned}</p>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>No lessons learned provided.</p>
+              )}
+            </ReviewableField>
+
+            <FieldGroupDivider />
+
+            {submission.primaryFile && (
+              <ReviewableField fieldKey="pdf_general" label="PDF / Paper" comments={fieldComments("pdf_general")} isActive={activeCommentField === "pdf_general"} onCommentIconClick={handleCommentIconClick}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 7, background: "rgba(54,139,254,0.1)", border: "1px solid rgba(54,139,254,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <FileText size={16} color="#368bfe" aria-hidden />
+                    </span>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#ffffff" }}>{submission.primaryFile.fileName}</p>
+                      {submission.primaryFile.fileSize && (
+                        <p style={{ margin: 0, fontSize: 11, color: "#5a6070" }}>{submission.primaryFile.fileSize}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <a
+                      href={submission.primaryFile.pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(54,139,254,0.3)", background: "rgba(54,139,254,0.08)", color: "#368bfe", fontSize: 12, fontWeight: 600, textDecoration: "none" }}
+                    >
+                      <ExternalLink size={12} aria-hidden />
+                      Open PDF
+                    </a>
+                    <a
+                      href={`${submission.primaryFile.pdfUrl}?download=1`}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#a8b0c0", fontSize: 12, fontWeight: 600, textDecoration: "none" }}
+                    >
+                      <Download size={12} aria-hidden />
+                      Download
+                    </a>
+                  </div>
+                </div>
+              </ReviewableField>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Comment Panel */}
+      <CommentSidePanel
+        fieldKey={activeCommentField}
+        anchorY={commentAnchorY}
+        comments={submission.fieldComments}
+        canComment={canComment}
+        onAddComment={handleAddComment}
+        onEditComment={handleEditComment}
+        onDeleteComment={handleDeleteComment}
+        currentUserName={currentUserName}
+        onClose={() => setActiveCommentField(null)}
+      />
+    </div>
+  );
+}
+
+// ─── Back Link ────────────────────────────────────────────────────────────────
+
+function BackLink({ collapsed }: { collapsed?: boolean }) {
+  return (
+    <Link
+      href="/admin/review"
+      title={collapsed ? "Back to Review Queue" : undefined}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+        width: collapsed ? 32 : "fit-content",
+        height: 32,
+        padding: collapsed ? 0 : "0 12px",
+        borderRadius: 7,
+        border: "1px solid rgba(255,255,255,0.1)",
+        background: "rgba(255,255,255,0.04)",
+        color: "#d8dadc",
+        fontSize: 13,
+        fontWeight: 600,
+        textDecoration: "none",
+      }}
+    >
+      <ArrowLeft size={14} aria-hidden />
+      {!collapsed && "Back to Review Queue"}
+    </Link>
+  );
+}
