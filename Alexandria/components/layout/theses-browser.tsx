@@ -81,7 +81,7 @@ export default function ThesesBrowser({ items }: ThesesBrowserProps) {
             <Link key={item.id} href={`/theses/${item.id}`} className="block">
               <article
                 key={item.title}
-                className="group rounded-xl border border-white/15 bg-white/[0.03] p-4 transition hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[0.06]"
+                className="group rounded-xl h-[380px] border border-white/15 bg-white/[0.03] p-4 transition hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[0.06]"
               >
                 <div className="mb-3 overflow-hidden rounded-lg border border-white/10 bg-white/5">
                   <Image

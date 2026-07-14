@@ -22,7 +22,8 @@ export const items = [
     lessons_learned: [
       "AI is cool, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Artificial ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "https://www.sciencedirect.com/science/article/abs/pii/S036350232500036X"
   },
   {
     id: 2,
@@ -54,7 +55,8 @@ export const items = [
     lessons_learned: [
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "www.sciencedirect.com"
   },
   {
     id: 3,
@@ -86,7 +88,8 @@ export const items = [
     lessons_learned: [
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "www.sciencedirect.com"
   },
   {
     id: 4,
@@ -118,7 +121,8 @@ export const items = [
     lessons_learned: [
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "www.sciencedirect.com"
   },
   {
     id: 5,
@@ -150,7 +154,8 @@ export const items = [
     lessons_learned: [
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "www.sciencedirect.com"
   },
   {
     id: 6,
@@ -182,7 +187,8 @@ export const items = [
     lessons_learned: [
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "www.sciencedirect.com"
   },
   {
     id: 7,
@@ -214,7 +220,8 @@ export const items = [
     lessons_learned: [
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "www.sciencedirect.com"
   },
   {
     id: 8,
@@ -246,7 +253,8 @@ export const items = [
     lessons_learned: [
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "www.sciencedirect.com"
   },
   {
     id: 9,
@@ -278,7 +286,8 @@ export const items = [
     lessons_learned: [
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "www.sciencedirect.com"
   },
   {
     id: 10,
@@ -310,6 +319,7 @@ export const items = [
     lessons_learned: [
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"
-    ]
+    ],
+    publication_link: "www.sciencedirect.com"
   },
 ];

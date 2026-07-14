@@ -9,6 +9,7 @@ type ThesisItem = {
   research_area: string[];
   department: string;
   lessons_learned: string[];
+  publication_link: string;
 };
 
 type SelectedRightRailProps = {
@@ -53,6 +54,28 @@ export default function DetailsSidebar({
             ))}
           </div>
         </div>
+
+        <div className="mt-5">
+          <h4 className="text-base font-semibold text-white">Publication Link</h4>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {thesis.publication_link ? (
+              <a
+                href={
+                  thesis.publication_link.startsWith("http")
+                    ? thesis.publication_link
+                    : `https://${thesis.publication_link}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center break-all text-[11px] text-[#2f8dff] underline underline-offset-4 hover:text-[#66a6ff]"
+              >
+                {thesis.publication_link}
+              </a>
+            ) : (
+              <span className="text-[11px] text-white/50">No publication link</span>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="mt-6">
@@ -76,3 +99,14 @@ export default function DetailsSidebar({
     </aside>
   );
 }
+
+/*
+{thesis.publication_link.map((area) => (
+  <span
+    key={area}
+    className="inline-flex items-center rounded-full border border-white/30 bg-transparent px-3 py-1 text-[11px] text-white/80"
+  >
+    {area}
+  </span>
+))}
+*/
