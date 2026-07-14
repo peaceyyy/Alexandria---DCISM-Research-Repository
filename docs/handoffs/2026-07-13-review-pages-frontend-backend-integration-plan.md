@@ -169,9 +169,9 @@ type ReviewSubmission = {
 };
 ```
 
-If the backend keeps a `resolved_at` column instead of `addressed_at`, the
-frontend should still label the member action as "addressed" rather than
-"resolved." "Resolved" can imply reviewer approval, which is not the MVP rule.
+The backend should use `addressed_at` for the member action timestamp. Avoid
+"resolved" wording because it can imply reviewer approval, which is not the MVP
+rule.
 
 ## Backend Service Functions The Frontend Should Expect
 
@@ -275,14 +275,20 @@ resubmitFlaggedSubmission(thesisId: number): Promise<ServiceResult<ReviewSubmiss
 
 ## Moderator Review Page Plan
 
-Target routes:
+Target routes after the dashboard pivot:
 
-- `/admin/review`
+- `/admin/dashboard?status=for_review`
 - `/admin/review/[id]`
+- `/admin/all-studies?status=accepted`
 
-Current frontend structure can remain largely intact:
+The standalone `/admin/review` queue should redirect to the dashboard pending
+filter. Do not keep the mock review queue as the primary moderation entrypoint.
+Published Studies should not remain a separate admin navigation item; use All
+Studies with the approved/`accepted` status filter instead.
 
-- Review queue page.
+Current focused review structure can remain largely intact:
+
+- Dashboard submission queue with status filter.
 - Focused detail page.
 - Sticky/collapsible review panel.
 - Main content area with reviewable fields.
@@ -292,15 +298,17 @@ Current frontend structure can remain largely intact:
 
 Implementation steps for the frontend agent:
 
-1. Replace `mockReviewSubmissions` reads in `/admin/review` with `listReviewSubmissions({ reviewStatus: "for_review" })`.
-2. Replace mock detail lookup in `/admin/review/[id]` with `getReviewSubmission(id)`.
-3. Keep `ReviewSubmission` as the page DTO, but source it from the service layer.
-4. Replace mock `addFieldComment()` with `addReviewComment()`.
-5. Replace local status mutation with `setReviewStatus()`.
-6. Remove moderator "Remove Flag" / direct `flagged -> for_review` action.
-7. Keep `accepted` and `trashed` pages read-only for moderator decisions unless a future admin flow reopens them.
-8. Refresh or optimistically update only after the service call succeeds.
-9. Keep all file access through `primaryFile.pdfUrl`, which should point to the guarded `/api/theses/:id/file` route or equivalent service-generated route.
+1. Source the dashboard submission queue from `listReviewSubmissions()`.
+2. Add dashboard status filters for `all`, `for_review`, `flagged`, `accepted`, and `trashed`.
+3. Link pending rows to `/admin/review/[id]`.
+4. Replace mock detail lookup in `/admin/review/[id]` with `getReviewSubmission(id)`.
+5. Keep `ReviewSubmission` as the page DTO, but source it from the service layer.
+6. Replace mock `addFieldComment()` with `addReviewComment()`.
+7. Replace local status mutation with `setReviewStatus()`.
+8. Remove moderator "Remove Flag" / direct `flagged -> for_review` action.
+9. Keep `accepted` and `trashed` pages read-only for moderator decisions unless a future admin flow reopens them.
+10. Refresh or optimistically update only after the service call succeeds.
+11. Keep all file access through `primaryFile.pdfUrl`, which should point to the guarded `/api/theses/:id/file` route or equivalent service-generated route.
 
 UI behavior:
 

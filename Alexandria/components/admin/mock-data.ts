@@ -76,7 +76,8 @@ const mockComments: ReviewComment[] = [
     createdByUserId: "mod-user-1",
     createdByName: "Anna Reyes",
     createdAt: "2026-06-25T08:30:00Z",
-    resolvedAt: null,
+    addressedAt: null,
+    addressedByUserId: null,
   },
   {
     id: 2,
@@ -87,7 +88,8 @@ const mockComments: ReviewComment[] = [
     createdByUserId: "mod-user-1",
     createdByName: "Anna Reyes",
     createdAt: "2026-06-25T09:15:00Z",
-    resolvedAt: null,
+    addressedAt: null,
+    addressedByUserId: null,
   },
   {
     id: 3,
@@ -98,7 +100,8 @@ const mockComments: ReviewComment[] = [
     createdByUserId: "mod-user-1",
     createdByName: "Anna Reyes",
     createdAt: "2026-06-25T09:20:00Z",
-    resolvedAt: null,
+    addressedAt: null,
+    addressedByUserId: null,
   },
   {
     id: 4,
@@ -109,7 +112,8 @@ const mockComments: ReviewComment[] = [
     createdByUserId: "mod-user-1",
     createdByName: "Anna Reyes",
     createdAt: "2026-06-25T10:05:00Z",
-    resolvedAt: null,
+    addressedAt: null,
+    addressedByUserId: null,
   },
   {
     id: 5,
@@ -120,7 +124,8 @@ const mockComments: ReviewComment[] = [
     createdByUserId: "mod-user-2",
     createdByName: "Johnny Doe",
     createdAt: "2026-06-14T14:22:00Z",
-    resolvedAt: null,
+    addressedAt: null,
+    addressedByUserId: null,
   },
   {
     id: 6,
@@ -131,7 +136,8 @@ const mockComments: ReviewComment[] = [
     createdByUserId: "mod-user-1",
     createdByName: "Anna Reyes",
     createdAt: "2026-06-08T11:00:00Z",
-    resolvedAt: null,
+    addressedAt: null,
+    addressedByUserId: null,
   },
 ];
 

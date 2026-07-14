@@ -1,12 +1,14 @@
 "use client";
 
 import { BookText, Clock, Users } from "lucide-react";
+import Link from "next/link";
 import { DataTable, type Column } from "./data-table";
 import { StatCard } from "./stat-card";
 import { StatusBadge } from "./status-badge";
 import type {
   AdminDashboardSnapshot,
-  DashboardUploadRow,
+  ReviewStatus,
+  ReviewSubmissionListItem,
 } from "@/lib/services/types";
 
 const dateFormatter = new Intl.DateTimeFormat("en-PH", {
@@ -17,6 +19,19 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-PH", {
   dateStyle: "medium",
   timeStyle: "short",
 });
+
+type DashboardStatusFilter = ReviewStatus | "all";
+
+const STATUS_FILTERS: Array<{
+  value: DashboardStatusFilter;
+  label: string;
+}> = [
+  { value: "all", label: "All" },
+  { value: "for_review", label: "Pending" },
+  { value: "flagged", label: "Flagged" },
+  { value: "accepted", label: "Approved" },
+  { value: "trashed", label: "Trashed" },
+];
 
 function formatDate(value: string, includeTime = false) {
   const date = new Date(value);
@@ -29,32 +44,59 @@ function formatDate(value: string, includeTime = false) {
     : dateFormatter.format(date);
 }
 
-const uploadColumns: Column<DashboardUploadRow>[] = [
+const reviewQueueColumns: Column<ReviewSubmissionListItem>[] = [
   {
     key: "title",
     header: "Title",
     className: "max-w-[260px]",
   },
   {
-    key: "author",
-    header: "Author",
+    key: "authors",
+    header: "Authors",
+    render: (row) =>
+      row.authors.length > 0 ? row.authors.slice(0, 2).join(", ") : "Unknown author",
   },
   {
-    key: "created_at",
-    header: "Date Created",
-    render: (row) => formatDate(row.created_at),
+    key: "submittedAt",
+    header: "Submitted",
+    render: (row) => formatDate(row.submittedAt),
   },
   {
-    key: "review_status",
+    key: "reviewStatus",
     header: "Status",
-    render: (row) => <StatusBadge status={row.review_status} />,
+    render: (row) => <StatusBadge status={row.reviewStatus} />,
+  },
+  {
+    key: "commentCount",
+    header: "Comments",
+  },
+  {
+    key: "id",
+    header: "Action",
+    render: (row) =>
+      row.reviewStatus === "for_review" ? (
+        <Link
+          href={`/admin/review/${row.id}`}
+          className="inline-flex items-center justify-center rounded-[7px] border border-[#368bfe]/40 bg-[#368bfe]/10 px-3 py-1.5 text-[12px] font-semibold text-[#7db2ff] transition hover:border-[#368bfe]/70 hover:bg-[#368bfe]/15"
+        >
+          Review
+        </Link>
+      ) : (
+        <span className="text-[12px] text-[#8f96a0]">No review action</span>
+      ),
   },
 ];
 
 export function AdminDashboardView({
   snapshot,
+  reviewQueue,
+  reviewQueueError,
+  selectedStatus,
 }: {
   snapshot: AdminDashboardSnapshot;
+  reviewQueue: ReviewSubmissionListItem[];
+  reviewQueueError: string | null;
+  selectedStatus: DashboardStatusFilter;
 }) {
   const largestDepartmentCount =
     snapshot.research_by_department[0]?.count ?? 0;
@@ -88,11 +130,43 @@ export function AdminDashboardView({
       </div>
 
       <DataTable
-        title="Recent Uploads"
-        columns={uploadColumns}
-        data={snapshot.recent_uploads}
-        pageSize={5}
+        title="Submission Queue"
+        columns={reviewQueueColumns}
+        data={reviewQueue}
+        pageSize={10}
         rowKey="id"
+        headerAction={
+          <div className="flex flex-col items-end gap-2">
+            {reviewQueueError && (
+              <p className="max-w-[420px] text-right text-[12px] text-[#ffb3b3]">
+                {reviewQueueError}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {STATUS_FILTERS.map((filter) => {
+                const isActive = selectedStatus === filter.value;
+                const href =
+                  filter.value === "all"
+                    ? "/admin/dashboard"
+                    : `/admin/dashboard?status=${filter.value}`;
+
+                return (
+                  <Link
+                    key={filter.value}
+                    href={href}
+                    className={`rounded-[7px] border px-3 py-1.5 text-[12px] font-semibold transition ${
+                      isActive
+                        ? "border-[#368bfe]/60 bg-[#368bfe]/15 text-[#7db2ff]"
+                        : "border-white/10 bg-white/[0.04] text-[#d8dadc] hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    {filter.label}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        }
       />
 
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">

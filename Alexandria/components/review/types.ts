@@ -77,7 +77,8 @@ export const REVIEW_FIELD_LABEL: Record<ReviewFieldKey, string> = {
  *   created_by_user_id  → createdByUserId
  *   created_by_name     → createdByName  (denormalized display name)
  *   created_at          → createdAt
- *   resolved_at         → resolvedAt
+ *   addressed_at        → addressedAt
+ *   addressed_by_user_id → addressedByUserId
  */
 export interface ReviewComment {
   id: number;
@@ -87,7 +88,8 @@ export interface ReviewComment {
   createdByUserId: string;
   createdByName: string;
   createdAt: string; // ISO 8601
-  resolvedAt: string | null;
+  addressedAt: string | null;
+  addressedByUserId: string | null;
 }
 
 // ─── Audit Event Shape ───────────────────────────────────────────────────────
@@ -95,6 +97,7 @@ export interface ReviewComment {
 export type ReviewAuditEventType =
   | "submitted"
   | "comment_added"
+  | "comment_addressed"
   | "status_changed"
   | "metadata_edited"
   | "pdf_replaced"

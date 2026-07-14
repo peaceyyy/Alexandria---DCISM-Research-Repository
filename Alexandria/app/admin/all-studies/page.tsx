@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookText, Eye, FileText, MessageSquareText, Plus, Search } from "lucide-react";
+import { BookText, Eye, FileText, MessageSquareText, Search } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { StatCard } from "@/components/admin/stat-card";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { mockReviewSubmissions, updateReviewSubmission } from "@/components/admin/mock-data";
@@ -13,21 +14,38 @@ const FILTER_STATUS_MAP: Record<string, ReviewStatus | null> = {
   Pending: "for_review",
   Approved: "accepted",
   Flagged: "flagged",
+  Trashed: "trashed",
 };
 
-const FILTERS = ["All", "Pending", "Approved", "Flagged"] as const;
+const FILTERS = ["All", "Pending", "Approved", "Flagged", "Trashed"] as const;
 type StudyFilter = (typeof FILTERS)[number];
 
+const STATUS_FILTER_MAP: Record<ReviewStatus, StudyFilter> = {
+  for_review: "Pending",
+  accepted: "Approved",
+  flagged: "Flagged",
+  trashed: "Trashed",
+};
+
 export default function AllStudiesPage() {
+  const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [filter, setFilter] = useState<StudyFilter>("All");
+  const statusParam = searchParams.get("status") as ReviewStatus | null;
+  const initialFilter =
+    statusParam && STATUS_FILTER_MAP[statusParam]
+      ? STATUS_FILTER_MAP[statusParam]
+      : "All";
+  const [filter, setFilter] = useState<StudyFilter>(initialFilter);
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [submissions, setSubmissions] = useState(mockReviewSubmissions);
-  const [commentDraft, setCommentDraft] = useState("");
   const [splitRatio, setSplitRatio] = useState(60);
   const [isResizing, setIsResizing] = useState(false);
+
+  useEffect(() => {
+    setFilter(initialFilter);
+  }, [initialFilter]);
 
   useEffect(() => {
     if (!isResizing) return;
@@ -140,7 +158,7 @@ export default function AllStudiesPage() {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => { setSelectedId(s.id); setCommentDraft(""); }}
+                  onClick={() => setSelectedId(s.id)}
                   className={`rounded-[10px] border p-4 text-left transition ${
                     isSelected
                       ? "border-[#368bfe]/70 bg-[#368bfe]/10"

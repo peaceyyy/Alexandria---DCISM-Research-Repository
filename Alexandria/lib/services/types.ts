@@ -3,6 +3,29 @@ export type ReviewStatus = "for_review" | "flagged" | "accepted" | "trashed";
 export type UserRole = "admin" | "moderator" | "member";
 export type Affiliation = "student" | "alumni" | "professor";
 export type ContributionRole = "author" | "adviser";
+export type StudyType = "thesis" | "capstone";
+export type ReviewFieldKey =
+  | "title"
+  | "authors"
+  | "advisers"
+  | "department"
+  | "study_type"
+  | "publication_date"
+  | "publication_link"
+  | "research_area"
+  | "tags"
+  | "abstract"
+  | "recommendations"
+  | "lessons_learned"
+  | "pdf_general";
+export type ReviewAuditEventType =
+  | "submitted"
+  | "comment_added"
+  | "comment_addressed"
+  | "status_changed"
+  | "metadata_edited"
+  | "pdf_replaced"
+  | "resubmitted";
 // ─── Pagination & Result Envelope ────────────────────────────────────────────
 export type PaginationMeta = {
   total_count: number;
@@ -41,6 +64,7 @@ export type DbThesis = {
   publication_date: string | null;
   publication_link: string | null;
   conference: string | null;
+  study_type: StudyType;
   recommendations: string | null;
   lessons_learned: string | null;
   submitted_by_user_id: string | null; // uuid — nullable for legacy/imported rows
@@ -72,8 +96,19 @@ export type DbThesisAudit = {
   id: number;
   thesis_id: number;
   changed_by_user_id: string;
+  event: ReviewAuditEventType | null;
   change_description: string | null;
   updated_at: string;
+};
+export type DbThesisReviewComment = {
+  id: number;
+  thesis_id: number;
+  field_key: ReviewFieldKey;
+  comment: string;
+  created_by_user_id: string;
+  addressed_at: string | null;
+  addressed_by_user_id: string | null;
+  created_at: string;
 };
 // ─── UI / Service DTOs (frontend-safe shapes) ────────────────────────────────
 export type ThesisAuthor = {
@@ -135,7 +170,66 @@ export type AdminThesisRow = {
   year: number;
   updated_at: string;
   submitted_by_user_id: string | null;
-  study_type: "thesis" | "capstone";
+  study_type: StudyType;
+};
+export type ReviewComment = {
+  id: number;
+  thesisId: number;
+  fieldKey: ReviewFieldKey;
+  comment: string;
+  createdByUserId: string;
+  createdByName: string;
+  createdAt: string;
+  addressedAt: string | null;
+  addressedByUserId: string | null;
+};
+export type ReviewAuditEvent = {
+  id: number;
+  thesisId: number;
+  event: ReviewAuditEventType;
+  description: string;
+  createdByName: string;
+  createdAt: string;
+};
+export type ReviewSubmission = {
+  id: number;
+  title: string;
+  authors: string[];
+  advisers: string[];
+  department: string;
+  studyType: StudyType;
+  publicationDate: string;
+  publicationLink: string | null;
+  researchArea: string | null;
+  tags: string[];
+  abstract: string;
+  recommendations: string | null;
+  lessonsLearned: string | null;
+  submittedAt: string;
+  submittedByUserId: string | null;
+  reviewStatus: ReviewStatus;
+  primaryFile: {
+    fileName: string;
+    fileSize: string | null;
+    pdfUrl: string;
+  } | null;
+  fieldComments: ReviewComment[];
+  auditEvents: ReviewAuditEvent[];
+};
+export type ReviewSubmissionListItem = Pick<
+  ReviewSubmission,
+  | "id"
+  | "title"
+  | "authors"
+  | "department"
+  | "studyType"
+  | "submittedAt"
+  | "reviewStatus"
+> & {
+  commentCount: number;
+};
+export type MySubmissionListItem = ReviewSubmissionListItem & {
+  flaggedCommentCount: number;
 };
 export type DashboardUploadRow = {
   id: number;
@@ -205,7 +299,7 @@ export type SubmitThesisPayload = {
   conference?: string;
   recommendations?: string;
   lessons_learned?: string;
-  study_type: "thesis" | "capstone";
+  study_type: StudyType;
 };
 export type SubmitThesisInput = Omit<
   SubmitThesisPayload,
@@ -236,4 +330,27 @@ export type UserListParams = {
   account_status?: UserAccountStatus;
   page?: number;
   limit?: number;
+};
+export type ReviewSubmissionListParams = {
+  reviewStatus?: ReviewStatus;
+  q?: string;
+  page?: number;
+  limit?: number;
+};
+export type OwnSubmissionListParams = {
+  status?: ReviewStatus | "all";
+  q?: string;
+};
+export type AddReviewCommentInput = {
+  thesisId: number;
+  fieldKey: ReviewFieldKey;
+  comment: string;
+};
+export type SetReviewStatusInput = {
+  thesisId: number;
+  nextStatus: Extract<ReviewStatus, "flagged" | "accepted" | "trashed">;
+};
+export type UpdateFlaggedSubmissionInput = {
+  thesisId: number;
+  values: Partial<SubmitThesisInput>;
 };

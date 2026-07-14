@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { CheckCircle2, Flag, ShieldAlert, Pencil, Trash2 } from "lucide-react";
 import type { ReviewStatus } from "@/lib/services/types";
 import type { UserRole } from "@/lib/services/types";
@@ -16,11 +17,10 @@ import styles from "./review-decision-actions.module.css";
 // The UI disables irrelevant actions to reflect these rules.
 
 function canAccept(status: ReviewStatus) {
-  return status === "for_review" || status === "flagged";
+  return status === "for_review";
 }
 function canFlag(status: ReviewStatus) {
-  // Allow toggle: flag a for_review, or unflag a flagged submission
-  return status === "for_review" || status === "flagged";
+  return status === "for_review";
 }
 function canTrash(status: ReviewStatus) {
   return status === "for_review" || status === "flagged";
@@ -83,16 +83,16 @@ export function ReviewDecisionActions({
               Approve
             </button>
 
-            {/* Flag / Unflag toggle */}
+            {/* Flag for member-side revision. Members return it to pending by resubmitting. */}
             <button
               type="button"
-              className={status === "flagged" ? styles.btnUnflag : styles.btnFlag}
-              onClick={() => onDecision(status === "flagged" ? "for_review" : "flagged")}
+              className={styles.btnFlag}
+              onClick={() => onDecision("flagged")}
               disabled={isSubmitting || !canFlag(status)}
-              aria-label={status === "flagged" ? "Remove flag — return to pending" : "Flag submission for member revision"}
+              aria-label="Flag submission for member revision"
             >
               <Flag size={14} aria-hidden />
-              {status === "flagged" ? "Remove Flag" : "Flag for Revision"}
+              Flag for Revision
             </button>
 
             {/* Trash — soft destructive, requires confirm */}
@@ -137,43 +137,46 @@ export function ReviewDecisionActions({
         )}
       </div>
 
-      {/* ── Trash Confirmation Modal ──────────────────────────────────────── */}
-      {showTrashConfirm && (
-        <div
-          className={styles.confirmOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="trash-confirm-title"
-        >
-          <div className={styles.confirmDialog}>
-            <h2 id="trash-confirm-title" className={styles.confirmTitle}>
-              Trash this submission?
-            </h2>
-            <p className={styles.confirmBody}>
-              This will remove the submission from the active review queue.
-              It can be reviewed again if retrieved from the trash.
-            </p>
-            <div className={styles.confirmActions}>
-              <button
-                type="button"
-                className={styles.btnConfirmCancel}
-                onClick={handleTrashCancel}
-                autoFocus
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.btnConfirmTrash}
-                onClick={handleTrashConfirm}
-              >
-                <Trash2 size={13} aria-hidden style={{ marginRight: 4 }} />
-                Move to Trash
-              </button>
+      {/* ── Trash Confirmation Modal (portaled to body to escape stacking context) ── */}
+      {showTrashConfirm &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className={styles.confirmOverlay}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="trash-confirm-title"
+          >
+            <div className={styles.confirmDialog}>
+              <h2 id="trash-confirm-title" className={styles.confirmTitle}>
+                Trash this submission?
+              </h2>
+              <p className={styles.confirmBody}>
+                This will remove the submission from the active review queue.
+                It can be reviewed again if retrieved from the trash.
+              </p>
+              <div className={styles.confirmActions}>
+                <button
+                  type="button"
+                  className={styles.btnConfirmCancel}
+                  onClick={handleTrashCancel}
+                  autoFocus
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={styles.btnConfirmTrash}
+                  onClick={handleTrashConfirm}
+                >
+                  <Trash2 size={13} aria-hidden style={{ marginRight: 4 }} />
+                  Move to Trash
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

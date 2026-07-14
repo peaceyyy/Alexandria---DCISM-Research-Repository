@@ -54,11 +54,9 @@ the UI labels use friendly words, keep them mapped to the backend values:
 | Flagged | `flagged` |
 | Approved | `accepted` |
 
-`/admin/published-studies` should remain only if it eventually provides
-moderator/admin-specific metadata or actions, such as audit history, revert to
-review, trash controls, or publication visibility controls. If it stays a
-read-only accepted-theses list, it should be replaced later by a sidebar link to
-`/home`.
+`/admin/published-studies` is not a separate admin navigation item for the MVP.
+Use `/admin/all-studies?status=accepted` for approved studies, and keep `/home`
+as the public repository view.
 
 ## File And Comment Boundaries
 

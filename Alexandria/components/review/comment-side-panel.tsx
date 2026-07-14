@@ -40,8 +40,8 @@ export interface CommentSidePanelProps {
   comments: ReviewComment[];
   canComment: boolean;
   onAddComment: (fieldKey: ReviewFieldKey, comment: string) => void;
-  onEditComment?: (commentId: string, newText: string) => void;
-  onDeleteComment?: (commentId: string) => void;
+  onEditComment?: (commentId: number, newText: string) => void;
+  onDeleteComment?: (commentId: number) => void;
   currentUserName?: string;
   onClose: () => void;
 }
@@ -64,7 +64,7 @@ export function CommentSidePanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [showScroll, setShowScroll] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [editDraft, setEditDraft] = useState("");
 
   const startEdit = (c: ReviewComment) => {
@@ -91,11 +91,15 @@ export function CommentSidePanel({
   }, [fieldKey, comments]);
   const PANEL_HEIGHT = 420;
   const MARGIN = 16;
+  const viewportHeight =
+    typeof window === "undefined"
+      ? PANEL_HEIGHT + MARGIN * 2
+      : window.innerHeight;
 
   // Clamp top so panel stays in viewport
   const top = Math.min(
     Math.max(anchorY, MARGIN),
-    window.innerHeight - PANEL_HEIGHT - MARGIN,
+    viewportHeight - PANEL_HEIGHT - MARGIN,
   );
 
   // Reset draft when switching fields

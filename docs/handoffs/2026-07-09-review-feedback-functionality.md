@@ -104,7 +104,8 @@ type ReviewComment = {
   created_by_user_id: string;
   created_by_name: string;
   created_at: string;
-  resolved_at: string | null;
+  addressed_at: string | null;
+  addressed_by_user_id: string | null;
 };
 ```
 
@@ -117,7 +118,7 @@ Resolution / addressed behavior for MVP:
 - Moderators/admins do not need per-comment resolve controls for MVP.
 - Comments can remain reviewer-visible until a moderator/admin accepts the
   submission or flags it again.
-- A later version may add stricter `resolved_at` / reviewer-confirmed behavior.
+- A later version may add stricter reviewer-confirmed resolution behavior.
 
 ## Audit Trail
 
