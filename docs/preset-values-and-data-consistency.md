@@ -35,11 +35,24 @@ This guide organizes the agreed preset values so future implementation can remov
 
 Meaning: the academic department or unit responsible for the thesis/capstone record.
 
+MVP decision:
+
+Alexandria is DCISM-only for now. The UI may be designed to look expandable so users understand that other departments could be supported later, but `DCISM` is the only enabled, valid, and submitted department value in the MVP.
+
 MVP canonical value:
 
 | Stored value | Display label | Notes |
 | --- | --- | --- |
 | `DCISM` | DCISM | Department of Computer Information Science and Mathematics. Current Alexandria MVP owner. |
+
+Department UI rule:
+
+| UI location | Expected treatment |
+| --- | --- |
+| Upload form | Show a department select/control with `DCISM` selected by default. Do not allow submitting any other value yet. |
+| Browse filters | Show `DCISM` as the active department filter option. The control may be styled as if the filter group can grow later. |
+| Admin/review/detail pages | Display the stored department as `DCISM`. |
+| Future-looking empty/disabled states | If shown, mark other department choices as unavailable or future support, not as selectable values. |
 
 Invalid department values:
 
@@ -56,10 +69,10 @@ Candidate future department values needing official codes/names:
 
 | Candidate | Open decision |
 | --- | --- |
-| `CpE` | Confirm official department name and storage code. |
-| `CE` | Confirm official department name and storage code. |
-| `Biology` | Confirm official department name and storage code. |
-| `Psychology` | Confirm official department name and storage code. |
+| `CpE` | Future-only. Confirm official department name and storage code before enabling. |
+| `CE` | Future-only. Confirm official department name and storage code before enabling. |
+| `Biology` | Future-only. Confirm official department name and storage code before enabling. |
+| `Psychology` | Future-only. Confirm official department name and storage code before enabling. |
 
 Known current drift:
 
@@ -135,9 +148,20 @@ Current fields:
 
 | Field | Meaning | Current consistency issue |
 | --- | --- | --- |
-| `publication_date` | Date formally presented or published | Required in current upload schema. |
+| `publication_date` | Month and year formally presented or published | Current upload schema uses a full date-shaped field, but the product only needs month/year. |
 | `publication_link` | Public URL to proceedings, journal, repository, or official publication | Required in current upload schema, but may not exist for every thesis. |
 | `conference` | Conference, symposium, event, or venue where the work was presented | Required in current upload schema, optional in older docs/database notes, and missing from some detail/review surfaces. |
+
+Publication date display rule:
+
+| Surface | Expected treatment |
+| --- | --- |
+| Upload form | Ask for month and year only. Do not ask users for a day. |
+| Upload review step | Show month and year, e.g. `June 2026`. |
+| Public thesis detail page | Show month and year with publication metadata. |
+| Moderator review/approval detail page | Show month and year as the reviewable publication date. |
+| Homepage/repository cards | Show year only, e.g. `2026`, when compact metadata is preferred. |
+| Backend/service contract | Preserve month/year meaning even if the storage layer later uses a date-shaped column internally. |
 
 Conference display rule:
 
@@ -206,11 +230,11 @@ When implementation begins, prefer this order:
 
 ## Open Questions
 
-1. Should Alexandria remain DCISM-only for the MVP, or should cross-department values be supported now?
-2. What are the official stored codes and display names for the mentioned future departments: CpE, CE, Biology, and Psychology?
-3. Should BSCS, BSIT, and BSIS become a separate `program` or `course` field later, or should Alexandria avoid storing them entirely for the MVP?
-4. Should each thesis have one research area or multiple research areas?
-5. Should `Networking` remain in the approved research-area list?
-6. Should `Software Engineering` and `Computer Vision` be added as approved research areas, or mapped to broader existing areas?
-7. Is `conference` required for every accepted thesis/capstone, or should it be optional metadata?
-8. Is `publication_link` required for every submission, or should the uploaded PDF be enough when no public URL exists?
+1. What are the official stored codes and display names for the future departments: CpE, CE, Biology, and Psychology?
+2. Should BSCS, BSIT, and BSIS become a separate `program` or `course` field later, or should Alexandria avoid storing them entirely for the MVP?
+3. Should each thesis have one research area or multiple research areas?
+4. Should `Networking` remain in the approved research-area list?
+5. Should `Software Engineering` and `Computer Vision` be added as approved research areas, or mapped to broader existing areas?
+6. Is `conference` required for every accepted thesis/capstone, or should it be optional metadata?
+7. Is `publication_link` required for every submission, or should the uploaded PDF be enough when no public URL exists?
+8. If the database keeps a date-shaped `publication_date` column, what internal placeholder day should represent month/year-only values?
