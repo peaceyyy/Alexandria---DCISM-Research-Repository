@@ -22,7 +22,7 @@ export function PasswordField({
     <div>
       <label
         htmlFor={id}
-        className="mb-2 block text-sm font-semibold text-[var(--color-text)]"
+        className="mb-1.5 block text-sm font-semibold text-[var(--color-text)]"
       >
         {label}
       </label>
@@ -32,7 +32,7 @@ export function PasswordField({
           type={visible ? "text" : "password"}
           aria-invalid={Boolean(error)}
           aria-describedby={errorId}
-          className="h-[60px] w-full rounded-[20px] border border-[#368bfe] bg-transparent px-6 pr-14 text-base text-[var(--color-text)] placeholder:text-[var(--color-placeholder)]"
+          className="h-[60px] w-full rounded-md border border-[#368bfe] bg-[var(--color-bg)] px-6 pr-14 text-base text-[var(--color-text)] placeholder:text-[var(--color-placeholder)] focus:ring-2 focus:ring-[#368bfe] focus:outline-none transition-shadow"
           {...inputProps}
         />
         <button

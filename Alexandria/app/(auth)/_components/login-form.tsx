@@ -69,7 +69,7 @@ export function LoginForm({
       onSubmit={handleSubmit}
       noValidate
       aria-busy={pending}
-      className="space-y-4"
+      className="flex flex-col gap-6"
     >
       <AuthTabs active="login" />
       {registered ? (
@@ -129,7 +129,7 @@ export function LoginForm({
       <button
         type="submit"
         disabled={pending}
-        className="mt-5 min-h-12 w-[234px] max-w-full rounded-[20px] bg-[#368bfe] px-6 font-[var(--font-display)] text-xl font-semibold text-white disabled:cursor-wait disabled:opacity-60 max-sm:w-full"
+        className="mt-2 min-h-12 w-full rounded-md bg-[#368bfe] px-6 font-[var(--font-display)] text-xl font-semibold text-white disabled:cursor-wait disabled:opacity-60 hover:bg-[#1752f0] transition-colors"
       >
         {pending ? "Logging in..." : "Login"}
       </button>

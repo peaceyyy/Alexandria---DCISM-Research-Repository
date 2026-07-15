@@ -14,25 +14,25 @@ const ROLE_DISPLAYS: Record<SessionDisplayRole, RoleDisplay> = {
     role: "guest",
     label: "Guest",
     abbreviation: "G",
-    className: "border-white/25 bg-white/5 text-[#d8dadc]",
+    className: "border-[var(--color-separator)] bg-[var(--color-text)]/5 text-[var(--color-text-muted)]",
   },
   member: {
     role: "member",
     label: "Member",
     abbreviation: "M",
-    className: "border-[#1da0c9]/55 bg-[#1da0c9]/10 text-[#65d6f5]",
+    className: "border-[var(--color-chip-cyan-bd)] bg-[var(--color-chip-cyan-bg)] text-[var(--color-chip-cyan-text)]",
   },
   moderator: {
     role: "moderator",
     label: "Moderator",
     abbreviation: "MOD",
-    className: "border-[#368bfe]/65 bg-[#1752f0]/15 text-[#8bb6ff]",
+    className: "border-[var(--color-brand-bright)]/40 bg-[var(--color-brand-bright)]/10 text-[var(--color-brand-bright)]",
   },
   admin: {
     role: "admin",
     label: "Admin",
     abbreviation: "A",
-    className: "border-[#ffd900]/55 bg-[#ffd900]/10 text-[#ffe66b]",
+    className: "border-[var(--color-pronunciation)]/40 bg-[var(--color-pronunciation)]/10 text-[var(--color-pronunciation)]",
   },
 };
 

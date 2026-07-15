@@ -29,7 +29,7 @@ export function RoleIndicator({ role }: { role?: UserRole | null }) {
       {isPrivileged && (
         <Link
           href={getPostAuthDestination(role)}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[#368bfe]/40 bg-[#368bfe]/10 px-3 text-xs font-semibold text-[#368bfe] transition-colors hover:bg-[#368bfe]/20"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[var(--color-brand-bright)]/40 bg-[var(--color-brand-bright)]/10 px-3 text-xs font-semibold text-[var(--color-brand-bright)] transition-colors hover:bg-[var(--color-brand-bright)]/20"
           aria-label="Go to your dashboard"
         >
           Dashboard →

@@ -18,6 +18,7 @@ import { validateRegistrationInput } from "@/lib/auth/auth-validation";
 import { AuthField } from "./auth-field";
 import { AuthTabs } from "./auth-tabs";
 import { PasswordField } from "./password-field";
+import { PasswordStrength } from "./password-strength";
 
 const initialInput: RegistrationFormInput = {
   profile_name: "",
@@ -79,7 +80,7 @@ export function SignUpForm({
       onSubmit={handleSubmit}
       noValidate
       aria-busy={pending}
-      className="space-y-4"
+      className="flex flex-col gap-6"
     >
       <AuthTabs active="sign-up" />
       <AuthField
@@ -134,7 +135,7 @@ export function SignUpForm({
         <div>
           <label
             htmlFor="sign-up-affiliation"
-            className="mb-2 block text-sm font-semibold text-[var(--color-text)]"
+            className="mb-1.5 block text-sm font-semibold text-[var(--color-text)]"
           >
             Affiliation
           </label>
@@ -154,7 +155,7 @@ export function SignUpForm({
               aria-describedby={
                 errors.affiliation ? "sign-up-affiliation-error" : undefined
               }
-              className="h-[60px] w-full appearance-none rounded-[20px] border border-[#368bfe] bg-[var(--color-bg)] px-5 pr-12 text-base text-[var(--color-text)]"
+              className="h-[60px] w-full appearance-none rounded-md border border-[#368bfe] bg-[var(--color-bg)] px-5 pr-12 text-base text-[var(--color-text)] focus:ring-2 focus:ring-[#368bfe] focus:outline-none transition-shadow"
             >
               <option value="">Select affiliation</option>
               <option value="student">Student</option>
@@ -189,6 +190,7 @@ export function SignUpForm({
         }
         error={errors.password}
       />
+      <PasswordStrength password={input.password} confirmPassword={input.confirm_password} />
       <PasswordField
         id="sign-up-confirm-password"
         label="Confirm password"
@@ -212,7 +214,7 @@ export function SignUpForm({
       <button
         type="submit"
         disabled={pending}
-        className="mt-5 min-h-12 w-[234px] max-w-full rounded-[20px] bg-[#368bfe] px-6 font-[var(--font-display)] text-xl font-semibold text-white disabled:cursor-wait disabled:opacity-60 max-sm:w-full"
+        className="mt-2 min-h-12 w-full rounded-md bg-[#368bfe] px-6 font-[var(--font-display)] text-xl font-semibold text-white disabled:cursor-wait disabled:opacity-60 hover:bg-[#1752f0] transition-colors"
       >
         {pending ? "Creating account..." : "Create Account"}
       </button>

@@ -42,8 +42,11 @@ export function validateRegistrationInput(
   if (!input.affiliation) {
     errors.affiliation = "Select your USC affiliation.";
   }
-  if (input.password.length < 8) {
+  const pw = input.password;
+  if (pw.length < 8) {
     errors.password = "Use at least 8 characters.";
+  } else if (!/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/[0-9]/.test(pw) || !/[^A-Za-z0-9]/.test(pw)) {
+    errors.password = "Password must meet all strength requirements.";
   }
   if (input.confirm_password !== input.password) {
     errors.confirm_password = "Passwords do not match.";
