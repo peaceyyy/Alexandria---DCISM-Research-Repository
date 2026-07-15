@@ -53,7 +53,7 @@ export default async function MemberCorrectionPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#14181c] text-white">
+    <main className="min-h-screen bg-[var(--color-surface)] text-[var(--color-text)]">
       <AppHeader role={user.role} />
       <MemberCorrectionClient initialSubmission={submission} />
     </main>

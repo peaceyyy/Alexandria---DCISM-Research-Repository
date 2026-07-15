@@ -59,7 +59,7 @@ export function ReviewAuditTimeline({ events }: ReviewAuditTimelineProps) {
       ) : (
         <ol className={styles.timeline} aria-label="Review activity timeline">
           {events.map((ev) => {
-            const config = EVENT_CONFIG[ev.event];
+            const config = EVENT_CONFIG[ev.event] ?? EVENT_CONFIG.status_changed;
             const Icon = config.icon;
 
             return (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, MessageSquare, Send, X } from "lucide-react";
+import { ChevronDown, MessageSquare, Send, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { ReviewComment, ReviewFieldKey } from "./types";
 import { REVIEW_FIELD_LABEL } from "./types";
@@ -41,8 +41,6 @@ export interface CommentSidePanelProps {
   comments: ReviewComment[];
   canComment: boolean;
   onAddComment: (fieldKey: ReviewFieldKey, comment: string) => void;
-  onMarkAddressed?: (commentId: number) => void;
-  isMarkingAddressed?: boolean;
   onClose: () => void;
 }
 
@@ -54,8 +52,6 @@ export function CommentSidePanel({
   comments,
   canComment,
   onAddComment,
-  onMarkAddressed,
-  isMarkingAddressed = false,
   onClose,
 }: CommentSidePanelProps) {
   const [draft, setDraft] = useState("");
@@ -188,11 +184,9 @@ export function CommentSidePanel({
                     </time>
                     {(() => {
                       const state = getCommentCorrectionState(c);
-                      const label = state === "addressed"
-                        ? "Marked addressed"
-                        : state === "revised"
-                          ? "Field revised"
-                          : "Needs attention";
+                      const label = state === "revised"
+                        ? "Field revised"
+                        : "Needs attention";
 
                       return (
                         <span className={`${styles.correctionState} ${styles[`correctionState${state}`]}`}>
@@ -203,21 +197,6 @@ export function CommentSidePanel({
                   </div>
                 </div>
                 <p className={styles.commentText}>{c.comment}</p>
-                {onMarkAddressed && (
-                  <button
-                    type="button"
-                    className={styles.addressButton}
-                    onClick={() => onMarkAddressed(c.id)}
-                    disabled={!c.memberRevisedAt || Boolean(c.addressedAt) || isMarkingAddressed}
-                  >
-                    <Check size={12} aria-hidden />
-                    {c.addressedAt
-                      ? "Marked addressed"
-                      : c.memberRevisedAt
-                        ? "Mark as addressed"
-                        : `Edit ${label} and save first`}
-                  </button>
-                )}
               </div>
             ))
           )}

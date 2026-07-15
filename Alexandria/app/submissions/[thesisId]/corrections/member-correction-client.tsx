@@ -16,6 +16,12 @@ import {
 } from "lucide-react";
 import { CommentSidePanel } from "@/components/review/comment-side-panel";
 import { DEPARTMENTS } from "@/lib/domain/departments";
+import {
+  parseResearchAreaIds,
+  serializeResearchAreaIds,
+  type ResearchAreaId,
+} from "@/lib/domain/research-areas";
+import { ResearchAreaMultiSelect } from "@/components/research/research-area-multi-select";
 import { ReviewAuditTimeline } from "@/components/review/review-audit-timeline";
 import { ReviewableField } from "@/components/review/reviewable-field";
 import type { ReviewFieldKey } from "@/components/review/types";
@@ -27,7 +33,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  markReviewCommentAddressed,
   replaceFlaggedSubmissionPdf,
   resubmitFlaggedSubmission,
   updateFlaggedSubmission,
@@ -45,7 +50,7 @@ type CorrectionForm = {
   publicationDate: string;
   publicationLink: string;
   conference: string;
-  researchArea: string;
+  researchAreaIds: ResearchAreaId[];
   abstract: string;
   recommendations: string;
   lessonsLearned: string;
@@ -76,7 +81,7 @@ function createForm(submission: ReviewSubmission): CorrectionForm {
     publicationDate: submission.publicationDate,
     publicationLink: submission.publicationLink ?? "",
     conference: submission.conference ?? "",
-    researchArea: submission.researchArea ?? "",
+    researchAreaIds: parseResearchAreaIds(submission.researchArea),
     abstract: submission.abstract,
     recommendations: submission.recommendations ?? "",
     lessonsLearned: submission.lessonsLearned ?? "",
@@ -101,7 +106,7 @@ function toUpdateValues(form: CorrectionForm) {
     publication_date: form.publicationDate,
     publication_link: form.publicationLink,
     conference: form.conference,
-    research_area: form.researchArea,
+    research_area: serializeResearchAreaIds(form.researchAreaIds),
     abstract: form.abstract,
     recommendations: form.recommendations,
     lessons_learned: form.lessonsLearned,
@@ -135,7 +140,6 @@ export function MemberCorrectionClient({
   const [commentAnchorY, setCommentAnchorY] = useState(120);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
-  const [isAcknowledging, setIsAcknowledging] = useState(false);
   const [isResubmitting, setIsResubmitting] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<File | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -217,7 +221,7 @@ export function MemberCorrectionClient({
     setForm(createForm(result.data));
     setHasUnsavedChanges(false);
     setNotice(
-      "Changes saved. Comments on revised fields can now be marked addressed.",
+      "Changes saved. Feedback on revised fields is now marked revised.",
     );
     setIsSaving(false);
   };
@@ -252,31 +256,6 @@ export function MemberCorrectionClient({
     setIsUploadingPdf(false);
   };
 
-  const handleMarkAddressed = async (commentId: number) => {
-    setIsAcknowledging(true);
-    setError(null);
-    setNotice(null);
-    const result = await markReviewCommentAddressed({
-      thesisId: submission.id,
-      commentId,
-    });
-
-    if (result.error) {
-      setError(result.error.message);
-      setIsAcknowledging(false);
-      return;
-    }
-
-    setSubmission((current) => ({
-      ...current,
-      fieldComments: current.fieldComments.map((comment) =>
-        comment.id === commentId && result.data ? result.data : comment,
-      ),
-    }));
-    setNotice("Comment marked addressed.");
-    setIsAcknowledging(false);
-  };
-
   const handleResubmit = async () => {
     setIsResubmitting(true);
     setError(null);
@@ -296,6 +275,7 @@ export function MemberCorrectionClient({
   };
 
   const isLocked = submission.reviewStatus !== "flagged";
+  const canResubmit = !isLocked && !hasUnsavedChanges;
 
   return (
     <div className={styles.page}>
@@ -315,7 +295,7 @@ export function MemberCorrectionClient({
           <p>
             {isLocked
               ? "Your submission is back for review. Our team will be on it and get back to you as soon as possible!"
-              : "Save edits, acknowledge feedback you addressed, then resubmit when ready."}
+              : "Review the moderator feedback, make any needed revisions, then save your changes before resubmitting."}
           </p>
         </div>
 
@@ -331,12 +311,8 @@ export function MemberCorrectionClient({
               <dd>{correctionSummary.revisedCommentCount}</dd>
             </div>
             <div>
-              <dt>Marked addressed</dt>
-              <dd>{correctionSummary.acknowledgedCommentCount}</dd>
-            </div>
-            <div>
-              <dt>Not yet marked</dt>
-              <dd>{correctionSummary.unacknowledgedCommentCount}</dd>
+              <dt>Pending revisions</dt>
+              <dd>{correctionSummary.pendingRevisionCommentCount}</dd>
             </div>
           </dl>
         </div>
@@ -359,7 +335,7 @@ export function MemberCorrectionClient({
             type="button"
             className={styles.resubmitButton}
             onClick={() => setShowResubmitConfirm(true)}
-            disabled={isLocked || isSaving || isUploadingPdf || isResubmitting}
+            disabled={!canResubmit || isSaving || isUploadingPdf || isResubmitting}
           >
             <RotateCcw size={15} aria-hidden />
             Resubmit for review
@@ -552,10 +528,10 @@ export function MemberCorrectionClient({
               activeField={activeCommentField}
               onCommentIconClick={handleCommentIconClick}
             >
-              <input
-                value={form.researchArea}
-                onChange={(event) =>
-                  updateField("researchArea", event.target.value)
+              <ResearchAreaMultiSelect
+                value={form.researchAreaIds}
+                onChange={(researchAreaIds) =>
+                  updateField("researchAreaIds", researchAreaIds)
                 }
                 disabled={isLocked}
               />
@@ -668,8 +644,6 @@ export function MemberCorrectionClient({
         comments={activeCommentField ? commentsFor(activeCommentField) : []}
         canComment={false}
         onAddComment={() => undefined}
-        onMarkAddressed={isLocked ? undefined : handleMarkAddressed}
-        isMarkingAddressed={isAcknowledging}
         onClose={() => setActiveCommentField(null)}
       />
 
@@ -686,15 +660,9 @@ export function MemberCorrectionClient({
               After resubmitting, you cannot edit or resolve comments until a
               moderator flags this study again.
             </p>
-            {correctionSummary.unacknowledgedCommentCount > 0 && (
-              <p className={styles.modalWarning}>
-                {correctionSummary.unacknowledgedCommentCount} comment
-                {correctionSummary.unacknowledgedCommentCount === 1
-                  ? " remains"
-                  : "s remain"}{" "}
-                unacknowledged. You can still resubmit.
-              </p>
-            )}
+            <p className={styles.modalWarning}>
+              All moderator feedback fields have a saved revision.
+            </p>
             <div className={styles.modalActions}>
               <button
                 type="button"

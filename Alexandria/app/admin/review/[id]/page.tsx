@@ -19,7 +19,7 @@ export default async function ReviewDetailPage({
   if (!submissionId) {
     return (
       <div className="flex flex-col gap-6 p-8">
-        <h1 className="text-2xl font-bold text-white">Review Submission</h1>
+        <h1 className="text-2xl font-bold text-[var(--color-text)]">Review Submission</h1>
         <AdminDataState
           title="Submission unavailable"
           message="A valid submission id is required."
@@ -47,7 +47,7 @@ export default async function ReviewDetailPage({
   ) {
     return (
       <div className="flex flex-col gap-6 p-8">
-        <h1 className="text-2xl font-bold text-white">Review Submission</h1>
+        <h1 className="text-2xl font-bold text-[var(--color-text)]">Review Submission</h1>
         <AdminDataState
           title="Submission unavailable"
           message={
@@ -63,7 +63,7 @@ export default async function ReviewDetailPage({
   return (
     <ReviewDetailClient
       initialSubmission={submission}
-      viewerRole={viewer.role}
+      viewerRole={viewer.role as "admin" | "moderator"}
     />
   );
 }

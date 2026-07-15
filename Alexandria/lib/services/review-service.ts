@@ -10,6 +10,10 @@ import {
   validateThesisPdf,
 } from "../upload/file-validation";
 import { isDepartment } from "../domain/departments";
+import {
+  isResearchAreaId,
+  isSerializedResearchAreaIds,
+} from "../domain/research-areas";
 import { requireOwnership, requireRole, requireSession } from "./_guards";
 import {
   err,
@@ -26,6 +30,7 @@ import type {
   ReviewAuditEventType,
   ReviewComment,
   ReviewFieldKey,
+  ReviewSearchScope,
   ReviewStatus,
   ReviewSubmission,
   ReviewSubmissionListItem,
@@ -64,6 +69,7 @@ const REVIEW_STATUSES: ReviewStatus[] = [
   "accepted",
   "trashed",
 ];
+const REVIEW_SEARCH_SCOPES: ReviewSearchScope[] = ["title", "author"];
 const STUDY_TYPES: StudyType[] = ["thesis", "capstone"];
 const AUDIT_EVENTS: ReviewAuditEventType[] = [
   "submitted",
@@ -76,6 +82,24 @@ const AUDIT_EVENTS: ReviewAuditEventType[] = [
 ];
 const APPLICATION_TIME_ZONE = "Asia/Manila";
 const ISO_CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const REVIEW_LIST_SELECT = `
+  id,
+  title,
+  abstract,
+  year,
+  department,
+  research_area,
+  review_status,
+  publication_date,
+  publication_link,
+  conference,
+  recommendations,
+  lessons_learned,
+  submitted_by_user_id,
+  created_at,
+  updated_at,
+  study_type
+`;
 
 type ThesisRow = {
   id: number;
@@ -138,6 +162,11 @@ type AuditRow = {
   updated_at: string;
 };
 
+type ReviewSearchMatchRow = {
+  thesis_id: number;
+  total_count: number | string;
+};
+
 type UserNameRow = {
   id: string;
   profile_name: string | null;
@@ -166,6 +195,10 @@ function isPositiveInteger(value: number) {
 
 function isReviewStatus(value: unknown): value is ReviewStatus {
   return typeof value === "string" && REVIEW_STATUSES.includes(value as ReviewStatus);
+}
+
+function isReviewSearchScope(value: unknown): value is ReviewSearchScope {
+  return typeof value === "string" && REVIEW_SEARCH_SCOPES.includes(value as ReviewSearchScope);
 }
 
 function isReviewField(value: unknown): value is ReviewFieldKey {
@@ -309,6 +342,7 @@ function hasSchemaCacheReference(error: unknown, reference: string) {
 
   return (
     ["PGRST204", "PGRST205"].includes(error.code ?? "")
+    && typeof error.message === "string"
     && error.message.toLowerCase().includes(reference.toLowerCase())
   );
 }
@@ -337,7 +371,6 @@ function validateThesisId(thesisId: number): ServiceError | null {
   if (!isPositiveInteger(thesisId)) {
     return makeError("VALIDATION_FAILED", "A valid thesis id is required.");
   }
-
   return null;
 }
 
@@ -422,6 +455,16 @@ function validateUpdatePayload(values: Partial<SubmitThesisInput>) {
 
   if (values.department !== undefined && !isDepartment(values.department)) {
     return makeError("VALIDATION_FAILED", "Department must be CS, IT, or IS.");
+  }
+
+  if (
+    values.research_area !== undefined
+    && !isSerializedResearchAreaIds(values.research_area)
+  ) {
+    return makeError(
+      "VALIDATION_FAILED",
+      "Select at least one supported research area.",
+    );
   }
 
   if (values.publication_date !== undefined) {
@@ -573,13 +616,13 @@ async function loadThesisBundle(thesisId: number): Promise<{
 
     auditsResult = {
       ...fallbackAuditsResult,
-      data: ((fallbackAuditsResult.data ?? []) as Omit<AuditRow, "event">[]).map(
+      data: (fallbackAuditsResult.data ?? []).map(
         (audit) => ({
           ...audit,
           event: null,
         }),
       ),
-    };
+    } as any;
   }
 
   const firstError = [
@@ -705,7 +748,7 @@ async function loadListAuthorsAndCommentCounts(thesisIds: number[]) {
     return {
       authors: [] as AuthorRow[],
       totalCommentCounts: new Map<number, number>(),
-      openCommentCounts: new Map<number, number>(),
+      pendingRevisionCommentCounts: new Map<number, number>(),
     };
   }
 
@@ -719,7 +762,7 @@ async function loadListAuthorsAndCommentCounts(thesisIds: number[]) {
       .order("id", { ascending: true }),
     supabase
       .from("thesis_review_comments")
-      .select("thesis_id, addressed_at")
+      .select("thesis_id, member_revised_at")
       .in("thesis_id", thesisIds),
   ]);
 
@@ -734,12 +777,12 @@ async function loadListAuthorsAndCommentCounts(thesisIds: number[]) {
   }
 
   const totalCommentCounts = new Map<number, number>();
-  const openCommentCounts = new Map<number, number>();
+  const pendingRevisionCommentCounts = new Map<number, number>();
   const commentRows = isMissingReviewCommentsTable(commentsResult.error)
     ? []
     : (commentsResult.data ?? []) as Array<{
     thesis_id: number;
-    addressed_at: string | null;
+    member_revised_at: string | null;
   }>;
 
   for (const comment of commentRows) {
@@ -748,10 +791,10 @@ async function loadListAuthorsAndCommentCounts(thesisIds: number[]) {
       (totalCommentCounts.get(comment.thesis_id) ?? 0) + 1,
     );
 
-    if (!comment.addressed_at) {
-      openCommentCounts.set(
+    if (!comment.member_revised_at) {
+      pendingRevisionCommentCounts.set(
         comment.thesis_id,
-        (openCommentCounts.get(comment.thesis_id) ?? 0) + 1,
+        (pendingRevisionCommentCounts.get(comment.thesis_id) ?? 0) + 1,
       );
     }
   }
@@ -759,7 +802,7 @@ async function loadListAuthorsAndCommentCounts(thesisIds: number[]) {
   return {
     authors: (authorsResult.data ?? []) as AuthorRow[],
     totalCommentCounts,
-    openCommentCounts,
+    pendingRevisionCommentCounts,
   };
 }
 
@@ -777,56 +820,96 @@ export async function listReviewSubmissions(
         makeError("VALIDATION_FAILED", "Department must be CS, IT, or IS."),
       );
     }
+    if (params.researchArea && !isResearchAreaId(params.researchArea)) {
+      return err(makeError("VALIDATION_FAILED", "A valid research area is required."));
+    }
+    if (params.searchScope && !isReviewSearchScope(params.searchScope)) {
+      return err(makeError("VALIDATION_FAILED", "A valid search scope is required."));
+    }
 
     const page = normalizedPage(params.page);
     const limit = normalizedLimit(params.limit);
     const from = (page - 1) * limit;
     const to = from + limit - 1;
     const supabase = await createClient();
-    let query = supabase
-      .from("theses")
-      .select(`
-        id,
-        title,
-        abstract,
-        year,
-        department,
-        research_area,
-        review_status,
-        publication_date,
-        publication_link,
-        conference,
-        recommendations,
-        lessons_learned,
-        submitted_by_user_id,
-        created_at,
-        updated_at,
-        study_type
-      `, { count: "exact" })
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .range(from, to);
+    const searchTerm = params.q?.trim();
+    const searchScope = params.searchScope ?? "title";
+    let theses: ThesisRow[];
+    let totalCount: number;
 
-    if (params.reviewStatus) {
-      query = query.eq("review_status", params.reviewStatus);
+    if (searchTerm || params.researchArea) {
+      const { data: matchesData, error: matchesError } = await supabase.rpc(
+        "search_review_submission_ids_v2",
+        {
+          p_query: searchTerm ?? null,
+          p_scope: searchScope,
+          p_review_status: params.reviewStatus ?? null,
+          p_department: params.department ?? null,
+          p_research_area: params.researchArea ?? null,
+          p_page: page,
+          p_limit: limit,
+        },
+      );
+
+      if (matchesError) {
+        return err(makeError("SUPABASE_ERROR", "Review submissions could not be loaded."));
+      }
+
+      const matches = (matchesData ?? []) as ReviewSearchMatchRow[];
+      const thesisIds = matches.map((match) => match.thesis_id);
+      totalCount = matches.length > 0 ? Number(matches[0].total_count) : 0;
+
+      if (thesisIds.length === 0) {
+        return ok([], { total_count: 0, page, limit });
+      }
+
+      const { data, error } = await supabase
+        .from("theses")
+        .select(REVIEW_LIST_SELECT)
+        .in("id", thesisIds);
+
+      if (error) {
+        return err(makeError("SUPABASE_ERROR", "Review submissions could not be loaded."));
+      }
+
+      const thesesById = new Map(
+        ((data ?? []) as ThesisRow[]).map((thesis) => [thesis.id, thesis]),
+      );
+      theses = thesisIds.flatMap((thesisId) => {
+        const thesis = thesesById.get(thesisId);
+        return thesis ? [thesis] : [];
+      });
     } else {
-      query = query.neq("review_status", "trashed");
+      let query = supabase
+        .from("theses")
+        .select(REVIEW_LIST_SELECT, { count: "exact" })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(from, to);
+
+      if (params.reviewStatus) {
+        query = query.eq("review_status", params.reviewStatus);
+      } else {
+        query = query.neq("review_status", "trashed");
+      }
+
+      if (params.department) {
+        query = query.eq("department", params.department);
+      }
+
+      if (searchTerm) {
+        query = query.ilike("title", `%${searchTerm}%`);
+      }
+
+      const { data, count, error } = await query;
+      if (error) {
+        return err(makeError("SUPABASE_ERROR", "Review submissions could not be loaded."));
+      }
+
+      theses = (data ?? []) as ThesisRow[];
+      totalCount = count ?? 0;
     }
 
-    if (params.department) {
-      query = query.eq("department", params.department);
-    }
-
-    if (params.q?.trim()) {
-      query = query.ilike("title", `%${params.q.trim()}%`);
-    }
-
-    const { data, count, error } = await query;
-    if (error) {
-      return err(makeError("SUPABASE_ERROR", "Review submissions could not be loaded."));
-    }
-
-    const theses = (data ?? []) as ThesisRow[];
     const ids = theses.map((thesis) => thesis.id);
     const { authors, totalCommentCounts } = await loadListAuthorsAndCommentCounts(ids);
 
@@ -835,7 +918,7 @@ export async function listReviewSubmissions(
         mapListItem(thesis, authors, totalCommentCounts.get(thesis.id) ?? 0),
       ),
       {
-        total_count: count ?? 0,
+        total_count: totalCount,
         page,
         limit,
       },
@@ -1048,7 +1131,7 @@ export async function listOwnSubmissions(
     const {
       authors,
       totalCommentCounts,
-      openCommentCounts,
+      pendingRevisionCommentCounts,
     } = await loadListAuthorsAndCommentCounts(ids);
 
     return ok(
@@ -1056,7 +1139,7 @@ export async function listOwnSubmissions(
         ...mapListItem(thesis, authors, totalCommentCounts.get(thesis.id) ?? 0),
         flaggedCommentCount:
           thesis.review_status === "flagged"
-            ? openCommentCounts.get(thesis.id) ?? 0
+            ? pendingRevisionCommentCounts.get(thesis.id) ?? 0
             : 0,
       })),
     );
@@ -1124,50 +1207,6 @@ export async function updateFlaggedSubmission(
   } catch (error) {
     return err(
       normalizeServiceError(error, "Your submission changes could not be saved."),
-    );
-  }
-}
-
-export async function markReviewCommentAddressed(input: {
-  thesisId: number;
-  commentId: number;
-}): Promise<ServiceResult<ReviewComment>> {
-  try {
-    const thesisValidationError = validateThesisId(input.thesisId);
-    if (thesisValidationError) {
-      return err(thesisValidationError);
-    }
-
-    if (!isPositiveInteger(input.commentId)) {
-      return err(makeError("VALIDATION_FAILED", "A valid review comment id is required."));
-    }
-
-    const user = await requireSession();
-    if (user.role !== "member") {
-      return err(makeError("FORBIDDEN", "An active member account is required."));
-    }
-    await requireOwnership(input.thesisId, user.id);
-
-    const supabase = await createClient();
-    const { error: rpcError } = await supabase.rpc("mark_review_comment_addressed", {
-      target_thesis_id: input.thesisId,
-      target_comment_id: input.commentId,
-    });
-
-    if (rpcError) {
-      return err(mutationError(rpcError, "The review comment could not be marked addressed."));
-    }
-
-    const submission = await loadReviewSubmission(input.thesisId);
-    const updatedComment = submission.fieldComments.find((item) => item.id === input.commentId);
-    if (!updatedComment) {
-      return err(makeError("NOT_FOUND", "The review comment could not be loaded."));
-    }
-
-    return ok(updatedComment);
-  } catch (error) {
-    return err(
-      normalizeServiceError(error, "The review comment could not be marked addressed."),
     );
   }
 }

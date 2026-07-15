@@ -16,6 +16,7 @@ import { ReviewableField } from "@/components/review/reviewable-field";
 import { ReviewDecisionActions } from "@/components/review/review-decision-actions";
 import { ReviewAuditTimeline } from "@/components/review/review-audit-timeline";
 import { CommentSidePanel } from "@/components/review/comment-side-panel";
+import { formatResearchAreaLabels } from "@/lib/domain/research-areas";
 import type { ReviewFieldKey } from "@/components/review/types";
 import {
   addReviewComment,
@@ -47,7 +48,7 @@ function FieldGroupDivider() {
       aria-hidden
       style={{
         height: 1,
-        background: "rgba(255,255,255,0.035)",
+        background: "var(--color-separator)",
         margin: "2px 0",
       }}
     />
@@ -67,12 +68,12 @@ function Chip({ label, accent = false }: { label: string; accent?: boolean }) {
         fontSize: 12,
         fontWeight: 500,
         background: accent
-          ? "rgba(54,139,254,0.1)"
-          : "rgba(255,255,255,0.05)",
+          ? "var(--color-chip-cyan-bg)"
+          : "var(--color-surface-alt)",
         border: accent
           ? "1px solid rgba(54,139,254,0.2)"
           : "1px solid rgba(255,255,255,0.08)",
-        color: accent ? "#8ec5ff" : "#d8dadc",
+        color: accent ? "var(--color-brand-bright)" : "var(--color-text-muted)",
       }}
     >
       {label}
@@ -93,9 +94,11 @@ export function ReviewDetailClient({
   const [actionError, setActionError] = useState<string | null>(null);
   const [isActionPending, setIsActionPending] = useState(false);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(true);
-  const [activeCommentField, setActiveCommentField] = useState<ReviewFieldKey | null>(null);
+  const [activeCommentField, setActiveCommentField] =
+    useState<ReviewFieldKey | null>(null);
   const [commentAnchorY, setCommentAnchorY] = useState(120);
-  const [isAdminMetadataEditorOpen, setIsAdminMetadataEditorOpen] = useState(false);
+  const [isAdminMetadataEditorOpen, setIsAdminMetadataEditorOpen] =
+    useState(false);
 
   const handleAddComment = useCallback(
     async (fieldKey: ReviewFieldKey, comment: string) => {
@@ -117,7 +120,8 @@ export function ReviewDetailClient({
       const refreshResult = await getReviewSubmission(submission.id);
       if (refreshResult.error || !refreshResult.data) {
         setActionError(
-          refreshResult.error?.message ?? "The updated review could not be loaded.",
+          refreshResult.error?.message ??
+            "The updated review could not be loaded.",
         );
         setIsActionPending(false);
         return;
@@ -132,11 +136,13 @@ export function ReviewDetailClient({
   const handleDecision = useCallback(
     async (nextStatus: ReviewStatus) => {
       if (
-        nextStatus === "for_review"
-        && submission.reviewStatus !== "accepted"
-        && !(viewerRole === "admin" && submission.reviewStatus === "trashed")
+        nextStatus === "for_review" &&
+        submission.reviewStatus !== "accepted" &&
+        !(viewerRole === "admin" && submission.reviewStatus === "trashed")
       ) {
-        setActionError("Members return flagged submissions to pending by resubmitting.");
+        setActionError(
+          "Members return flagged submissions to pending by resubmitting.",
+        );
         return;
       }
 
@@ -149,7 +155,9 @@ export function ReviewDetailClient({
       });
 
       if (result.error || !result.data) {
-        setActionError(result.error?.message ?? "The review status could not be changed.");
+        setActionError(
+          result.error?.message ?? "The review status could not be changed.",
+        );
         setIsActionPending(false);
         return;
       }
@@ -180,7 +188,10 @@ export function ReviewDetailClient({
       setIsActionPending(false);
 
       if (result.error || !result.data) {
-        return result.error?.message ?? "The submission metadata could not be corrected.";
+        return (
+          result.error?.message ??
+          "The submission metadata could not be corrected."
+        );
       }
 
       setSubmission(result.data);
@@ -215,7 +226,14 @@ export function ReviewDetailClient({
   // ─── Layout ───────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "32px 32px 64px" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 24,
+        padding: "32px 32px 64px",
+      }}
+    >
       {viewerRole === "admin" && (
         <AdminMetadataEditorDialog
           submission={submission}
@@ -232,8 +250,8 @@ export function ReviewDetailClient({
           style={{
             borderRadius: 7,
             border: "1px solid rgba(255,107,107,0.24)",
-            background: "rgba(255,107,107,0.08)",
-            color: "#ffb3b3",
+            background: "var(--color-chip-red-bg)",
+            color: "var(--color-chip-red-text)",
             padding: "12px 14px",
             fontSize: 13,
           }}
@@ -270,7 +288,9 @@ export function ReviewDetailClient({
             onClick={() => setReviewPanelOpen((prev) => !prev)}
             aria-expanded={reviewPanelOpen}
             aria-controls="review-panel"
-            aria-label={reviewPanelOpen ? "Collapse review panel" : "Expand review panel"}
+            aria-label={
+              reviewPanelOpen ? "Collapse review panel" : "Expand review panel"
+            }
             style={{
               display: "flex",
               alignItems: "center",
@@ -281,8 +301,8 @@ export function ReviewDetailClient({
               borderRadius: "7px 7px 0 0",
               border: "1px solid rgba(255,255,255,0.07)",
               borderBottom: "none",
-              background: "#1a1e23",
-              color: "#5a6070",
+              background: "var(--color-surface-alt)",
+              color: "var(--color-text-muted)",
               fontSize: 11,
               fontWeight: 600,
               textTransform: "uppercase",
@@ -292,10 +312,12 @@ export function ReviewDetailClient({
               transition: "color 120ms ease",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "#ffffff";
+              (e.currentTarget as HTMLButtonElement).style.color =
+                e.currentTarget.style.color = "var(--color-text)";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "#5a6070";
+              (e.currentTarget as HTMLButtonElement).style.color =
+                "var(--color-text-muted)";
             }}
           >
             {reviewPanelOpen && <span>Review Panel</span>}
@@ -314,17 +336,25 @@ export function ReviewDetailClient({
               overflowX: "hidden",
               borderRadius: "0 0 7px 7px",
               border: "1px solid rgba(255,255,255,0.07)",
-              background: "#1a1e23",
-              transition: "max-height 280ms cubic-bezier(0.4,0,0.2,1), opacity 200ms ease",
+              background: "var(--color-surface-alt)",
+              transition:
+                "max-height 280ms cubic-bezier(0.4,0,0.2,1), opacity 200ms ease",
               maxHeight: reviewPanelOpen ? "calc(100vh - 84px)" : 0,
               opacity: reviewPanelOpen ? 1 : 0,
               flex: 1,
             }}
             aria-hidden={!reviewPanelOpen}
           >
-            <div style={{ padding: "24px 16px", display: "flex", flexDirection: "column", gap: 24 }}>
+            <div
+              style={{
+                padding: "24px 16px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 24,
+              }}
+            >
               <BackLink />
-              
+
               {/* Current status */}
               <div>
                 <p
@@ -334,7 +364,7 @@ export function ReviewDetailClient({
                     fontWeight: 600,
                     textTransform: "uppercase",
                     letterSpacing: "0.15em",
-                    color: "#5a6070",
+                    color: "var(--color-text-muted)",
                   }}
                 >
                   Current Status
@@ -345,7 +375,7 @@ export function ReviewDetailClient({
               <div
                 style={{
                   height: 1,
-                  background: "rgba(255,255,255,0.06)",
+                  background: "var(--color-separator)",
                 }}
               />
 
@@ -361,7 +391,7 @@ export function ReviewDetailClient({
               <div
                 style={{
                   height: 1,
-                  background: "rgba(255,255,255,0.06)",
+                  background: "var(--color-separator)",
                 }}
               />
 
@@ -381,31 +411,45 @@ export function ReviewDetailClient({
                 padding: "12px 0",
                 borderRadius: "0 0 7px 7px",
                 border: "1px solid rgba(255,255,255,0.07)",
-                background: "#1a1e23",
+                background: "var(--color-surface-alt)",
                 overflow: "hidden",
               }}
             >
               <BackLink collapsed />
-              
+
               {/* Compact status dot */}
               <span
                 aria-label={`Status: ${submission.reviewStatus}`}
-                title={submission.reviewStatus === "for_review" ? "Pending" : submission.reviewStatus === "accepted" ? "Approved" : submission.reviewStatus === "flagged" ? "Flagged" : "Trashed"}
+                title={
+                  submission.reviewStatus === "for_review"
+                    ? "Pending"
+                    : submission.reviewStatus === "accepted"
+                      ? "Approved"
+                      : submission.reviewStatus === "flagged"
+                        ? "Flagged"
+                        : "Trashed"
+                }
                 style={{
                   width: 10,
                   height: 10,
                   borderRadius: "50%",
                   flexShrink: 0,
                   background:
-                    submission.reviewStatus === "for_review" ? "#f0b83b" :
-                    submission.reviewStatus === "accepted"   ? "#59c987" :
-                    submission.reviewStatus === "flagged"    ? "#ff6b6b" :
-                    "#696969",
+                    submission.reviewStatus === "for_review"
+                      ? "var(--color-pronunciation)"
+                      : submission.reviewStatus === "accepted"
+                        ? "var(--color-success)"
+                        : submission.reviewStatus === "flagged"
+                          ? "var(--color-danger)"
+                          : "var(--color-separator-mid)",
                   boxShadow:
-                    submission.reviewStatus === "for_review" ? "0 0 6px rgba(240,184,59,0.5)" :
-                    submission.reviewStatus === "accepted"   ? "0 0 6px rgba(89,201,135,0.5)" :
-                    submission.reviewStatus === "flagged"    ? "0 0 6px rgba(255,107,107,0.5)" :
-                    "none",
+                    submission.reviewStatus === "for_review"
+                      ? "none"
+                      : submission.reviewStatus === "accepted"
+                        ? "none"
+                        : submission.reviewStatus === "flagged"
+                          ? "none"
+                          : "none",
                 }}
               />
             </div>
@@ -418,14 +462,20 @@ export function ReviewDetailClient({
         {/* ════════════════════════════════════════════════════════════════
             LEFT PANEL — scrollable field content
             ════════════════════════════════════════════════════════════════ */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            minWidth: 0,
+          }}
+        >
           {/* ── Submission header ───────────────────────────────────────── */}
           <div
             style={{
               borderRadius: 7,
               border: "1px solid rgba(255,255,255,0.07)",
-              background: "#1a1e23",
+              background: "var(--color-surface-alt)",
               padding: "24px",
             }}
           >
@@ -446,7 +496,7 @@ export function ReviewDetailClient({
                     fontWeight: 600,
                     textTransform: "uppercase",
                     letterSpacing: "0.15em",
-                    color: "#5a6070",
+                    color: "var(--color-text-muted)",
                   }}
                 >
                   Study Review
@@ -463,7 +513,7 @@ export function ReviewDetailClient({
                       margin: "6px 0 0",
                       fontSize: 19,
                       fontWeight: 700,
-                      color: "#ffffff",
+                      color: "var(--color-text)",
                       lineHeight: 1.35,
                     }}
                   >
@@ -479,12 +529,13 @@ export function ReviewDetailClient({
               style={{
                 margin: 0,
                 fontSize: 12,
-                color: "#5a6070",
+                color: "var(--color-text-muted)",
                 lineHeight: 1.5,
               }}
             >
               {submission.studyType === "thesis" ? "Thesis" : "Capstone"} ·{" "}
-              {submission.department} · Submitted {formatDate(submission.submittedAt)}
+              {submission.department} · Submitted{" "}
+              {formatDate(submission.submittedAt)}
             </p>
           </div>
 
@@ -493,7 +544,7 @@ export function ReviewDetailClient({
             style={{
               borderRadius: 7,
               border: "1px solid rgba(255,255,255,0.07)",
-              background: "#1a1e23",
+              background: "var(--color-surface-alt)",
               padding: "24px",
               display: "flex",
               flexDirection: "column",
@@ -532,7 +583,15 @@ export function ReviewDetailClient({
                   ))}
                 </div>
               ) : (
-                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  —
+                </p>
               )}
             </ReviewableField>
 
@@ -553,7 +612,14 @@ export function ReviewDetailClient({
                 isActive={activeCommentField === "department"}
                 onCommentIconClick={handleCommentIconClick}
               >
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: "var(--color-text)",
+                  }}
+                >
                   {submission.department}
                 </p>
               </ReviewableField>
@@ -565,7 +631,14 @@ export function ReviewDetailClient({
                 isActive={activeCommentField === "study_type"}
                 onCommentIconClick={handleCommentIconClick}
               >
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: "var(--color-text)",
+                  }}
+                >
                   {submission.studyType === "thesis" ? "Thesis" : "Capstone"}
                 </p>
               </ReviewableField>
@@ -577,7 +650,14 @@ export function ReviewDetailClient({
                 isActive={activeCommentField === "publication_date"}
                 onCommentIconClick={handleCommentIconClick}
               >
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: "var(--color-text)",
+                  }}
+                >
                   {submission.publicationDate}
                 </p>
               </ReviewableField>
@@ -589,7 +669,14 @@ export function ReviewDetailClient({
                 isActive={activeCommentField === "conference"}
                 onCommentIconClick={handleCommentIconClick}
               >
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    color: "var(--color-text)",
+                  }}
+                >
                   {submission.conference ?? "Not provided"}
                 </p>
               </ReviewableField>
@@ -606,9 +693,20 @@ export function ReviewDetailClient({
               onCommentIconClick={handleCommentIconClick}
             >
               {submission.researchArea ? (
-                <Chip label={submission.researchArea} accent />
+                <Chip
+                  label={formatResearchAreaLabels(submission.researchArea)}
+                  accent
+                />
               ) : (
-                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  —
+                </p>
               )}
             </ReviewableField>
 
@@ -629,7 +727,15 @@ export function ReviewDetailClient({
                   ))}
                 </div>
               ) : (
-                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  —
+                </p>
               )}
             </ReviewableField>
 
@@ -653,7 +759,7 @@ export function ReviewDetailClient({
                     alignItems: "center",
                     gap: 6,
                     fontSize: 13,
-                    color: "#368bfe",
+                    color: "var(--color-brand-bright)",
                     textDecoration: "none",
                     wordBreak: "break-all",
                   }}
@@ -662,7 +768,15 @@ export function ReviewDetailClient({
                   {submission.publicationLink}
                 </a>
               ) : (
-                <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>—</p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  —
+                </p>
               )}
             </ReviewableField>
           </div>
@@ -671,7 +785,7 @@ export function ReviewDetailClient({
             style={{
               borderRadius: 7,
               border: "1px solid rgba(255,255,255,0.07)",
-              background: "#1a1e23",
+              background: "var(--color-surface-alt)",
               padding: "24px",
               display: "flex",
               flexDirection: "column",
@@ -679,178 +793,227 @@ export function ReviewDetailClient({
             }}
           >
             {/* Abstract */}
-          <ReviewableField
-            fieldKey="abstract"
-            label="Abstract"
-            comments={fieldComments("abstract")}
-            isActive={activeCommentField === "abstract"}
-            onCommentIconClick={handleCommentIconClick}
-            expandable
-          >
-            <p
-              style={{
-                margin: 0,
-                fontSize: 14,
-                lineHeight: 1.7,
-                color: "#d8dadc",
-              }}
+            <ReviewableField
+              fieldKey="abstract"
+              label="Abstract"
+              comments={fieldComments("abstract")}
+              isActive={activeCommentField === "abstract"}
+              onCommentIconClick={handleCommentIconClick}
+              expandable
             >
-              {submission.abstract}
-            </p>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 14,
+                  lineHeight: 1.7,
+                  color: "var(--color-text-muted)",
+                }}
+              >
+                {submission.abstract}
+              </p>
             </ReviewableField>
 
             <FieldGroupDivider />
 
             {/* Recommendations */}
-          <ReviewableField
-            fieldKey="recommendations"
-            label="Recommendations"
-            comments={fieldComments("recommendations")}
-            isActive={activeCommentField === "recommendations"}
-            onCommentIconClick={handleCommentIconClick}
-            expandable
-          >
-            {submission.recommendations ? (
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "#d8dadc" }}>
-                {submission.recommendations}
-              </p>
-            ) : (
-              <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>
-                No recommendations provided.
-              </p>
-            )}
+            <ReviewableField
+              fieldKey="recommendations"
+              label="Recommendations"
+              comments={fieldComments("recommendations")}
+              isActive={activeCommentField === "recommendations"}
+              onCommentIconClick={handleCommentIconClick}
+              expandable
+            >
+              {submission.recommendations ? (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  {submission.recommendations}
+                </p>
+              ) : (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  No recommendations provided.
+                </p>
+              )}
             </ReviewableField>
 
             <FieldGroupDivider />
 
             {/* Lessons Learned */}
-          <ReviewableField
-            fieldKey="lessons_learned"
-            label="Lessons Learned"
-            comments={fieldComments("lessons_learned")}
-            isActive={activeCommentField === "lessons_learned"}
-            onCommentIconClick={handleCommentIconClick}
-            expandable
-          >
-            {submission.lessonsLearned ? (
-              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: "#d8dadc" }}>
-                {submission.lessonsLearned}
-              </p>
-            ) : (
-              <p style={{ margin: 0, fontSize: 13, color: "#5a6070" }}>
-                No lessons learned provided.
-              </p>
-            )}
+            <ReviewableField
+              fieldKey="lessons_learned"
+              label="Lessons Learned"
+              comments={fieldComments("lessons_learned")}
+              isActive={activeCommentField === "lessons_learned"}
+              onCommentIconClick={handleCommentIconClick}
+              expandable
+            >
+              {submission.lessonsLearned ? (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  {submission.lessonsLearned}
+                </p>
+              ) : (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 13,
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  No lessons learned provided.
+                </p>
+              )}
             </ReviewableField>
 
             <FieldGroupDivider />
 
             {/* PDF Section */}
-          {submission.primaryFile && (
-            <ReviewableField
-              fieldKey="pdf_general"
-              label="PDF / Paper"
-              comments={fieldComments("pdf_general")}
-              isActive={activeCommentField === "pdf_general"}
-              onCommentIconClick={handleCommentIconClick}
-            >
-              {/* File info row */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
+            {submission.primaryFile && (
+              <ReviewableField
+                fieldKey="pdf_general"
+                label="PDF / Paper"
+                comments={fieldComments("pdf_general")}
+                isActive={activeCommentField === "pdf_general"}
+                onCommentIconClick={handleCommentIconClick}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 7,
-                      background: "rgba(54,139,254,0.1)",
-                      border: "1px solid rgba(54,139,254,0.15)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
+                {/* File info row */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 10 }}
                   >
-                    <FileText size={16} color="#368bfe" aria-hidden />
-                  </span>
-                  <div>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#ffffff" }}>
-                      {submission.primaryFile.fileName}
-                    </p>
-                    <p style={{ margin: 0, fontSize: 11, color: "#5a6070" }}>
-                      {submission.primaryFile.fileSize}
-                    </p>
+                    <span
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 7,
+                        background: "var(--color-chip-cyan-bg)",
+                        border: "1px solid rgba(54,139,254,0.15)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <FileText size={16} color="#368bfe" aria-hidden />
+                    </span>
+                    <div>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: "var(--color-text)",
+                        }}
+                      >
+                        {submission.primaryFile.fileName}
+                      </p>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 11,
+                          color: "var(--color-text-muted)",
+                        }}
+                      >
+                        {submission.primaryFile.fileSize}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <a
+                      href={submission.primaryFile.pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "6px 12px",
+                        borderRadius: 6,
+                        border: "1px solid rgba(54,139,254,0.3)",
+                        background: "var(--color-chip-cyan-bg)",
+                        color: "var(--color-brand-bright)",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textDecoration: "none",
+                        transition: "background 150ms ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        (
+                          e.currentTarget as HTMLAnchorElement
+                        ).style.background = "var(--color-brand-cyan)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (
+                          e.currentTarget as HTMLAnchorElement
+                        ).style.background = "var(--color-chip-cyan-bg)";
+                      }}
+                    >
+                      <ExternalLink size={12} aria-hidden />
+                      Open PDF
+                    </a>
+                    <a
+                      href={submission.primaryFile.pdfUrl}
+                      download={submission.primaryFile.fileName}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "6px 12px",
+                        borderRadius: 6,
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        background: "var(--color-surface-alt)",
+                        color: "var(--color-text-muted)",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        textDecoration: "none",
+                        transition: "background 150ms ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        (
+                          e.currentTarget as HTMLAnchorElement
+                        ).style.background = "var(--color-separator)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (
+                          e.currentTarget as HTMLAnchorElement
+                        ).style.background = "var(--color-surface-alt)";
+                      }}
+                    >
+                      <Download size={12} aria-hidden />
+                      Download
+                    </a>
                   </div>
                 </div>
-
-                {/* Action buttons */}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <a
-                    href={submission.primaryFile.pdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "6px 12px",
-                      borderRadius: 6,
-                      border: "1px solid rgba(54,139,254,0.3)",
-                      background: "rgba(54,139,254,0.08)",
-                      color: "#368bfe",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      textDecoration: "none",
-                      transition: "background 150ms ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.background = "rgba(54,139,254,0.15)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.background = "rgba(54,139,254,0.08)";
-                    }}
-                  >
-                    <ExternalLink size={12} aria-hidden />
-                    Open PDF
-                  </a>
-                  <a
-                    href={submission.primaryFile.pdfUrl}
-                    download={submission.primaryFile.fileName}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                      padding: "6px 12px",
-                      borderRadius: 6,
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      background: "rgba(255,255,255,0.04)",
-                      color: "#a8b0c0",
-                      fontSize: 12,
-                      fontWeight: 600,
-                      textDecoration: "none",
-                      transition: "background 150ms ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.08)";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.04)";
-                    }}
-                  >
-                    <Download size={12} aria-hidden />
-                    Download
-                  </a>
-                </div>
-              </div>
-            </ReviewableField>
-          )}
+              </ReviewableField>
+            )}
           </div>
         </div>
       </div>
@@ -874,7 +1037,7 @@ function BackLink({ collapsed }: { collapsed?: boolean }) {
   return (
     <Link
       href="/admin/dashboard?status=for_review"
-      title={collapsed ? "Back to Dashboard Queue" : undefined}
+      title={collapsed ? "Back to Dashboard" : undefined}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -885,8 +1048,8 @@ function BackLink({ collapsed }: { collapsed?: boolean }) {
         padding: collapsed ? 0 : "0 12px",
         borderRadius: 7,
         border: "1px solid rgba(255,255,255,0.1)",
-        background: "rgba(255,255,255,0.04)",
-        color: "#d8dadc",
+        background: "var(--color-surface-alt)",
+        color: "var(--color-text-muted)",
         fontSize: 13,
         fontWeight: 600,
         textDecoration: "none",
@@ -894,15 +1057,15 @@ function BackLink({ collapsed }: { collapsed?: boolean }) {
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLAnchorElement).style.background =
-          "rgba(255,255,255,0.08)";
+          "var(--color-separator)";
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLAnchorElement).style.background =
-          "rgba(255,255,255,0.04)";
+          "var(--color-surface-alt)";
       }}
     >
       <ArrowLeft size={14} aria-hidden />
-      {!collapsed && "Back to Dashboard Queue"}
+      {!collapsed && "Back to Dashboard"}
     </Link>
   );
 }

@@ -1,24 +1,18 @@
-export type CommentCorrectionState = "needs_attention" | "revised" | "addressed";
+export type CommentCorrectionState = "needs_attention" | "revised";
 
 export type CorrectionSummary = {
   totalComments: number;
   revisedCommentCount: number;
-  acknowledgedCommentCount: number;
-  unacknowledgedCommentCount: number;
+  pendingRevisionCommentCount: number;
 };
 
 type CorrectionComment = {
   memberRevisedAt: string | null;
-  addressedAt: string | null;
 };
 
 export function getCommentCorrectionState(
   comment: CorrectionComment,
 ): CommentCorrectionState {
-  if (comment.addressedAt) {
-    return "addressed";
-  }
-
   if (comment.memberRevisedAt) {
     return "revised";
   }
@@ -32,14 +26,11 @@ export function getCorrectionSummary(
   const revisedCommentCount = comments.filter(
     (comment) => comment.memberRevisedAt,
   ).length;
-  const acknowledgedCommentCount = comments.filter(
-    (comment) => comment.addressedAt,
-  ).length;
+  const pendingRevisionCommentCount = comments.length - revisedCommentCount;
 
   return {
     totalComments: comments.length,
     revisedCommentCount,
-    acknowledgedCommentCount,
-    unacknowledgedCommentCount: comments.length - acknowledgedCommentCount,
+    pendingRevisionCommentCount,
   };
 }
