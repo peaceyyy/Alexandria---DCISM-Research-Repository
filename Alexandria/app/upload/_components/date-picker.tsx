@@ -71,19 +71,19 @@ export function DatePicker({ value, onChange, max, error }: DatePickerProps) {
       <Popover.Trigger
         aria-label={`Select publication date${selectedDate ? `: ${displayDate}` : ""}`}
         className={cn(
-          "flex h-[42px] w-full items-center gap-2 rounded-md border bg-[#0D1117] px-3 text-left text-sm transition-colors",
+          "flex h-[42px] w-full items-center gap-2 rounded-md border bg-[var(--color-surface)] px-3 text-left text-sm transition-colors",
           error
-            ? "border-[#ff6b6b]/50 text-white focus-visible:border-[#ff6b6b]/80"
-            : "border-white/8 text-white hover:border-white/15 focus-visible:border-[#368BFE]/70",
+            ? "border-[var(--color-danger)]/50 text-[var(--color-text)] focus-visible:border-[var(--color-danger)]/80"
+            : "border-[var(--color-separator)] text-[var(--color-text)] hover:border-[var(--color-separator-mid)] focus-visible:border-[var(--color-brand-bright)]/70",
         )}
       >
-        <CalendarIcon className="size-4 shrink-0 text-[#368BFE]" aria-hidden />
-        <span className={cn("flex-1", !selectedDate && "text-white/40")}>
+        <CalendarIcon className="size-4 shrink-0 text-[var(--color-brand-bright)]" aria-hidden />
+        <span className={cn("flex-1", !selectedDate && "text-[var(--color-placeholder)]")}>
           {displayDate}
         </span>
         <ChevronDown
           className={cn(
-            "size-4 shrink-0 text-white/35 transition-transform",
+            "size-4 shrink-0 text-[var(--color-text-muted)] transition-transform",
             open && "rotate-180",
           )}
           aria-hidden
@@ -91,10 +91,20 @@ export function DatePicker({ value, onChange, max, error }: DatePickerProps) {
       </Popover.Trigger>
 
       <Popover.Portal>
-        <Popover.Positioner align="start" side="bottom" sideOffset={8}>
+        <Popover.Positioner
+          align="end"
+          side="bottom"
+          sideOffset={8}
+          collisionPadding={16}
+          collisionAvoidance={{
+            side: "flip",
+            align: "shift",
+            fallbackAxisSide: "none",
+          }}
+        >
           <Popover.Popup
             aria-label="Publication date"
-            className="z-50 rounded-md border border-white/10 bg-[#171B21] p-2 text-white shadow-[0_12px_24px_rgba(0,0,0,0.28)] outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+            className="z-50 rounded-md border border-[var(--color-separator)] bg-[var(--color-surface)] p-2 text-[var(--color-text)] shadow-lg outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
             role="dialog"
           >
             <Calendar
@@ -111,13 +121,13 @@ export function DatePicker({ value, onChange, max, error }: DatePickerProps) {
               autoFocus
               className="bg-transparent p-1"
               classNames={{
-                button_next: "text-white/55 hover:bg-white/10 hover:text-white",
-                button_previous: "text-white/55 hover:bg-white/10 hover:text-white",
-                caption_label: "text-white",
+                button_next: "text-[var(--color-text-muted)] hover:bg-[var(--color-separator)] hover:text-[var(--color-text)]",
+                button_previous: "text-[var(--color-text-muted)] hover:bg-[var(--color-separator)] hover:text-[var(--color-text)]",
+                caption_label: "text-[var(--color-text)]",
                 day_button:
-                  "text-white hover:bg-white/10 hover:text-white data-[selected-single=true]:bg-[#1752F0] data-[selected-single=true]:text-white",
-                disabled: "text-white/20 opacity-100",
-                weekday: "text-white/35",
+                  "text-[var(--color-text)] hover:bg-[var(--color-separator)] hover:text-[var(--color-text)] data-[selected-single=true]:bg-[var(--color-brand)] data-[selected-single=true]:text-white",
+                disabled: "text-[var(--color-text-muted)] opacity-50",
+                weekday: "text-[var(--color-text-muted)]",
               }}
             />
           </Popover.Popup>

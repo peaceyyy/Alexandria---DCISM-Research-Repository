@@ -30,19 +30,19 @@ export function SubmitConfirmDialog({
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen && !isSubmitting) onCancel(); }}>
       <DialogContent
         showCloseButton={false}
-        className="border-white/8 bg-[#1C2026] text-white sm:max-w-sm"
+        className="border-[var(--color-separator)] bg-[var(--color-surface)] text-[var(--color-text)] sm:max-w-sm"
       >
         <DialogHeader>
-          <div className="mb-1 flex items-center gap-2 text-[#368BFE]">
+          <div className="mb-1 flex items-center gap-2 text-[var(--color-brand-bright)]">
             <Send size={14} aria-hidden />
             <span className="text-[10px] font-semibold uppercase tracking-widest">
               Ready to Submit
             </span>
           </div>
-          <DialogTitle className="text-base font-semibold text-white">
+          <DialogTitle className="text-base font-semibold text-[var(--color-text)]">
             Submit your thesis for review?
           </DialogTitle>
-          <DialogDescription className="text-white/45">
+          <DialogDescription className="text-[var(--color-text-muted)]">
             Your submission will be sent to the Alexandria team. You will be notified once it has
             been reviewed — either approved or flagged with feedback.
           </DialogDescription>
@@ -50,25 +50,25 @@ export function SubmitConfirmDialog({
 
         {/* Submission error */}
         {error && (
-          <div className="flex items-start gap-2 rounded-lg border border-[#ff6b6b]/20 bg-[#ff6b6b]/8 px-3 py-2.5">
-            <AlertCircle size={13} className="mt-0.5 flex-shrink-0 text-[#ff6b6b]" aria-hidden />
-            <p className="text-xs leading-relaxed text-[#ff6b6b]">{error}</p>
+          <div className="flex items-start gap-2 rounded-lg border border-[var(--color-danger)]/20 bg-[var(--color-danger)]/5 px-3 py-2.5">
+            <AlertCircle size={13} className="mt-0.5 flex-shrink-0 text-[var(--color-danger)]" aria-hidden />
+            <p className="text-xs leading-relaxed text-[var(--color-danger)]">{error}</p>
           </div>
         )}
 
-        <DialogFooter className="border-t border-white/5 bg-transparent">
+        <DialogFooter className="border-t border-[var(--color-separator)] bg-transparent">
           <Button
             variant="ghost"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="border border-white/10 text-white/60 hover:border-white/20 hover:text-white"
+            className="border border-[var(--color-separator)] text-[var(--color-text-muted)] hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)]"
           >
             Review again
           </Button>
           <Button
             onClick={onConfirm}
             disabled={isSubmitting}
-            className="bg-[#1752F0] text-white hover:bg-[#368BFE]"
+            className="bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-bright)]"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">

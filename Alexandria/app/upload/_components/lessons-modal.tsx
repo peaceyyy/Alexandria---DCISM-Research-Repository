@@ -41,23 +41,23 @@ function LessonItem({
         transition,
         opacity: isDragging ? 0.4 : 1,
       }}
-      className="group flex items-center gap-2 rounded-md border border-white/6 bg-[#14181C] px-3 py-2.5"
+      className="group flex items-center gap-2 rounded-md border border-[var(--color-separator-mid)] bg-[var(--color-bg)] px-3 py-2.5"
     >
       <button
         {...attributes}
         {...listeners}
         type="button"
-        className="flex-shrink-0 touch-none cursor-grab text-white/18 hover:text-white/45 transition-colors"
+        className="flex-shrink-0 touch-none cursor-grab text-[var(--color-text-muted)] opacity-50 hover:opacity-100 transition-colors"
         aria-label="Drag to reorder"
         tabIndex={-1}
       >
         <GripVertical size={13} aria-hidden />
       </button>
-      <span className="flex-1 text-sm leading-relaxed text-white/70">{text}</span>
+      <span className="flex-1 text-sm leading-relaxed text-[var(--color-text)]">{text}</span>
       <button
         type="button"
         onClick={onRemove}
-        className="flex-shrink-0 text-white/18 opacity-0 transition-all hover:text-[#ff6b6b] group-hover:opacity-100"
+        className="flex-shrink-0 text-[var(--color-text-muted)] opacity-0 transition-all hover:text-[var(--color-danger)] group-hover:opacity-100"
         aria-label="Remove this lesson"
       >
         <X size={12} strokeWidth={2.5} aria-hidden />
@@ -165,48 +165,48 @@ export function LessonsModal({ value, onChange, error }: LessonsModalProps) {
         type="button"
         onClick={openModal}
         className={cn(
-          "group relative w-full rounded-lg border bg-[#0D1117] px-4 py-3.5 text-left transition-all",
+          "group relative w-full rounded-lg border bg-[var(--color-surface)] px-4 py-3.5 text-left transition-all",
           error && !open
-            ? "border-[#ff6b6b]/50"
+            ? "border-[var(--color-danger)]/50"
             : hasContent
-              ? "border-white/8 hover:border-white/15"
-              : "border-dashed border-white/8 hover:border-[#368BFE]/40",
+              ? "border-[var(--color-separator)] hover:border-[var(--color-separator-mid)]"
+              : "border-dashed border-[var(--color-separator)] hover:border-[var(--color-brand-bright)]/40",
         )}
         aria-label={`${hasContent ? "Edit" : "Add"} lessons learned`}
       >
         {hasContent ? (
           <div className="space-y-2">
-            <p className="text-[10px] font-medium text-white/30">
+            <p className="text-[10px] font-medium text-[var(--color-text-muted)]">
               {value.length} lesson{value.length > 1 ? "s" : ""} ·{" "}
-              <span className="text-[#368BFE]/80">click to edit</span>
+              <span className="text-[var(--color-brand-bright)]">click to edit</span>
             </p>
             <ul className="space-y-1">
               {value.slice(0, 3).map((lesson, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-white/50">
-                  <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-[#368BFE]/40" />
-                  <span className="line-clamp-1">{lesson}</span>
+                <li key={i} className="flex items-start gap-2 text-sm text-[var(--color-text-muted)]">
+                  <span className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-[var(--color-brand-bright)]/40" />
+                  <span className="line-clamp-1 text-[var(--color-text)]">{lesson}</span>
                 </li>
               ))}
               {value.length > 3 && (
-                <li className="pl-3 text-xs text-white/25">
+                <li className="pl-3 text-xs text-[var(--color-text-muted)] opacity-70">
                   +{value.length - 3} more…
                 </li>
               )}
             </ul>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-white/25">
+          <div className="flex items-center gap-2 text-[var(--color-placeholder)]">
             <Edit3 size={13} aria-hidden />
             <span className="text-sm">Click to add lessons learned…</span>
           </div>
         )}
         <span className="absolute right-3.5 top-3.5 opacity-0 transition-opacity group-hover:opacity-50">
-          <Edit3 size={13} className="text-white" aria-hidden />
+          <Edit3 size={13} className="text-[var(--color-text-muted)]" aria-hidden />
         </span>
       </button>
 
       {error && !open && (
-        <p role="alert" className="text-xs text-[#ff6b6b]">{error}</p>
+        <p role="alert" className="text-xs text-[var(--color-danger)] mt-1">{error}</p>
       )}
 
       {/* ─── Modal ─────────────────────────────────────────────────────────── */}
@@ -214,26 +214,26 @@ export function LessonsModal({ value, onChange, error }: LessonsModalProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            className="absolute inset-0 bg-[var(--color-bg)]/80 backdrop-blur-sm"
             onClick={handleDiscard}
             aria-hidden
           />
 
-          <div className="relative z-10 flex w-full max-w-xl flex-col rounded-xl border border-white/8 bg-[#1C2026] shadow-2xl shadow-black/70">
+          <div className="relative z-10 flex w-full max-w-xl flex-col rounded-xl border border-[var(--color-separator)] bg-[var(--color-surface)] shadow-2xl">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-[var(--color-separator)] px-5 py-4">
               <div className="flex items-center gap-2">
-                <ListChecks size={14} className="text-[#368BFE]" aria-hidden />
-                <span className="text-sm font-semibold text-white">Lessons Learned</span>
+                <ListChecks size={14} className="text-[var(--color-brand-bright)]" aria-hidden />
+                <span className="text-sm font-semibold text-[var(--color-text)]">Lessons Learned</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs tabular-nums text-white/25">
+                <span className="text-xs tabular-nums text-[var(--color-text-muted)] opacity-70">
                   {entries.length} {entries.length === 1 ? "entry" : "entries"}
                 </span>
                 <button
                   type="button"
                   onClick={handleDiscard}
-                  className="text-white/25 transition-colors hover:text-white"
+                  className="text-[var(--color-placeholder)] transition-colors hover:text-[var(--color-text)]"
                   aria-label="Discard and close"
                 >
                   <X size={15} aria-hidden />
@@ -242,13 +242,13 @@ export function LessonsModal({ value, onChange, error }: LessonsModalProps) {
             </div>
 
             {/* Guidance strip */}
-            <div className="flex items-start gap-2 border-b border-white/5 bg-[#368BFE]/5 px-5 py-3">
+            <div className="flex items-start gap-2 border-b border-[var(--color-separator)] bg-[var(--color-brand)]/5 px-5 py-3">
               <Lightbulb
                 size={13}
-                className="mt-0.5 flex-shrink-0 text-[#368BFE]/60"
+                className="mt-0.5 flex-shrink-0 text-[var(--color-brand-bright)]"
                 aria-hidden
               />
-              <p className="text-xs leading-relaxed text-[#368BFE]/60">
+              <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
                 One clear, actionable insight per entry. Think: what would you tell yourself before
                 starting? Keep it brief. Drag handle (
                 <GripVertical size={10} className="inline" aria-hidden />
@@ -286,8 +286,8 @@ export function LessonsModal({ value, onChange, error }: LessonsModalProps) {
               )}
 
               {/* Input row */}
-              <div className="flex items-center gap-2 rounded-lg border border-white/8 bg-[#14181C] px-3 py-2 outline-none transition-colors focus-within:border-[#368BFE]/50">
-                <Plus size={12} className="flex-shrink-0 text-white/20" aria-hidden />
+              <div className="flex items-center gap-2 rounded-lg border border-[var(--color-separator)] bg-[var(--color-bg)] px-3 py-2 outline-none transition-colors focus-within:border-[var(--color-brand-bright)]/30">
+                <Plus size={12} className="flex-shrink-0 text-[var(--color-text-muted)] opacity-50" aria-hidden />
                 <input
                   ref={inputRef}
                   type="text"
@@ -296,13 +296,13 @@ export function LessonsModal({ value, onChange, error }: LessonsModalProps) {
                   onKeyDown={handleInputKeyDown}
                   placeholder="Type a lesson and press Enter to add…"
                   maxLength={220}
-                  className="flex-1 bg-transparent text-sm text-white placeholder-white/20 outline-none focus:outline-none"
+                  className="flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder-[var(--color-placeholder)] outline-none focus:outline-none"
                 />
                 {input.trim() && (
                   <button
                     type="button"
                     onClick={addLesson}
-                    className="rounded bg-[#1752F0]/80 px-2 py-0.5 text-xs text-white transition-colors hover:bg-[#368BFE]"
+                    className="rounded bg-[var(--color-brand)] px-2 py-0.5 text-xs text-white transition-colors hover:bg-[var(--color-brand-bright)]"
                   >
                     Add
                   </button>
@@ -311,11 +311,11 @@ export function LessonsModal({ value, onChange, error }: LessonsModalProps) {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-2 border-t border-white/5 px-5 py-4">
+            <div className="flex items-center justify-end gap-2 border-t border-[var(--color-separator)] px-5 py-4">
               <button
                 type="button"
                 onClick={handleDiscard}
-                className="rounded-md border border-white/8 px-4 py-1.5 text-sm text-white/50 transition-colors hover:border-white/15 hover:text-white"
+                className="rounded-md border border-[var(--color-separator)] px-4 py-1.5 text-sm text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)]"
               >
                 Cancel
               </button>
@@ -323,7 +323,7 @@ export function LessonsModal({ value, onChange, error }: LessonsModalProps) {
                 type="button"
                 onClick={handleSave}
                 disabled={entries.length === 0}
-                className="rounded-md bg-[#1752F0] px-4 py-1.5 text-sm text-white transition-colors hover:bg-[#368BFE] disabled:cursor-not-allowed disabled:opacity-35"
+                className="rounded-md bg-[var(--color-brand)] px-4 py-1.5 text-sm text-white transition-colors hover:bg-[var(--color-brand-bright)] disabled:cursor-not-allowed disabled:opacity-35"
               >
                 Save{entries.length > 0 ? ` (${entries.length})` : ""}
               </button>

@@ -32,24 +32,24 @@ function PersonRow({
       <div className="flex-1 space-y-1">
         <div
           className={cn(
-            "flex items-center gap-2 rounded-lg border bg-[#0D1117] px-3 outline-none transition-colors",
+            "flex items-center gap-2 rounded-lg border bg-[var(--color-surface-alt)] px-3 outline-none transition-colors",
             error
-              ? "border-[#ff6b6b]/50 focus-within:border-[#ff6b6b]/80"
-              : "border-white/8 focus-within:border-[#368BFE]/60",
+              ? "border-[var(--color-danger)]/50 focus-within:border-[var(--color-danger)]/80"
+              : "border-[var(--color-separator)] focus-within:border-[var(--color-brand-bright)]/40",
           )}
         >
-          <UserCircle size={13} className="flex-shrink-0 text-white/18" aria-hidden />
+          <UserCircle size={13} className="flex-shrink-0 text-[var(--color-text-muted)] opacity-50" aria-hidden />
           <input
             type="text"
             aria-label="Person's full name"
             value={person.display_name}
             onChange={(e) => onChangeName(e.target.value)}
             placeholder="Full name (e.g. Juan A. Dela Cruz)"
-            className="h-[40px] flex-1 bg-transparent text-sm text-white placeholder-white/20 outline-none"
+            className="h-[40px] flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder-[var(--color-placeholder)] outline-none"
           />
         </div>
         {error && (
-          <p role="alert" className="text-xs text-[#ff6b6b]">
+          <p role="alert" className="text-xs text-[var(--color-danger)]">
             {error}
           </p>
         )}
@@ -60,7 +60,7 @@ function PersonRow({
         onClick={onRemove}
         disabled={!canRemove}
         aria-label="Remove person"
-        className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md border border-white/6 text-white/18 transition-all hover:border-[#ff6b6b]/30 hover:text-[#ff6b6b] disabled:cursor-not-allowed disabled:opacity-25"
+        className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md border border-[var(--color-separator)] text-[var(--color-text-muted)] transition-all hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] disabled:cursor-not-allowed disabled:opacity-25"
       >
         <X size={13} aria-hidden />
       </button>
@@ -131,17 +131,17 @@ export function PeopleBuilder({ value, onChange, errors = {} }: PeopleBuilderPro
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">
               Authors
             </p>
-            <p className="mt-0.5 text-[10px] text-white/20">
+            <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] opacity-50">
               Ordered list · first entry = primary author
             </p>
           </div>
           <button
             type="button"
             onClick={() => addPerson("author")}
-            className="flex items-center gap-1.5 rounded-md border border-white/8 px-3 py-1.5 text-xs text-white/45 transition-all hover:border-[#368BFE]/35 hover:text-[#368BFE]"
+            className="flex items-center gap-1.5 rounded-md border border-[var(--color-separator)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] transition-all hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)]"
           >
             <Plus size={11} aria-hidden />
             Add Author
@@ -166,16 +166,16 @@ export function PeopleBuilder({ value, onChange, errors = {} }: PeopleBuilderPro
       </div>
 
       {/* Divider */}
-      <div className="border-t border-white/5" />
+      <div className="border-t border-[var(--color-separator)]" />
 
       {/* ── Advisers ─────────────────────────────────────────────────────────── */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">
               Advisers
             </p>
-            <p className="mt-0.5 text-[10px] text-white/20">
+            <p className="mt-0.5 text-[10px] text-[var(--color-text-muted)] opacity-50">
               Include title if applicable (e.g. Dr., PhD)
             </p>
           </div>
@@ -183,7 +183,7 @@ export function PeopleBuilder({ value, onChange, errors = {} }: PeopleBuilderPro
             type="button"
             onClick={() => addPerson("adviser")}
             disabled={advisers.length >= MAX_ADVISERS}
-            className="flex items-center gap-1.5 rounded-md border border-white/8 px-3 py-1.5 text-xs text-white/45 transition-all hover:border-[#368BFE]/35 hover:text-[#368BFE] disabled:cursor-not-allowed disabled:opacity-25"
+            className="flex items-center gap-1.5 rounded-md border border-[var(--color-separator)] px-3 py-1.5 text-xs text-[var(--color-text-muted)] transition-all hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-25"
           >
             <Plus size={11} aria-hidden />
             Add Adviser
@@ -192,7 +192,7 @@ export function PeopleBuilder({ value, onChange, errors = {} }: PeopleBuilderPro
 
         <div className="space-y-2">
           {advisers.length === 0 ? (
-            <p className="text-xs italic text-white/20">No adviser added yet.</p>
+            <p className="text-xs italic text-[var(--color-text-muted)] opacity-50">No adviser added yet.</p>
           ) : (
             advisers.map((adviser, roleIdx) => {
               const gIdx = globalIndex("adviser", roleIdx);

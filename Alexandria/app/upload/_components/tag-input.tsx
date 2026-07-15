@@ -11,20 +11,19 @@ interface TagInputProps {
   error?: string;
 }
 
-// Distinct palette — all fit the dark Alexandria color scheme
 const TAG_PALETTE = [
   // blue
-  { bg: "bg-[#1752F0]/12", border: "border-[#1752F0]/25", text: "text-[#368BFE]", x: "text-[#368BFE]/50 hover:text-[#368BFE]" },
+  { bg: "bg-blue-500/10", border: "border-blue-500/20", text: "text-blue-700 dark:text-blue-400", x: "text-blue-700/50 hover:text-blue-700 dark:text-blue-400/50 dark:hover:text-blue-400" },
   // teal
-  { bg: "bg-[#0e7490]/12", border: "border-[#0e7490]/30", text: "text-[#22d3ee]", x: "text-[#22d3ee]/50 hover:text-[#22d3ee]" },
+  { bg: "bg-teal-500/10", border: "border-teal-500/20", text: "text-teal-700 dark:text-teal-400", x: "text-teal-700/50 hover:text-teal-700 dark:text-teal-400/50 dark:hover:text-teal-400" },
   // violet
-  { bg: "bg-[#6d28d9]/12", border: "border-[#6d28d9]/30", text: "text-[#a78bfa]", x: "text-[#a78bfa]/50 hover:text-[#a78bfa]" },
+  { bg: "bg-violet-500/10", border: "border-violet-500/20", text: "text-violet-700 dark:text-violet-400", x: "text-violet-700/50 hover:text-violet-700 dark:text-violet-400/50 dark:hover:text-violet-400" },
   // rose
-  { bg: "bg-[#be123c]/12", border: "border-[#be123c]/30", text: "text-[#fb7185]", x: "text-[#fb7185]/50 hover:text-[#fb7185]" },
+  { bg: "bg-rose-500/10", border: "border-rose-500/20", text: "text-rose-700 dark:text-rose-400", x: "text-rose-700/50 hover:text-rose-700 dark:text-rose-400/50 dark:hover:text-rose-400" },
   // amber
-  { bg: "bg-[#b45309]/12", border: "border-[#b45309]/30", text: "text-[#fbbf24]", x: "text-[#fbbf24]/50 hover:text-[#fbbf24]" },
+  { bg: "bg-amber-500/10", border: "border-amber-500/20", text: "text-amber-700 dark:text-amber-400", x: "text-amber-700/50 hover:text-amber-700 dark:text-amber-400/50 dark:hover:text-amber-400" },
   // emerald
-  { bg: "bg-[#065f46]/12", border: "border-[#065f46]/30", text: "text-[#34d399]", x: "text-[#34d399]/50 hover:text-[#34d399]" },
+  { bg: "bg-emerald-500/10", border: "border-emerald-500/20", text: "text-emerald-700 dark:text-emerald-400", x: "text-emerald-700/50 hover:text-emerald-700 dark:text-emerald-400/50 dark:hover:text-emerald-400" },
 ];
 
 export function TagInput({
@@ -76,10 +75,10 @@ export function TagInput({
     <div className="space-y-2">
       <div
         className={cn(
-          "flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-lg border bg-[#0D1117] px-3 py-2 transition-colors",
+          "flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-lg border bg-[var(--color-surface-alt)] px-3 py-2 transition-colors",
           error
-            ? "border-[#ff6b6b]/50 focus-within:border-[#ff6b6b]/80"
-            : "border-white/8 focus-within:border-[#368BFE]/60",
+            ? "border-[var(--color-danger)]/50 focus-within:border-[var(--color-danger)]/80"
+            : "border-[var(--color-separator)] focus-within:border-[var(--color-brand-bright)]/30",
         )}
       >
         {value.map((tag, idx) => {
@@ -114,12 +113,12 @@ export function TagInput({
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={value.length === 0 ? placeholder : ""}
-          className="min-w-[140px] flex-1 bg-transparent text-sm text-white placeholder-white/20 outline-none focus:outline-none"
+          className="min-w-[140px] flex-1 bg-transparent text-sm text-[var(--color-text)] placeholder-[var(--color-placeholder)] outline-none focus:outline-none"
         />
       </div>
 
       {error && (
-        <p role="alert" className="text-xs text-[#ff6b6b]">
+        <p role="alert" className="text-xs text-[var(--color-danger)]">
           {error}
         </p>
       )}

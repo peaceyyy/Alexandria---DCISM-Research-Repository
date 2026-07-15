@@ -7,6 +7,10 @@ import * as z from "zod";
 import { FileText, UploadCloud, Sparkles, CheckCircle2, Plus, X, ArrowRight } from "lucide-react";
 import { submitThesis } from "@/lib/services/submission-service";
 import { DEPARTMENTS } from "@/lib/domain/departments";
+import {
+  isResearchAreaId,
+  RESEARCH_AREAS,
+} from "@/lib/domain/research-areas";
 import { validateThesisPdf } from "@/lib/upload/file-validation";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,7 +49,9 @@ const formSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   abstract: z.string().min(50, "Abstract must be at least 50 characters"),
   department: z.enum(DEPARTMENTS),
-  research_area: z.string().min(1),
+  research_area: z
+    .string()
+    .refine(isResearchAreaId, "Select one of the standard research areas."),
   authors: z.array(authorSchema).min(1, "At least one author is required"),
   tags: z.string().min(1, "At least one tag is required"),
   publication_date: z.iso.date("Publication date is required"),
@@ -121,7 +127,7 @@ export function SubmissionPopupPage() {
       "This sample submission highlights how structured moderation, metadata enrichment, and document validation improve repository quality and reviewer efficiency.",
     );
     setValue("department", "CS");
-    setValue("research_area", "Artificial Intelligence");
+    setValue("research_area", "ai_engineering");
     setValue("tags", "ai, review, repository");
     setValue("authors.0.display_name", "Alex Rivera");
     setValue("authors.0.contribution_role", "author");
@@ -253,11 +259,19 @@ export function SubmissionPopupPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-200">Research area</label>
-                  <input
+                  <select
                     {...register("research_area")}
-                    placeholder="e.g. AI, Education"
-                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-sky-400 focus:outline-none"
-                  />
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-sky-400 focus:outline-none"
+                  >
+                    <option value="" className="text-slate-900">
+                      Select research area
+                    </option>
+                    {RESEARCH_AREAS.map((area) => (
+                      <option key={area.id} value={area.id} className="text-slate-900">
+                        {area.label}
+                      </option>
+                    ))}
+                  </select>
                   {errors.research_area ? <p className="text-sm text-rose-300">{errors.research_area.message}</p> : null}
                 </div>
 

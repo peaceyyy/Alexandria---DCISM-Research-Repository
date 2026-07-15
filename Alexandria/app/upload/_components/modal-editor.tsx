@@ -82,39 +82,39 @@ export function ModalEditor({
         type="button"
         onClick={handleOpen}
         className={cn(
-          "group relative w-full rounded-lg border bg-[#0D1117] px-4 py-3.5 text-left transition-all",
+          "group relative w-full rounded-lg border bg-[var(--color-surface)] px-4 py-3.5 text-left transition-all",
           error && !open
-            ? "border-[#ff6b6b]/50"
+            ? "border-[var(--color-danger)]/50"
             : hasContent
-              ? "border-white/8 hover:border-white/15"
-              : "border-dashed border-white/8 hover:border-[#368BFE]/40",
+              ? "border-[var(--color-separator)] hover:border-[var(--color-separator-mid)]"
+              : "border-dashed border-[var(--color-separator)] hover:border-[var(--color-brand-bright)]/40",
         )}
         aria-label={`${hasContent ? "Edit" : "Add"} ${label}`}
       >
         {hasContent ? (
           <div className="space-y-1.5">
-            <p className="text-[10px] font-medium text-white/30">
+            <p className="text-[10px] font-medium text-[var(--color-text-muted)]">
               {wordCount} words ·{" "}
-              <span className="text-[#368BFE]/80">click to edit</span>
+              <span className="text-[var(--color-brand-bright)]">click to edit</span>
             </p>
-            <p className="line-clamp-3 text-sm leading-relaxed text-white/55">
+            <p className="line-clamp-3 text-sm leading-relaxed text-[var(--color-text)]">
               {value}
             </p>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-white/25">
+          <div className="flex items-center gap-2 text-[var(--color-placeholder)]">
             <Edit3 size={13} aria-hidden />
             <span className="text-sm">Click to write {label.toLowerCase()}…</span>
           </div>
         )}
         {/* Hover edit icon */}
         <span className="absolute right-3.5 top-3.5 opacity-0 transition-opacity group-hover:opacity-50">
-          <Edit3 size={13} className="text-white" aria-hidden />
+          <Edit3 size={13} className="text-[var(--color-text-muted)]" aria-hidden />
         </span>
       </button>
 
       {error && !open && (
-        <p role="alert" className="text-xs text-[#ff6b6b]">{error}</p>
+        <p role="alert" className="text-xs text-[var(--color-danger)] mt-1">{error}</p>
       )}
 
       {/* Modal overlay */}
@@ -122,25 +122,25 @@ export function ModalEditor({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            className="absolute inset-0 bg-[var(--color-bg)]/80 backdrop-blur-sm"
             onClick={handleDiscard}
             aria-hidden
           />
 
           {/* Panel */}
-          <div className="relative z-10 flex w-full max-w-2xl flex-col rounded-xl border border-white/8 bg-[#1C2026] shadow-2xl shadow-black/70">
+          <div className="relative z-10 flex w-full max-w-2xl flex-col rounded-xl border border-[var(--color-separator)] bg-[var(--color-surface)] shadow-2xl">
             {/* Modal header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-[var(--color-separator)] px-5 py-4">
               <div className="flex items-center gap-2">
-                <FileText size={14} className="text-[#368BFE]" aria-hidden />
-                <span className="text-sm font-semibold text-white">{label}</span>
+                <FileText size={14} className="text-[var(--color-brand-bright)]" aria-hidden />
+                <span className="text-sm font-semibold text-[var(--color-text)]">{label}</span>
               </div>
               <div className="flex items-center gap-4">
                 {minLength && (
                   <span
                     className={cn(
                       "text-xs tabular-nums transition-colors",
-                      meetsMin ? "text-[#59c987]" : "text-white/25",
+                      meetsMin ? "text-[var(--color-success)]" : "text-[var(--color-text-muted)]",
                     )}
                   >
                     {charCount} / {minLength}+ chars
@@ -150,7 +150,7 @@ export function ModalEditor({
                   type="button"
                   onClick={handleDiscard}
                   aria-label="Discard and close editor"
-                  className="text-white/25 transition-colors hover:text-white"
+                  className="text-[var(--color-placeholder)] transition-colors hover:text-[var(--color-text)]"
                 >
                   <X size={15} aria-hidden />
                 </button>
@@ -159,8 +159,8 @@ export function ModalEditor({
 
             {/* Hint strip */}
             {hint && (
-              <div className="border-b border-white/5 bg-[#368BFE]/5 px-5 py-2.5">
-                <p className="text-xs text-[#368BFE]/60 leading-relaxed">{hint}</p>
+              <div className="border-b border-[var(--color-separator)] bg-[var(--color-brand)]/5 px-5 py-2.5">
+                <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">{hint}</p>
               </div>
             )}
 
@@ -172,16 +172,16 @@ export function ModalEditor({
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder={placeholder}
                 rows={16}
-                className="w-full resize-none bg-transparent text-sm leading-relaxed text-white placeholder-white/18 outline-none"
+                className="w-full resize-none bg-transparent text-sm leading-relaxed text-[var(--color-text)] placeholder-[var(--color-placeholder)] outline-none"
               />
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-2 border-t border-white/5 px-5 py-4">
+            <div className="flex items-center justify-end gap-2 border-t border-[var(--color-separator)] px-5 py-4">
               <button
                 type="button"
                 onClick={handleDiscard}
-                className="rounded-lg border border-white/8 px-4 py-1.5 text-sm text-white/50 transition-colors hover:border-white/15 hover:text-white"
+                className="rounded-lg border border-[var(--color-separator)] px-4 py-1.5 text-sm text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)]"
               >
                 Cancel
               </button>
@@ -189,7 +189,7 @@ export function ModalEditor({
                 type="button"
                 onClick={handleSave}
                 disabled={!meetsMin}
-                className="rounded-lg bg-[#1752F0] px-4 py-1.5 text-sm text-white transition-colors hover:bg-[#368BFE] disabled:cursor-not-allowed disabled:opacity-35"
+                className="rounded-lg bg-[var(--color-brand)] px-4 py-1.5 text-sm text-white transition-colors hover:bg-[var(--color-brand-bright)] disabled:cursor-not-allowed disabled:opacity-35"
               >
                 Save
               </button>

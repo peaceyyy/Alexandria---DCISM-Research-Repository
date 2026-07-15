@@ -73,12 +73,12 @@ export function StepStudyBasics() {
 
         {/* Derived year badge — appears once a valid date is chosen */}
         {publicationDate && !errors.publication_date && (
-          <p className="flex items-center gap-1.5 text-xs text-white/30 animate-in fade-in duration-200">
+          <p className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] animate-in fade-in duration-200">
             <span className="text-[9px] font-semibold uppercase tracking-widest">Year</span>
-            <span className="rounded-md border border-[#368BFE]/20 bg-[#368BFE]/8 px-2 py-0.5 font-mono text-[11px] font-medium text-[#368BFE]">
+            <span className="rounded-md border border-[var(--color-brand-bright)]/20 bg-[var(--color-brand-bright)]/8 px-2 py-0.5 font-mono text-[11px] font-medium text-[var(--color-brand-bright)]">
               {publicationDate.slice(0, 4)}
             </span>
-            <span className="text-white/20">— automatically derived from date above</span>
+            <span className="text-[var(--color-text-muted)] opacity-50">— automatically derived from date above</span>
           </p>
         )}
 

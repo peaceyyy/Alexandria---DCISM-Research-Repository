@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { formSchema, type FormValues, STEPS, FIELD_STEP_MAP } from "@/lib/upload/schema";
+import { serializeResearchAreaIds } from "@/lib/domain/research-areas";
 import { submitThesis } from "@/lib/services/submission-service";
 import { validateThesisPdf } from "@/lib/upload/file-validation";
 
@@ -142,7 +143,7 @@ export default function UploadPage() {
       abstract: "This paper explores the intricacies of implementing distributed systems concepts within the context of micro-frontend architectures, focusing on performance, state synchronization, and fault tolerance across decoupled UI domains. This study provides a comprehensive overview of modern web development paradigms.",
       department: "CS",
       type_of_study: "thesis",
-      research_areas: ["Web Development", "Algorithms"],
+      research_areas: ["web_development", "algorithms"],
       authors: [
         {
           user_id: null,
@@ -210,7 +211,7 @@ export default function UploadPage() {
         title: data.title,
         abstract: data.abstract,
         department: data.department,
-        research_area: data.research_areas.join(", "),
+        research_area: serializeResearchAreaIds(data.research_areas),
         authors: data.authors,
         tags: data.tags,
         publication_date: data.publication_date,
@@ -255,12 +256,20 @@ export default function UploadPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <FormProvider {...methods}>
-      <form onSubmit={handleFormSubmit} className="flex min-h-screen flex-col bg-[#14181C]">
+      <form onSubmit={handleFormSubmit} className="flex min-h-screen flex-col bg-[var(--color-bg)]">
         {/* Focused-task header */}
         <UploadHeader onLogoClick={handleLogoClick} />
 
         {/* Step progress indicator */}
-        <div className="border-b border-white/5 px-4">
+        <div className="relative border-b border-[var(--color-separator)] px-4">
+          <button
+            type="button"
+            onClick={handleLogoClick}
+            className="absolute left-6 top-1/2 hidden h-9 -translate-y-1/2 items-center gap-2 rounded-full border border-[var(--color-separator-mid)] px-3 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand-bright)]/35 hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 lg:inline-flex lg:left-10"
+          >
+            <ArrowLeft size={15} aria-hidden />
+            Return to Home
+          </button>
           <Stepper
             steps={STEPS}
             currentStep={currentStep}
@@ -303,7 +312,7 @@ export default function UploadPage() {
         </main>
 
         {/* ── Sticky footer nav bar ─────────────────────────────────────── */}
-        <div className="sticky bottom-0 z-30 border-t border-white/[0.06] bg-[#14181C]/90 backdrop-blur-md">
+        <div className="sticky bottom-0 z-30 border-t border-[var(--color-separator-mid)] bg-[var(--color-bg)]/90 backdrop-blur-md">
           <div className="mx-auto flex max-w-[540px] items-center gap-4 px-4 py-4">
 
             {currentStep < TOTAL_STEPS ? (

@@ -1,5 +1,6 @@
 import { createAdminClient } from "../supabase/admin";
 import { DEPARTMENTS } from "../domain/departments";
+import { RESEARCH_AREA_IDS } from "../domain/research-areas";
 import { err, makeError, ok } from "./result";
 import type {
   FilterOptions,
@@ -34,7 +35,7 @@ function mapToThesisCard(row: any): ThesisCard {
     id: row.id,
     title: row.title,
     year: row.year,
-    abstract_preview: row.abstract?.substring(0, 200) ?? "",
+    abstract_preview: row.abstract?.substring(0, 400) ?? "",
     research_area: row.research_area ?? null,
     department: row.department,
     authors: (row.thesis_authors ?? []).map(mapAuthor),
@@ -243,7 +244,7 @@ export async function getThesisById(
       title: data.title,
       year: data.year,
       abstract: data.abstract ?? "",
-      abstract_preview: data.abstract?.substring(0, 200) ?? "",
+      abstract_preview: data.abstract?.substring(0, 400) ?? "",
       department: data.department,
       research_area: data.research_area ?? null,
       publication_date: data.publication_date ?? null,
@@ -271,20 +272,14 @@ export async function getThesisById(
 
 /**
  * Future HTTP equivalent: GET /api/filters
- * Returns controlled department values plus distinct accepted years and research areas.
+ * Returns controlled department and research-area values plus distinct accepted years.
  * Used by: Browse page filter dropdowns.
  */
 export async function getFilterOptions(): Promise<ServiceResult<FilterOptions>> {
   try {
     const supabase = createAdminClient();
 
-    const [areasResult, yearsResult] = await Promise.all([
-      supabase
-        .from("theses")
-        .select("research_area")
-        .eq("review_status", "accepted")
-        .not("research_area", "is", null)
-        .order("research_area", { ascending: true }),
+    const [yearsResult] = await Promise.all([
       supabase
         .from("theses")
         .select("year")
@@ -292,20 +287,11 @@ export async function getFilterOptions(): Promise<ServiceResult<FilterOptions>> 
         .order("year", { ascending: false }),
     ]);
 
-    if (areasResult.error) {
-      return err(makeError("SUPABASE_ERROR", areasResult.error.message));
-    }
     if (yearsResult.error) {
       return err(makeError("SUPABASE_ERROR", yearsResult.error.message));
     }
 
-    const research_areas: string[] = [
-      ...new Set(
-        (areasResult.data ?? [])
-          .map((r) => r.research_area as string | null)
-          .filter((v): v is string => v !== null),
-      ),
-    ];
+    const research_areas = [...RESEARCH_AREA_IDS];
 
     const departments = [...DEPARTMENTS];
 

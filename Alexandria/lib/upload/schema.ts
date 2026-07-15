@@ -1,7 +1,9 @@
 import * as z from "zod";
 import { DEPARTMENTS } from "@/lib/domain/departments";
+import { RESEARCH_AREA_IDS, RESEARCH_AREAS } from "@/lib/domain/research-areas";
 
 export { DEPARTMENTS };
+export { RESEARCH_AREAS };
 
 const APPLICATION_TIME_ZONE = "Asia/Manila";
 
@@ -18,18 +20,6 @@ function getCurrentCalendarDate() {
 
 export const currentCalendarDate = getCurrentCalendarDate();
 
-export const RESEARCH_AREAS = [
-  "AI / Machine Learning",
-  "Web Development",
-  "Mobile Development",
-  "Cybersecurity",
-  "IoT",
-  "Data Science",
-  "Networking",
-  "Algorithms",
-  "Mathematics",
-] as const;
-
 export const authorSchema = z.object({
   user_id: z.string().nullable(),
   display_name: z.string().min(2, "Please enter the person's full name (not abbreviated)"),
@@ -43,7 +33,9 @@ export const formSchema = z
     abstract: z.string().min(50, "Abstract must be at least 50 characters"),
     department: z.enum(DEPARTMENTS, "Department must be CS, IT, or IS."),
     type_of_study: z.enum(["thesis", "capstone"]),
-    research_areas: z.array(z.string()).min(1, "Select at least one research area"),
+    research_areas: z
+      .array(z.enum(RESEARCH_AREA_IDS))
+      .min(1, "Select at least one research area"),
     authors: z.array(authorSchema).min(1, "At least one author is required"),
     tags: z.array(z.string().min(1)).min(1, "Add at least one keyword"),
     publication_date: z.iso.date("Publication date is required"),

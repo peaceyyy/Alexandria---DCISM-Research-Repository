@@ -11,6 +11,7 @@ import {
   validateThesisPdf,
 } from "../upload/file-validation";
 import { isDepartment } from "../domain/departments";
+import { isSerializedResearchAreaIds } from "../domain/research-areas";
 import { err, makeError, ok } from "./result";
 import { requireSession, requireOwnership } from "./_guards";
 import type {
@@ -112,7 +113,7 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
       title: thesis.title,
       year: thesis.year,
       abstract: thesis.abstract,
-      abstract_preview: thesis.abstract?.substring(0, 200) || "",
+      abstract_preview: thesis.abstract?.substring(0, 400) || "",
       department: thesis.department,
       research_area: thesis.research_area,
       publication_date: thesis.publication_date,
@@ -207,6 +208,12 @@ export async function submitThesis(
 
     if (!isDepartment(input.department)) {
       return err(makeError("VALIDATION_FAILED", "Department must be CS, IT, or IS."));
+    }
+
+    if (!isSerializedResearchAreaIds(input.research_area)) {
+      return err(
+        makeError("VALIDATION_FAILED", "Select at least one supported research area."),
+      );
     }
 
     const currentCalendarDate = getCurrentCalendarDate();
