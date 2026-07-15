@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DEPARTMENTS } from "@/lib/domain/departments";
 import type {
   ReviewSubmission,
   StudyType,
@@ -146,12 +147,20 @@ export function AdminMetadataEditorDialog({
               onChange={(value) => update("title", value)}
               required
             />
-            <InputField
-              label="Department"
-              value={draft.department}
-              onChange={(value) => update("department", value)}
-              required
-            />
+            <label className="grid gap-2 text-sm font-medium text-[#d8dadc]">
+              Department
+              <select
+                value={draft.department}
+                onChange={(event) => update("department", event.target.value)}
+                className="min-h-10 rounded-[5px] border border-white/15 bg-white/[0.035] px-3 text-sm text-white outline-none focus:outline-2 focus:outline-[#368bfe]"
+              >
+                {DEPARTMENTS.map((department) => (
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="grid gap-2 text-sm font-medium text-[#d8dadc]">
               Study Type
               <select

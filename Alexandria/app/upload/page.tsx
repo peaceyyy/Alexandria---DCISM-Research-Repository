@@ -55,7 +55,7 @@ export default function UploadPage() {
     defaultValues: {
       title: "",
       abstract: "",
-      department: "DCISM",
+      department: "CS",
       type_of_study: "thesis",
       research_areas: [],
       authors: [
@@ -140,7 +140,7 @@ export default function UploadPage() {
     methods.reset({
       title: "An Analysis of Distributed Systems in Micro-Frontend Architectures",
       abstract: "This paper explores the intricacies of implementing distributed systems concepts within the context of micro-frontend architectures, focusing on performance, state synchronization, and fault tolerance across decoupled UI domains. This study provides a comprehensive overview of modern web development paradigms.",
-      department: "DCISM",
+      department: "CS",
       type_of_study: "thesis",
       research_areas: ["Web Development", "Algorithms"],
       authors: [

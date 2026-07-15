@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { FileText, UploadCloud, Sparkles, CheckCircle2, Plus, X, ArrowRight } from "lucide-react";
 import { submitThesis } from "@/lib/services/submission-service";
+import { DEPARTMENTS } from "@/lib/domain/departments";
 import { validateThesisPdf } from "@/lib/upload/file-validation";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,7 +44,7 @@ const authorSchema = z.object({
 const formSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters"),
   abstract: z.string().min(50, "Abstract must be at least 50 characters"),
-  department: z.string().min(1),
+  department: z.enum(DEPARTMENTS),
   research_area: z.string().min(1),
   authors: z.array(authorSchema).min(1, "At least one author is required"),
   tags: z.string().min(1, "At least one tag is required"),
@@ -85,7 +86,7 @@ export function SubmissionPopupPage() {
     defaultValues: {
       title: "",
       abstract: "",
-      department: "DCISM",
+      department: "CS",
       research_area: "",
       authors: [
         {
@@ -119,7 +120,7 @@ export function SubmissionPopupPage() {
       "abstract",
       "This sample submission highlights how structured moderation, metadata enrichment, and document validation improve repository quality and reviewer efficiency.",
     );
-    setValue("department", "DCISM");
+    setValue("department", "CS");
     setValue("research_area", "Artificial Intelligence");
     setValue("tags", "ai, review, repository");
     setValue("authors.0.display_name", "Alex Rivera");
@@ -242,9 +243,11 @@ export function SubmissionPopupPage() {
                     {...register("department")}
                     className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white focus:border-sky-400 focus:outline-none"
                   >
-                    <option value="DCISM" className="text-slate-900">DCISM</option>
-                    <option value="CAS" className="text-slate-900">CAS</option>
-                    <option value="TC" className="text-slate-900">TC</option>
+                    {DEPARTMENTS.map((department) => (
+                      <option key={department} value={department} className="text-slate-900">
+                        {department}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

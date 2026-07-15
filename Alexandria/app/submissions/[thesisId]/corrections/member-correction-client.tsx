@@ -15,6 +15,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { CommentSidePanel } from "@/components/review/comment-side-panel";
+import { DEPARTMENTS } from "@/lib/domain/departments";
 import { ReviewAuditTimeline } from "@/components/review/review-audit-timeline";
 import { ReviewableField } from "@/components/review/reviewable-field";
 import type { ReviewFieldKey } from "@/components/review/types";
@@ -424,13 +425,19 @@ export function MemberCorrectionClient({
               activeField={activeCommentField}
               onCommentIconClick={handleCommentIconClick}
             >
-              <input
+              <select
                 value={form.department}
                 onChange={(event) =>
                   updateField("department", event.target.value)
                 }
                 disabled={isLocked}
-              />
+              >
+                {DEPARTMENTS.map((department) => (
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field
               fieldKey="study_type"

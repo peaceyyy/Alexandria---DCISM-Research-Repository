@@ -1,7 +1,10 @@
 "use client";
 
-import { BookText, Clock, Users } from "lucide-react";
+import { BookText, Clock, Search } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { DEPARTMENTS, type Department } from "@/lib/domain/departments";
+import { DASHBOARD_QUEUE_PAGE_SIZE } from "./dashboard-constants";
 import { DataTable, type Column } from "./data-table";
 import { StatCard } from "./stat-card";
 import { StatusBadge } from "./status-badge";
@@ -21,6 +24,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-PH", {
 });
 
 type DashboardStatusFilter = ReviewStatus | "all";
+type DashboardDepartmentFilter = Department | "all";
 
 const STATUS_FILTERS: Array<{
   value: DashboardStatusFilter;
@@ -73,17 +77,14 @@ const reviewQueueColumns: Column<ReviewSubmissionListItem>[] = [
   {
     key: "id",
     header: "Action",
-    render: (row) =>
-      row.reviewStatus === "for_review" ? (
-        <Link
-          href={`/admin/review/${row.id}`}
-          className="inline-flex items-center justify-center rounded-[7px] border border-[#368bfe]/40 bg-[#368bfe]/10 px-3 py-1.5 text-[12px] font-semibold text-[#7db2ff] transition hover:border-[#368bfe]/70 hover:bg-[#368bfe]/15"
-        >
-          Review
-        </Link>
-      ) : (
-        <span className="text-[12px] text-[#8f96a0]">No review action</span>
-      ),
+    render: (row) => (
+      <Link
+        href={`/admin/review/${row.id}`}
+        className="inline-flex items-center justify-center rounded-[7px] border border-[#368bfe]/40 bg-[#368bfe]/10 px-3 py-1.5 text-[12px] font-semibold text-[#7db2ff] transition hover:border-[#368bfe]/70 hover:bg-[#368bfe]/15"
+      >
+        Open Review
+      </Link>
+    ),
   },
 ];
 
@@ -92,14 +93,36 @@ export function AdminDashboardView({
   reviewQueue,
   reviewQueueError,
   selectedStatus,
+  selectedDepartment,
+  query,
+  reviewQueuePage,
+  reviewQueueTotalPages,
 }: {
   snapshot: AdminDashboardSnapshot;
   reviewQueue: ReviewSubmissionListItem[];
   reviewQueueError: string | null;
   selectedStatus: DashboardStatusFilter;
+  selectedDepartment: DashboardDepartmentFilter;
+  query: string;
+  reviewQueuePage: number;
+  reviewQueueTotalPages: number;
 }) {
+  const router = useRouter();
   const largestDepartmentCount =
     snapshot.research_by_department[0]?.count ?? 0;
+
+  function handleQueuePageChange(page: number) {
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (selectedStatus !== "all") params.set("status", selectedStatus);
+    if (selectedDepartment !== "all") {
+      params.set("department", selectedDepartment);
+    }
+    if (page > 1) params.set("page", String(page));
+
+    const search = params.toString();
+    router.push(search ? `/admin/dashboard?${search}` : "/admin/dashboard");
+  }
 
   return (
     <div className="flex flex-col gap-6 p-8">
@@ -111,16 +134,11 @@ export function AdminDashboardView({
         !
       </h1>
 
-      <div className="grid grid-cols-3 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
+      <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
         <StatCard
           icon={BookText}
           value={snapshot.metrics.total_research}
           label="Total Research"
-        />
-        <StatCard
-          icon={Users}
-          value={snapshot.metrics.registered_users}
-          label="Registered Users"
         />
         <StatCard
           icon={Clock}
@@ -133,7 +151,10 @@ export function AdminDashboardView({
         title="Submission Queue"
         columns={reviewQueueColumns}
         data={reviewQueue}
-        pageSize={10}
+        pageSize={DASHBOARD_QUEUE_PAGE_SIZE}
+        page={reviewQueuePage}
+        totalPages={reviewQueueTotalPages}
+        onPageChange={handleQueuePageChange}
         rowKey="id"
         headerAction={
           <div className="flex flex-col items-end gap-2">
@@ -142,29 +163,47 @@ export function AdminDashboardView({
                 {reviewQueueError}
               </p>
             )}
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              {STATUS_FILTERS.map((filter) => {
-                const isActive = selectedStatus === filter.value;
-                const href =
-                  filter.value === "all"
-                    ? "/admin/dashboard"
-                    : `/admin/dashboard?status=${filter.value}`;
-
-                return (
-                  <Link
-                    key={filter.value}
-                    href={href}
-                    className={`rounded-[7px] border px-3 py-1.5 text-[12px] font-semibold transition ${
-                      isActive
-                        ? "border-[#368bfe]/60 bg-[#368bfe]/15 text-[#7db2ff]"
-                        : "border-white/10 bg-white/[0.04] text-[#d8dadc] hover:bg-white/[0.08]"
-                    }`}
-                  >
+            <form action="/admin/dashboard" className="flex flex-wrap items-center justify-end gap-2">
+              <input
+                name="q"
+                defaultValue={query}
+                placeholder="Search titles"
+                aria-label="Search study titles"
+                className="h-9 w-44 rounded-[6px] border border-white/10 bg-[#14181c] px-3 text-[12px] text-white outline-none placeholder:text-[#8f96a0] focus:border-[#368bfe]"
+              />
+              <select
+                name="status"
+                defaultValue={selectedStatus}
+                aria-label="Filter by review status"
+                className="h-9 rounded-[6px] border border-white/10 bg-[#14181c] px-2 text-[12px] font-semibold text-[#d8dadc] outline-none focus:border-[#368bfe]"
+              >
+                {STATUS_FILTERS.map((filter) => (
+                  <option key={filter.value} value={filter.value}>
                     {filter.label}
-                  </Link>
-                );
-              })}
-            </div>
+                  </option>
+                ))}
+              </select>
+              <select
+                name="department"
+                defaultValue={selectedDepartment}
+                aria-label="Filter by department"
+                className="h-9 rounded-[6px] border border-white/10 bg-[#14181c] px-2 text-[12px] font-semibold text-[#d8dadc] outline-none focus:border-[#368bfe]"
+              >
+                <option value="all">All departments</option>
+                {DEPARTMENTS.map((department) => (
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="submit"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-[6px] border border-[#368bfe]/45 bg-[#368bfe]/10 px-3 text-[12px] font-semibold text-[#8ec5ff] transition hover:bg-[#368bfe]/18"
+              >
+                <Search size={13} aria-hidden />
+                Search
+              </button>
+            </form>
           </div>
         }
       />
