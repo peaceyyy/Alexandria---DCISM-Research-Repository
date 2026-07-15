@@ -1,7 +1,9 @@
 import type { Department } from "../domain/departments";
+import type { ResearchAreaId } from "../domain/research-areas";
 
 // ─── Primitives ──────────────────────────────────────────────────────────────
 export type ReviewStatus = "for_review" | "flagged" | "accepted" | "trashed";
+export type ReviewSearchScope = "title" | "author";
 export type UserRole = "admin" | "moderator" | "member";
 export type Affiliation = "student" | "alumni" | "professor";
 export type ContributionRole = "author" | "adviser";
@@ -344,7 +346,9 @@ export type UserListParams = {
 export type ReviewSubmissionListParams = {
   reviewStatus?: ReviewStatus;
   department?: Department;
+  researchArea?: ResearchAreaId;
   q?: string;
+  searchScope?: ReviewSearchScope;
   page?: number;
   limit?: number;
 };
