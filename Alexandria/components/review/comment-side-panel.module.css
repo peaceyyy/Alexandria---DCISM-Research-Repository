@@ -155,6 +155,59 @@
   color: #b8bcc4;
 }
 
+.correctionState {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.correctionStateneeds_attention {
+  background: rgba(240, 184, 59, 0.1);
+  color: #eac867;
+}
+
+.correctionStaterevised {
+  background: rgba(29, 160, 201, 0.12);
+  color: #8edcf0;
+}
+
+.correctionStateaddressed {
+  background: rgba(89, 201, 135, 0.12);
+  color: #9ee1b8;
+}
+
+.addressButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 5px 7px;
+  border: 1px solid rgba(29, 160, 201, 0.25);
+  border-radius: 4px;
+  background: rgba(29, 160, 201, 0.08);
+  color: #8edcf0;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.addressButton:hover:not(:disabled) {
+  background: rgba(29, 160, 201, 0.16);
+}
+
+.addressButton:disabled {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  color: #737984;
+  cursor: not-allowed;
+}
+
 .emptyState {
   padding: 14px 4px;
   text-align: center;

@@ -636,6 +636,7 @@ export type ThesisCard = {
   abstract_preview: string;
   tags: string[];
   research_area: string | null;
+  department: string;
 };
 
 export type ThesisDetail = ThesisCard & {

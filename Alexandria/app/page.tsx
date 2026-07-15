@@ -5,7 +5,7 @@ import { MinimalHeader } from "@/components/layout/minimal-header";
 
 export default function Landing() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#14181c] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)]">
       <MinimalHeader />
 
       {/* Hero section */}
@@ -16,16 +16,16 @@ export default function Landing() {
             <h1 className="shrink-0 whitespace-nowrap font-[var(--font-khula)] text-[clamp(4rem,8vw,7.5rem)] font-extrabold leading-none tracking-[-0.06em] bg-[conic-gradient(from_180deg_at_50%_50%,#368bfe_0deg,#1752f0_180deg,#368bfe_360deg)] bg-clip-text text-transparent">
               ALEXANDRIA
             </h1>
-            <span className="pb-3 text-sm font-medium text-[#ffd900] sm:text-base whitespace-nowrap">
+            <span className="pb-3 text-sm font-medium text-[var(--color-pronunciation)] sm:text-base whitespace-nowrap">
               (al-ig-ZAN-dree-uh)
             </span>
           </div>
 
           <h2 className="max-w-none whitespace-nowrap text-[clamp(2.25rem,4vw,3.45rem)] font-black leading-[0.95] tracking-[-0.04em] text-white">
-            Thesis, Research, and Capstone Hub
+            Researchk and Capstone Hub
           </h2>
 
-          <p className="mt-6 text-xl font-semibold text-[#969696] sm:text-[28px]">
+          <p className="mt-6 text-xl font-semibold text-[var(--color-text-muted)] sm:text-[28px]">
             by DCISM Students, for DCISM Students
           </p>
 

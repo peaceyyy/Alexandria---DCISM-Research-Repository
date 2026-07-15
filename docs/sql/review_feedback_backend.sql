@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS public.thesis_review_comments (
   created_by_user_id uuid NOT NULL,
   addressed_at timestamp with time zone,
   addressed_by_user_id uuid,
+  member_revised_at timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT thesis_review_comments_pkey PRIMARY KEY (id),
   CONSTRAINT thesis_review_comments_thesis_id_fkey
@@ -85,6 +86,35 @@ CREATE TABLE IF NOT EXISTS public.thesis_review_comments (
     )
 );
 
+ALTER TABLE public.thesis_review_comments
+  ADD COLUMN IF NOT EXISTS member_revised_at timestamp with time zone;
+
+ALTER TABLE public.thesis_review_comments
+  DROP CONSTRAINT IF EXISTS thesis_review_comments_field_key_check;
+
+ALTER TABLE public.thesis_review_comments
+  ADD CONSTRAINT thesis_review_comments_field_key_check
+  CHECK (
+    field_key = ANY (
+      ARRAY[
+        'title'::text,
+        'authors'::text,
+        'advisers'::text,
+        'department'::text,
+        'study_type'::text,
+        'publication_date'::text,
+        'publication_link'::text,
+        'conference'::text,
+        'research_area'::text,
+        'tags'::text,
+        'abstract'::text,
+        'recommendations'::text,
+        'lessons_learned'::text,
+        'pdf_general'::text
+      ]
+    )
+  );
+
 CREATE INDEX IF NOT EXISTS thesis_review_comments_thesis_created_at_idx
   ON public.thesis_review_comments (thesis_id, created_at, id);
 
@@ -94,6 +124,9 @@ CREATE INDEX IF NOT EXISTS thesis_review_comments_thesis_field_idx
 CREATE INDEX IF NOT EXISTS thesis_review_comments_open_idx
   ON public.thesis_review_comments (thesis_id)
   WHERE addressed_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS thesis_review_comments_field_revision_idx
+  ON public.thesis_review_comments (thesis_id, field_key, member_revised_at);
 
 -- ---------------------------------------------------------------------------
 -- 3. Transactional review RPCs
@@ -133,6 +166,7 @@ BEGIN
     'study_type',
     'publication_date',
     'publication_link',
+    'conference',
     'research_area',
     'tags',
     'abstract',
@@ -208,7 +242,7 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  IF next_status NOT IN ('flagged', 'accepted', 'trashed') THEN
+  IF next_status NOT IN ('for_review', 'flagged', 'accepted', 'trashed') THEN
     RAISE EXCEPTION 'That review status transition is not allowed'
       USING ERRCODE = '22023';
   END IF;
@@ -227,6 +261,9 @@ BEGIN
   IF NOT (
     current_status = 'for_review'
     AND next_status IN ('flagged', 'accepted', 'trashed')
+  ) AND NOT (
+    current_status = 'accepted'
+    AND next_status = 'for_review'
   ) AND NOT (
     current_status = 'flagged'
     AND next_status = 'trashed'
@@ -272,14 +309,22 @@ AS $$
 DECLARE
   owner_id uuid;
   current_status text;
+  current_thesis public.theses%ROWTYPE;
   current_calendar_date date;
   next_publication_date date;
   next_study_type text;
   author jsonb;
   tag text;
+  changed_fields text[] := ARRAY[]::text[];
+  current_authors jsonb;
+  next_authors jsonb;
+  current_advisers jsonb;
+  next_advisers jsonb;
+  current_tags jsonb;
+  next_tags jsonb;
 BEGIN
-  IF auth.uid() IS NULL OR NOT public.current_user_is_active() THEN
-    RAISE EXCEPTION 'An active authenticated user profile is required'
+  IF auth.uid() IS NULL OR NOT public.current_user_is_active(ARRAY['member']) THEN
+    RAISE EXCEPTION 'An active member account is required'
       USING ERRCODE = '42501';
   END IF;
 
@@ -288,11 +333,14 @@ BEGIN
       USING ERRCODE = '22023';
   END IF;
 
-  SELECT submitted_by_user_id, review_status
-  INTO owner_id, current_status
+  SELECT *
+  INTO current_thesis
   FROM public.theses
   WHERE id = target_thesis_id
   FOR UPDATE;
+
+  owner_id := current_thesis.submitted_by_user_id;
+  current_status := current_thesis.review_status;
 
   IF current_status IS NULL THEN
     RAISE EXCEPTION 'Thesis was not found'
@@ -333,6 +381,147 @@ BEGIN
     END IF;
   END IF;
 
+  IF payload ? 'title' AND payload->>'title' IS DISTINCT FROM current_thesis.title THEN
+    changed_fields := array_append(changed_fields, 'title');
+  END IF;
+  IF payload ? 'abstract' AND payload->>'abstract' IS DISTINCT FROM current_thesis.abstract THEN
+    changed_fields := array_append(changed_fields, 'abstract');
+  END IF;
+  IF payload ? 'department' AND payload->>'department' IS DISTINCT FROM current_thesis.department THEN
+    changed_fields := array_append(changed_fields, 'department');
+  END IF;
+  IF payload ? 'research_area'
+    AND NULLIF(payload->>'research_area', '') IS DISTINCT FROM current_thesis.research_area
+  THEN
+    changed_fields := array_append(changed_fields, 'research_area');
+  END IF;
+  IF payload ? 'publication_date' AND next_publication_date IS DISTINCT FROM current_thesis.publication_date THEN
+    changed_fields := array_append(changed_fields, 'publication_date');
+  END IF;
+  IF payload ? 'publication_link'
+    AND NULLIF(payload->>'publication_link', '') IS DISTINCT FROM current_thesis.publication_link
+  THEN
+    changed_fields := array_append(changed_fields, 'publication_link');
+  END IF;
+  IF payload ? 'conference'
+    AND NULLIF(payload->>'conference', '') IS DISTINCT FROM current_thesis.conference
+  THEN
+    changed_fields := array_append(changed_fields, 'conference');
+  END IF;
+  IF payload ? 'recommendations'
+    AND NULLIF(payload->>'recommendations', '') IS DISTINCT FROM current_thesis.recommendations
+  THEN
+    changed_fields := array_append(changed_fields, 'recommendations');
+  END IF;
+  IF payload ? 'lessons_learned'
+    AND NULLIF(payload->>'lessons_learned', '') IS DISTINCT FROM current_thesis.lessons_learned
+  THEN
+    changed_fields := array_append(changed_fields, 'lessons_learned');
+  END IF;
+  IF payload ? 'study_type' AND next_study_type IS DISTINCT FROM current_thesis.study_type THEN
+    changed_fields := array_append(changed_fields, 'study_type');
+  END IF;
+
+  IF payload ? 'authors' THEN
+    IF jsonb_typeof(payload->'authors') IS DISTINCT FROM 'array'
+      OR jsonb_array_length(payload->'authors') = 0
+    THEN
+      RAISE EXCEPTION 'At least one thesis author is required'
+        USING ERRCODE = '22023';
+    END IF;
+
+    SELECT COALESCE(
+      jsonb_agg(
+        jsonb_build_object(
+          'user_id', COALESCE(user_id::text, ''),
+          'display_name', btrim(display_name),
+          'sort_order', COALESCE(sort_order, 0)
+        )
+        ORDER BY COALESCE(sort_order, 0), id
+      ),
+      '[]'::jsonb
+    )
+    INTO current_authors
+    FROM public.thesis_authors
+    WHERE thesis_id = target_thesis_id
+      AND contribution_role = 'author';
+
+    SELECT COALESCE(
+      jsonb_agg(
+        jsonb_build_object(
+          'user_id', COALESCE(input_entry->>'user_id', ''),
+          'display_name', btrim(input_entry->>'display_name'),
+          'sort_order', COALESCE(NULLIF(input_entry->>'sort_order', '')::integer, 0)
+        )
+        ORDER BY COALESCE(NULLIF(input_entry->>'sort_order', '')::integer, 0), btrim(input_entry->>'display_name')
+      ),
+      '[]'::jsonb
+    )
+    INTO next_authors
+    FROM jsonb_array_elements(payload->'authors') AS input_entry
+    WHERE input_entry->>'contribution_role' = 'author';
+
+    SELECT COALESCE(
+      jsonb_agg(
+        jsonb_build_object(
+          'user_id', COALESCE(user_id::text, ''),
+          'display_name', btrim(display_name),
+          'sort_order', COALESCE(sort_order, 0)
+        )
+        ORDER BY COALESCE(sort_order, 0), id
+      ),
+      '[]'::jsonb
+    )
+    INTO current_advisers
+    FROM public.thesis_authors
+    WHERE thesis_id = target_thesis_id
+      AND contribution_role = 'adviser';
+
+    SELECT COALESCE(
+      jsonb_agg(
+        jsonb_build_object(
+          'user_id', COALESCE(input_entry->>'user_id', ''),
+          'display_name', btrim(input_entry->>'display_name'),
+          'sort_order', COALESCE(NULLIF(input_entry->>'sort_order', '')::integer, 0)
+        )
+        ORDER BY COALESCE(NULLIF(input_entry->>'sort_order', '')::integer, 0), btrim(input_entry->>'display_name')
+      ),
+      '[]'::jsonb
+    )
+    INTO next_advisers
+    FROM jsonb_array_elements(payload->'authors') AS input_entry
+    WHERE input_entry->>'contribution_role' = 'adviser';
+
+    IF current_authors IS DISTINCT FROM next_authors THEN
+      changed_fields := array_append(changed_fields, 'authors');
+    END IF;
+    IF current_advisers IS DISTINCT FROM next_advisers THEN
+      changed_fields := array_append(changed_fields, 'advisers');
+    END IF;
+  END IF;
+
+  IF payload ? 'tags' THEN
+    IF jsonb_typeof(payload->'tags') IS DISTINCT FROM 'array'
+      OR jsonb_array_length(payload->'tags') = 0
+    THEN
+      RAISE EXCEPTION 'At least one tag is required'
+        USING ERRCODE = '22023';
+    END IF;
+
+    SELECT COALESCE(jsonb_agg(btrim(existing_tag.tag) ORDER BY btrim(existing_tag.tag)), '[]'::jsonb)
+    INTO current_tags
+    FROM public.thesis_tags AS existing_tag
+    WHERE existing_tag.thesis_id = target_thesis_id;
+
+    SELECT COALESCE(jsonb_agg(btrim(input_tag.value) ORDER BY btrim(input_tag.value)), '[]'::jsonb)
+    INTO next_tags
+    FROM jsonb_array_elements_text(payload->'tags') AS input_tag(value);
+
+    IF current_tags IS DISTINCT FROM next_tags THEN
+      changed_fields := array_append(changed_fields, 'tags');
+    END IF;
+  END IF;
+
   UPDATE public.theses
   SET
     title = CASE WHEN payload ? 'title' THEN payload->>'title' ELSE title END,
@@ -354,13 +543,6 @@ BEGIN
   WHERE id = target_thesis_id;
 
   IF payload ? 'authors' THEN
-    IF jsonb_typeof(payload->'authors') IS DISTINCT FROM 'array'
-      OR jsonb_array_length(payload->'authors') = 0
-    THEN
-      RAISE EXCEPTION 'At least one thesis author is required'
-        USING ERRCODE = '22023';
-    END IF;
-
     DELETE FROM public.thesis_authors
     WHERE thesis_id = target_thesis_id;
 
@@ -396,13 +578,6 @@ BEGIN
   END IF;
 
   IF payload ? 'tags' THEN
-    IF jsonb_typeof(payload->'tags') IS DISTINCT FROM 'array'
-      OR jsonb_array_length(payload->'tags') = 0
-    THEN
-      RAISE EXCEPTION 'At least one tag is required'
-        USING ERRCODE = '22023';
-    END IF;
-
     DELETE FROM public.thesis_tags
     WHERE thesis_id = target_thesis_id;
 
@@ -415,6 +590,14 @@ BEGIN
         VALUES (target_thesis_id, btrim(tag));
       END IF;
     END LOOP;
+  END IF;
+
+  IF cardinality(changed_fields) > 0 THEN
+    UPDATE public.thesis_review_comments
+    SET member_revised_at = now()
+    WHERE thesis_id = target_thesis_id
+      AND field_key = ANY(changed_fields)
+      AND created_at <= now();
   END IF;
 
   INSERT INTO public.thesis_audits (
@@ -446,8 +629,8 @@ DECLARE
   current_status text;
   changed_count integer;
 BEGIN
-  IF auth.uid() IS NULL OR NOT public.current_user_is_active() THEN
-    RAISE EXCEPTION 'An active authenticated user profile is required'
+  IF auth.uid() IS NULL OR NOT public.current_user_is_active(ARRAY['member']) THEN
+    RAISE EXCEPTION 'An active member account is required'
       USING ERRCODE = '42501';
   END IF;
 
@@ -472,6 +655,27 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.thesis_review_comments
+    WHERE id = target_comment_id
+      AND thesis_id = target_thesis_id
+  ) THEN
+    RAISE EXCEPTION 'Review comment was not found'
+      USING ERRCODE = 'P0002';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.thesis_review_comments
+    WHERE id = target_comment_id
+      AND thesis_id = target_thesis_id
+      AND member_revised_at IS NOT NULL
+  ) THEN
+    RAISE EXCEPTION 'Save a change to this field before marking the comment addressed'
+      USING ERRCODE = '22023';
+  END IF;
+
   UPDATE public.thesis_review_comments
   SET
     addressed_at = now(),
@@ -481,16 +685,6 @@ BEGIN
     AND addressed_at IS NULL;
 
   GET DIAGNOSTICS changed_count = ROW_COUNT;
-
-  IF changed_count = 0 AND NOT EXISTS (
-    SELECT 1
-    FROM public.thesis_review_comments
-    WHERE id = target_comment_id
-      AND thesis_id = target_thesis_id
-  ) THEN
-    RAISE EXCEPTION 'Review comment was not found'
-      USING ERRCODE = 'P0002';
-  END IF;
 
   IF changed_count > 0 THEN
     INSERT INTO public.thesis_audits (
@@ -509,6 +703,109 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.replace_flagged_submission_file(
+  target_thesis_id bigint,
+  target_storage_path text,
+  target_file_type text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  owner_id uuid;
+  current_status text;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.current_user_is_active(ARRAY['member']) THEN
+    RAISE EXCEPTION 'An active member account is required'
+      USING ERRCODE = '42501';
+  END IF;
+
+  SELECT submitted_by_user_id, review_status
+  INTO owner_id, current_status
+  FROM public.theses
+  WHERE id = target_thesis_id
+  FOR UPDATE;
+
+  IF current_status IS NULL THEN
+    RAISE EXCEPTION 'Thesis was not found'
+      USING ERRCODE = 'P0002';
+  END IF;
+
+  IF owner_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'You are not the owner of this thesis'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF current_status <> 'flagged' THEN
+    RAISE EXCEPTION 'Only flagged submissions can replace their PDF'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF target_file_type IS DISTINCT FROM 'application/pdf' THEN
+    RAISE EXCEPTION 'Thesis file type must be application/pdf'
+      USING ERRCODE = '22023';
+  END IF;
+
+  IF target_storage_path IS NULL
+    OR target_storage_path NOT LIKE ('uploads/' || auth.uid()::text || '/%')
+  THEN
+    RAISE EXCEPTION 'The uploaded file path must belong to the authenticated user'
+      USING ERRCODE = '22023';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM storage.objects
+    WHERE bucket_id = 'thesis_files_bucket'
+      AND name = target_storage_path
+  ) THEN
+    RAISE EXCEPTION 'The uploaded thesis PDF was not found in Storage'
+      USING ERRCODE = '22023';
+  END IF;
+
+  UPDATE public.thesis_files
+  SET is_primary = false
+  WHERE thesis_id = target_thesis_id
+    AND is_primary;
+
+  INSERT INTO public.thesis_files (
+    thesis_id,
+    file_url,
+    storage_path,
+    file_type,
+    is_primary
+  )
+  VALUES (
+    target_thesis_id,
+    NULL,
+    target_storage_path,
+    target_file_type,
+    true
+  );
+
+  UPDATE public.thesis_review_comments
+  SET member_revised_at = now()
+  WHERE thesis_id = target_thesis_id
+    AND field_key = 'pdf_general'
+    AND created_at <= now();
+
+  INSERT INTO public.thesis_audits (
+    thesis_id,
+    changed_by_user_id,
+    event,
+    change_description
+  )
+  VALUES (
+    target_thesis_id,
+    auth.uid(),
+    'pdf_replaced',
+    'Submitter reattached the primary PDF while correcting a flagged submission.'
+  );
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.resubmit_flagged_submission(
   target_thesis_id bigint
 )
@@ -521,8 +818,8 @@ DECLARE
   owner_id uuid;
   current_status text;
 BEGIN
-  IF auth.uid() IS NULL OR NOT public.current_user_is_active() THEN
-    RAISE EXCEPTION 'An active authenticated user profile is required'
+  IF auth.uid() IS NULL OR NOT public.current_user_is_active(ARRAY['member']) THEN
+    RAISE EXCEPTION 'An active member account is required'
       USING ERRCODE = '42501';
   END IF;
 
@@ -645,6 +942,13 @@ REVOKE ALL ON FUNCTION public.update_flagged_submission(bigint, jsonb)
 REVOKE ALL ON FUNCTION public.update_flagged_submission(bigint, jsonb)
   FROM anon;
 GRANT EXECUTE ON FUNCTION public.update_flagged_submission(bigint, jsonb)
+  TO authenticated;
+
+REVOKE ALL ON FUNCTION public.replace_flagged_submission_file(bigint, text, text)
+  FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.replace_flagged_submission_file(bigint, text, text)
+  FROM anon;
+GRANT EXECUTE ON FUNCTION public.replace_flagged_submission_file(bigint, text, text)
   TO authenticated;
 
 REVOKE ALL ON FUNCTION public.mark_review_comment_addressed(bigint, bigint)

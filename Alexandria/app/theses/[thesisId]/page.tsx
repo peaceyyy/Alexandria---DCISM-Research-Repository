@@ -1,7 +1,6 @@
 import { AppHeader } from "@/components/layout/app-header";
-import FaqRail from "@/components/layout/faq";
 import { getCurrentUser } from "@/lib/services/auth-service";
-import { items } from "@/lib/mock-data/theses";
+import { getThesisById } from "@/lib/services/thesis-service";
 import Image from "next/image";
 import Link from "next/link";
 import DetailsSidebar from "@/components/layout/details-sidebar";
@@ -12,27 +11,43 @@ export default async function ThesisDetails({
     params: Promise<{ thesisId: string }>;
 }) {
     const { thesisId } = await params;
-    const thesis = items.find((item) => item.id === Number(thesisId));
-    const userResult = await getCurrentUser();
-    const role = userResult.data?.role ?? null;
+    const id = Number(thesisId);
 
-    console.log("thesisId:", thesisId);
-    console.log("items ids:", items.map((item) => item.id));
-
-    if (!thesis) {
-        return <main>Thesis not found</main>;
+    if (!Number.isInteger(id) || id <= 0) {
+        return (
+            <main className="h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex items-center justify-center">
+                Thesis not found
+            </main>
+        );
     }
 
+    const [userResult, thesisResult] = await Promise.all([
+        getCurrentUser(),
+        getThesisById(id),
+    ]);
+
+    const role = userResult.data?.role ?? null;
+
+    if (thesisResult.error || !thesisResult.data) {
+        return (
+            <main className="h-screen bg-[var(--color-bg)] text-[var(--color-text)] flex items-center justify-center">
+                Thesis not found
+            </main>
+        );
+    }
+
+    const thesis = thesisResult.data;
+
     return (
-        <main className="h-screen overflow-hidden bg-[#14181c] text-white">
+        <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] xl:h-screen xl:overflow-hidden">
             <AppHeader role={role} />
-            <div className="grid h-[calc(100vh-72px)] grid-cols-[220px_minmax(0,1fr)_360px]">
-                <aside className="border-r border-white/15 px-3 py-4">
+            <div className="grid grid-cols-1 xl:h-[calc(100vh-4rem)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
+                <aside className="hidden border-r border-white/15 px-3 py-4 xl:block">
                     {/* left nav */}
                     <div>
-                        <div className="mb-4 text-sm font-semibold text-white/60">Filter</div>
+                        <div className="mb-4 text-sm font-semibold text-[var(--color-text-muted)]">Filter</div>
 
-                        <section className="space-y-4 text-xs text-white/80">
+                        <section className="space-y-4 text-xs text-[var(--color-text)]">
                             <div>
                                 <div className="mb-2 font-semibold">Year</div>
                                 <div className="flex gap-2">
@@ -68,31 +83,34 @@ export default async function ThesisDetails({
                     </div>
                 </aside>
 
-                <section className="overflow-y-auto px-6 py-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-r border-white/15">
+                <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:border-r xl:border-white/15 xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     {/* this section contains the back button, title, authors, abstract, keywords/tags, pdf viewer */}
 
-                    <Link href="/theses" className="mb-4 inline-block text-blue-400 hover:text-blue-300">
+                    <Link href="/home" className="mb-4 inline-block text-blue-400 hover:text-blue-300">
                         ← Back
                     </Link>
 
-                    <h1 className="max-w-7xl text-2xl font-extrabold leading-tight text-white">
+                    <h1 className="max-w-7xl text-2xl font-extrabold leading-tight text-[var(--color-text)]">
                         {thesis.title}
                     </h1>
 
-                    <div className="mt-2 text-sm text-white/70">
-                        {thesis.authors.map((author) => author.name).join(" • ")} | {thesis.year}
+                    <div className="mt-2 text-sm text-[var(--color-text-muted)]">
+                        {thesis.authors
+                            .filter((author) => author.contribution_role === "author")
+                            .map((author) => author.display_name)
+                            .join(" • ")} | {thesis.year}
                     </div>
 
                     <div className="mt-6">
-                        <h2 className="text-lg font-semibold text-white">Abstract</h2>
-                        <p className="mt-2 max-w-7xl text-sm leading-6 text-white/70">
+                        <h2 className="text-lg font-semibold text-[var(--color-text)]">Abstract</h2>
+                        <p className="mt-2 max-w-7xl text-sm leading-6 text-[var(--color-text-muted)]">
                             {thesis.abstract}
                         </p>
                     </div>
 
                     <div className="mt-6">
-                        <h2 className="text-lg font-semibold text-white">Keywords</h2>
-                        <p className="mt-2 max-w-7xl text-sm leading-6 text-white/70">
+                        <h2 className="text-lg font-semibold text-[var(--color-text)]">Keywords</h2>
+                        <p className="mt-2 max-w-7xl text-sm leading-6 text-[var(--color-text-muted)]">
                             {/* Tags are here */}
                             {thesis.tags.join(", ")}
                         </p>
@@ -109,7 +127,7 @@ export default async function ThesisDetails({
                     </div>
                 </section>
 
-                <DetailsSidebar thesis={thesis} allItems={items} />
+                <DetailsSidebar thesis={thesis} />
             </div>
         </main>
     )

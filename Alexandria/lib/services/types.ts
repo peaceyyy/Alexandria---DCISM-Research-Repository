@@ -12,6 +12,7 @@ export type ReviewFieldKey =
   | "study_type"
   | "publication_date"
   | "publication_link"
+  | "conference"
   | "research_area"
   | "tags"
   | "abstract"
@@ -108,6 +109,7 @@ export type DbThesisReviewComment = {
   created_by_user_id: string;
   addressed_at: string | null;
   addressed_by_user_id: string | null;
+  member_revised_at: string | null;
   created_at: string;
 };
 // ─── UI / Service DTOs (frontend-safe shapes) ────────────────────────────────
@@ -127,6 +129,7 @@ export type ThesisCard = {
   abstract_preview: string; // first ~200 chars of abstract
   tags: string[];
   research_area: string | null;
+  department: string;
 };
 /** Used on the Thesis Detail page. Extends ThesisCard. */
 export type ThesisDetail = ThesisCard & {
@@ -182,6 +185,7 @@ export type ReviewComment = {
   createdAt: string;
   addressedAt: string | null;
   addressedByUserId: string | null;
+  memberRevisedAt: string | null;
 };
 export type ReviewAuditEvent = {
   id: number;
@@ -196,10 +200,12 @@ export type ReviewSubmission = {
   title: string;
   authors: string[];
   advisers: string[];
+  contributorEntries?: ThesisAuthor[];
   department: string;
   studyType: StudyType;
   publicationDate: string;
   publicationLink: string | null;
+  conference: string | null;
   researchArea: string | null;
   tags: string[];
   abstract: string;
@@ -226,6 +232,9 @@ export type ReviewSubmissionListItem = Pick<
   | "submittedAt"
   | "reviewStatus"
 > & {
+  year: number;
+  researchArea: string | null;
+  abstractPreview: string;
   commentCount: number;
 };
 export type MySubmissionListItem = ReviewSubmissionListItem & {
@@ -348,7 +357,7 @@ export type AddReviewCommentInput = {
 };
 export type SetReviewStatusInput = {
   thesisId: number;
-  nextStatus: Extract<ReviewStatus, "flagged" | "accepted" | "trashed">;
+  nextStatus: Extract<ReviewStatus, "for_review" | "flagged" | "accepted" | "trashed">;
 };
 export type UpdateFlaggedSubmissionInput = {
   thesisId: number;

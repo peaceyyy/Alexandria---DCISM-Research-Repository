@@ -1,0 +1,238 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(248px, 300px) minmax(0, 1fr);
+  gap: 24px;
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 28px 32px 64px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  background: #1a1e23;
+}
+
+.backLink,
+.actions button,
+.filePicker,
+.attachButton,
+.iconButton,
+.addPersonButton,
+.modalActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.backLink {
+  width: fit-content;
+  color: #aab8d0;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: #ffffff;
+}
+
+.statusBlock,
+.summary {
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.eyebrow {
+  margin: 0 0 7px;
+  color: #818a9a;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.statusBlock strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.flaggedStatus { color: #ffb3b3; }
+.pendingStatus { color: #f0cf78; }
+
+.statusBlock p,
+.documentHeader p,
+.modal p {
+  margin: 0;
+  color: #aab1bd;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.summary dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.summary dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.summary dt { color: #939aa6; }
+.summary dd { margin: 0; color: #ffffff; font-weight: 700; }
+
+.actions { display: grid; gap: 8px; }
+
+.actions button,
+.attachButton,
+.modalActions button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.saveButton,
+.confirmResubmit {
+  border: 1px solid #368bfe;
+  background: #1752f0;
+  color: #ffffff;
+}
+
+.saveButton:hover:not(:disabled),
+.confirmResubmit:hover:not(:disabled) { background: #1f62ff; }
+
+.resubmitButton,
+.attachButton {
+  border: 1px solid rgba(29, 160, 201, 0.35);
+  background: rgba(29, 160, 201, 0.1);
+  color: #a3e7f4;
+}
+
+.resubmitButton:hover:not(:disabled),
+.attachButton:hover:not(:disabled) { background: rgba(29, 160, 201, 0.18); }
+
+.actions button:disabled,
+.attachButton:disabled,
+.iconButton:disabled,
+.addPersonButton:disabled,
+.modalActions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.unsavedNotice { margin: 0; color: #eac867; font-size: 12px; }
+
+.document {
+  min-width: 0;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  background: #1a1e23;
+}
+
+.documentHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.documentHeader h1 { margin: 0 0 9px; font-size: 24px; line-height: 1.3; }
+.lockedIcon { flex: 0 0 auto; color: #8ed8aa; }
+
+.fieldGroups { display: grid; gap: 10px; padding-top: 20px; }
+.twoColumns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+.control input,
+.control textarea,
+.control select,
+.personRow input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.control input,
+.control select,
+.personRow input { min-height: 38px; padding: 8px 10px; }
+.control textarea { min-height: 100px; padding: 10px; resize: vertical; }
+.control input:focus,
+.control textarea:focus,
+.control select:focus,
+.personRow input:focus { outline: 2px solid rgba(54, 139, 254, 0.75); outline-offset: 1px; }
+.control input:disabled,
+.control textarea:disabled,
+.control select:disabled,
+.personRow input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.peopleEditor { display: grid; gap: 8px; }
+.personRow { display: grid; grid-template-columns: minmax(0, 1fr) 34px; gap: 8px; }
+.iconButton { border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 5px; background: transparent; color: #aab1bd; }
+.iconButton:hover:not(:disabled) { color: #ffb3b3; border-color: rgba(255, 107, 107, 0.45); }
+.addPersonButton { width: fit-content; padding: 5px 0; border: none; background: transparent; color: #8ec5ff; font-size: 12px; font-weight: 700; }
+.addPersonButton:hover:not(:disabled) { color: #ffffff; }
+
+.pdfSection { display: grid; gap: 10px; }
+.pdfSection p { margin: 0; color: #d8dadc; font-size: 13px; }
+.previewLink { width: fit-content; color: #8ec5ff; font-size: 12px; font-weight: 700; text-decoration: none; }
+.previewLink:hover { color: #ffffff; }
+.filePicker { min-height: 40px; justify-content: flex-start; padding: 8px 10px; border: 1px dashed rgba(29, 160, 201, 0.45); border-radius: 5px; color: #a3e7f4; font-size: 13px; overflow: hidden; }
+.filePicker input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.filePicker span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.errorMessage,
+.noticeMessage {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border-radius: 5px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.errorMessage { border: 1px solid rgba(255, 107, 107, 0.34); background: rgba(255, 107, 107, 0.08); color: #ffb3b3; }
+.noticeMessage { border: 1px solid rgba(29, 160, 201, 0.3); background: rgba(29, 160, 201, 0.08); color: #a3e7f4; }
+
+.modalOverlay { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: rgba(4, 6, 8, 0.7); }
+.modal { width: min(430px, 100%); padding: 22px; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 7px; background: #1a1e23; box-shadow: 0 20px 48px rgba(0, 0, 0, 0.38); }
+.modal h2 { margin: 0 0 10px; font-size: 18px; }
+.modalWarning { margin-top: 12px !important; color: #eac867 !important; }
+.modalActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.modalActions button:first-child { border: 1px solid rgba(255, 255, 255, 0.14); background: transparent; color: #d8dadc; }
+.spinning { animation: spin 800ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; padding: 16px; }
+  .sidebar { position: static; max-height: none; }
+}
+
+@media (max-width: 620px) {
+  .document { padding: 18px 12px; }
+  .twoColumns { grid-template-columns: 1fr; }
+  .documentHeader { flex-direction: column; }
+}

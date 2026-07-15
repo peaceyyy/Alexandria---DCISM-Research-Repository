@@ -138,6 +138,7 @@ export type ThesisCard = {
   abstract_preview: string; // first ~200 chars of abstract
   tags: string[];
   research_area: string | null;
+  department: string;
 };
 /** Used on the Thesis Detail page. Extends ThesisCard. */
 export type ThesisDetail = ThesisCard & {

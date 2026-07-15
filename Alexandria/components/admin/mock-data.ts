@@ -78,6 +78,7 @@ const mockComments: ReviewComment[] = [
     createdAt: "2026-06-25T08:30:00Z",
     addressedAt: null,
     addressedByUserId: null,
+    memberRevisedAt: null,
   },
   {
     id: 2,
@@ -90,6 +91,7 @@ const mockComments: ReviewComment[] = [
     createdAt: "2026-06-25T09:15:00Z",
     addressedAt: null,
     addressedByUserId: null,
+    memberRevisedAt: null,
   },
   {
     id: 3,
@@ -102,6 +104,7 @@ const mockComments: ReviewComment[] = [
     createdAt: "2026-06-25T09:20:00Z",
     addressedAt: null,
     addressedByUserId: null,
+    memberRevisedAt: null,
   },
   {
     id: 4,
@@ -114,6 +117,7 @@ const mockComments: ReviewComment[] = [
     createdAt: "2026-06-25T10:05:00Z",
     addressedAt: null,
     addressedByUserId: null,
+    memberRevisedAt: null,
   },
   {
     id: 5,
@@ -126,6 +130,7 @@ const mockComments: ReviewComment[] = [
     createdAt: "2026-06-14T14:22:00Z",
     addressedAt: null,
     addressedByUserId: null,
+    memberRevisedAt: null,
   },
   {
     id: 6,
@@ -138,6 +143,7 @@ const mockComments: ReviewComment[] = [
     createdAt: "2026-06-08T11:00:00Z",
     addressedAt: null,
     addressedByUserId: null,
+    memberRevisedAt: null,
   },
 ];
 
@@ -238,6 +244,7 @@ export const mockReviewSubmissions: MockReviewSubmission[] = [
     studyType: "thesis",
     publicationDate: "June 2025",
     publicationLink: null,
+    conference: "DCISM Research Colloquium 2025",
     researchArea: "Data Science",
     tags: ["CNN", "Computer Vision", "Plant Disease", "Deep Learning"],
     reviewStatus: "for_review",
@@ -267,6 +274,7 @@ export const mockReviewSubmissions: MockReviewSubmission[] = [
     studyType: "capstone",
     publicationDate: "May 2025",
     publicationLink: "https://arxiv.org/abs/2506.12345",
+    conference: "Cebu Computing Research Forum 2025",
     researchArea: "Software Engineering",
     tags: ["Algorithms", "Complexity", "Sorting", "Performance Analysis"],
     reviewStatus: "accepted",
@@ -296,6 +304,7 @@ export const mockReviewSubmissions: MockReviewSubmission[] = [
     studyType: "thesis",
     publicationDate: "April 2025",
     publicationLink: null,
+    conference: "Philippine IoT Symposium 2025",
     researchArea: "IoT",
     tags: ["IoT", "Embedded Systems", "Agriculture", "Sensors"],
     reviewStatus: "for_review",
@@ -325,6 +334,7 @@ export const mockReviewSubmissions: MockReviewSubmission[] = [
     studyType: "capstone",
     publicationDate: "March 2025",
     publicationLink: null,
+    conference: null,
     researchArea: "Computer Vision",
     tags: ["YOLO", "Edge Computing", "Object Detection", "Latency"],
     reviewStatus: "flagged",
@@ -354,6 +364,7 @@ export const mockReviewSubmissions: MockReviewSubmission[] = [
     studyType: "thesis",
     publicationDate: "February 2025",
     publicationLink: null,
+    conference: "Educational Data Mining Student Forum 2025",
     researchArea: "Data Science",
     tags: ["Machine Learning", "Education Technology", "Prediction", "GPA"],
     reviewStatus: "for_review",

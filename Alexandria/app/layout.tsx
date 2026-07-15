@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Khula, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const inter = Inter({
   variable: "--font-inter",
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
     default: "Alexandria",
     template: "%s | Alexandria",
   },
-  description: "DCISM thesis, research, and capstone repository.",
+  description: "DCISM thesis and capstone repository.",
 };
 
 export default function RootLayout({
@@ -30,10 +31,25 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn(inter.variable, khula.variable, "font-sans", geist.variable)}
+      className={cn(
+        inter.variable,
+        khula.variable,
+        "font-sans",
+        geist.variable,
+      )}
       suppressHydrationWarning
     >
-      <body>{children}</body>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('alexandria-theme');document.documentElement.dataset.theme=t==='light'?'light':'dark';}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body>
+        {children}
+        <ThemeToggle />
+      </body>
     </html>
   );
 }

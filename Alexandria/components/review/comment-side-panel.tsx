@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Send, X, ChevronDown, Edit2, Trash2 } from "lucide-react";
+import { Check, ChevronDown, MessageSquare, Send, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { ReviewComment, ReviewFieldKey } from "./types";
 import { REVIEW_FIELD_LABEL } from "./types";
+import { getCommentCorrectionState } from "@/lib/review/correction-state";
 import styles from "./comment-side-panel.module.css";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -40,9 +41,8 @@ export interface CommentSidePanelProps {
   comments: ReviewComment[];
   canComment: boolean;
   onAddComment: (fieldKey: ReviewFieldKey, comment: string) => void;
-  onEditComment?: (commentId: number, newText: string) => void;
-  onDeleteComment?: (commentId: number) => void;
-  currentUserName?: string;
+  onMarkAddressed?: (commentId: number) => void;
+  isMarkingAddressed?: boolean;
   onClose: () => void;
 }
 
@@ -54,9 +54,8 @@ export function CommentSidePanel({
   comments,
   canComment,
   onAddComment,
-  onEditComment,
-  onDeleteComment,
-  currentUserName,
+  onMarkAddressed,
+  isMarkingAddressed = false,
   onClose,
 }: CommentSidePanelProps) {
   const [draft, setDraft] = useState("");
@@ -64,20 +63,6 @@ export function CommentSidePanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [showScroll, setShowScroll] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-
-  const startEdit = (c: ReviewComment) => {
-    setEditingId(c.id);
-    setEditDraft(c.comment);
-  };
-
-  const saveEdit = () => {
-    if (editingId && editDraft.trim() && onEditComment) {
-      onEditComment(editingId, editDraft.trim());
-    }
-    setEditingId(null);
-  };
 
   const handleScroll = () => {
     if (listRef.current) {
@@ -192,7 +177,7 @@ export function CommentSidePanel({
             fieldComments.map((c) => (
               <div key={c.id} className={styles.commentItem}>
                 <div className={styles.commentMeta}>
-                  <div style={{ display: "flex", gap: 7, alignItems: "baseline", flex: 1 }}>
+                  <div style={{ display: "flex", gap: 7, alignItems: "baseline", flex: 1, flexWrap: "wrap" }}>
                     <span className={styles.commentAuthor}>{c.createdByName}</span>
                     <time
                       className={styles.commentTime}
@@ -201,34 +186,37 @@ export function CommentSidePanel({
                     >
                       {formatRelativeTime(c.createdAt)}
                     </time>
+                    {(() => {
+                      const state = getCommentCorrectionState(c);
+                      const label = state === "addressed"
+                        ? "Marked addressed"
+                        : state === "revised"
+                          ? "Field revised"
+                          : "Needs attention";
+
+                      return (
+                        <span className={`${styles.correctionState} ${styles[`correctionState${state}`]}`}>
+                          {label}
+                        </span>
+                      );
+                    })()}
                   </div>
-                  {c.createdByName === currentUserName && !editingId && (
-                    <div className={styles.commentActions}>
-                      <button onClick={() => startEdit(c)} className={styles.actionBtn} aria-label="Edit comment">
-                        <Edit2 size={12} />
-                      </button>
-                      <button onClick={() => onDeleteComment?.(c.id)} className={styles.actionBtn} aria-label="Delete comment">
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  )}
                 </div>
-                {editingId === c.id ? (
-                  <div className={styles.editForm}>
-                    <textarea
-                      className={styles.textarea}
-                      value={editDraft}
-                      onChange={(e) => setEditDraft(e.target.value)}
-                      rows={2}
-                      autoFocus
-                    />
-                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", marginTop: 8 }}>
-                      <button className={styles.cancelBtn} onClick={() => setEditingId(null)}>Cancel</button>
-                      <button className={styles.saveBtn} onClick={saveEdit}>Save</button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className={styles.commentText}>{c.comment}</p>
+                <p className={styles.commentText}>{c.comment}</p>
+                {onMarkAddressed && (
+                  <button
+                    type="button"
+                    className={styles.addressButton}
+                    onClick={() => onMarkAddressed(c.id)}
+                    disabled={!c.memberRevisedAt || Boolean(c.addressedAt) || isMarkingAddressed}
+                  >
+                    <Check size={12} aria-hidden />
+                    {c.addressedAt
+                      ? "Marked addressed"
+                      : c.memberRevisedAt
+                        ? "Mark as addressed"
+                        : "Save a field change first"}
+                  </button>
                 )}
               </div>
             ))

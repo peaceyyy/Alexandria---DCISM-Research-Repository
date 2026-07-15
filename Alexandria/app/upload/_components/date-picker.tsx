@@ -1,13 +1,10 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Popover } from "@base-ui/react/popover";
+import { CalendarIcon, ChevronDown } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
-
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
 
 interface DatePickerProps {
   value: string; // "YYYY-MM-DD" or ""
@@ -16,124 +13,116 @@ interface DatePickerProps {
   error?: boolean;
 }
 
-function parseMax(max?: string) {
-  if (!max) return null;
-  const [y, m, d] = max.split("-").map(Number);
-  return { year: y, month: m - 1, day: d }; // month 0-indexed
+const MIN_YEAR = 1990;
+
+function parseISODate(value?: string) {
+  if (!value) return undefined;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  if (
+    !Number.isInteger(year) ||
+    !Number.isInteger(month) ||
+    !Number.isInteger(day) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return undefined;
+  }
+
+  return date;
 }
 
-function daysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
+function toISODate(date: Date) {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function formatDate(date?: Date) {
+  if (!date) return "Select date";
+
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
 }
 
 export function DatePicker({ value, onChange, max, error }: DatePickerProps) {
-  const maxParsed = parseMax(max);
-  const minYear = 1990;
-  const maxYear = maxParsed?.year ?? new Date().getFullYear();
+  const [open, setOpen] = useState(false);
+  const selectedDate = useMemo(() => parseISODate(value), [value]);
+  const maxDate = useMemo(() => parseISODate(max) ?? new Date(), [max]);
+  const minDate = useMemo(() => new Date(MIN_YEAR, 0, 1), []);
+  const displayDate = formatDate(selectedDate);
 
-  // Parse current value
-  const [selYear, selMonth, selDay] = useMemo(() => {
-    if (!value) return [maxYear, maxParsed?.month ?? new Date().getMonth(), 0];
-    const [y, m, d] = value.split("-").map(Number);
-    return [y, m - 1, d]; // month 0-indexed
-  }, [value, maxYear, maxParsed?.month]);
+  function handleSelect(date: Date | undefined) {
+    if (!date) return;
 
-  const yearOptions = useMemo(
-    () => Array.from({ length: maxYear - minYear + 1 }, (_, i) => maxYear - i),
-    [maxYear],
-  );
-
-  // Available months — clamp if on maxYear
-  const monthOptions = useMemo(() => {
-    const ceiling = maxParsed && selYear === maxParsed.year ? maxParsed.month : 11;
-    return MONTHS.slice(0, ceiling + 1).map((name, idx) => ({ name, idx }));
-  }, [selYear, maxParsed]);
-
-  // Available days — clamp if on max month/year
-  const dayOptions = useMemo(() => {
-    const maxDay =
-      maxParsed && selYear === maxParsed.year && selMonth === maxParsed.month
-        ? maxParsed.day
-        : daysInMonth(selYear, selMonth);
-    return Array.from({ length: maxDay }, (_, i) => i + 1);
-  }, [selYear, selMonth, maxParsed]);
-
-  function emit(y: number, m: number, d: number) {
-    if (!d) return;
-    const mm = String(m + 1).padStart(2, "0");
-    const dd = String(d).padStart(2, "0");
-    onChange(`${y}-${mm}-${dd}`);
+    onChange(toISODate(date));
+    setOpen(false);
   }
-
-  function handleYear(e: React.ChangeEvent<HTMLSelectElement>) {
-    const y = Number(e.target.value);
-    // Clamp month if necessary
-    const monthCeiling =
-      maxParsed && y === maxParsed.year ? maxParsed.month : 11;
-    const safeMonth = Math.min(selMonth, monthCeiling);
-    // Clamp day
-    const dayCeiling =
-      maxParsed && y === maxParsed.year && safeMonth === maxParsed.month
-        ? maxParsed.day
-        : daysInMonth(y, safeMonth);
-    const safeDay = Math.min(selDay || 1, dayCeiling);
-    emit(y, safeMonth, safeDay);
-  }
-
-  function handleMonth(e: React.ChangeEvent<HTMLSelectElement>) {
-    const m = Number(e.target.value);
-    // Clamp day
-    const dayCeiling =
-      maxParsed && selYear === maxParsed.year && m === maxParsed.month
-        ? maxParsed.day
-        : daysInMonth(selYear, m);
-    const safeDay = Math.min(selDay || 1, dayCeiling);
-    emit(selYear, m, safeDay);
-  }
-
-  function handleDay(e: React.ChangeEvent<HTMLSelectElement>) {
-    emit(selYear, selMonth, Number(e.target.value));
-  }
-
-  const cls = cn(
-    "h-[42px] w-full appearance-none rounded-lg border bg-[#0D1117] pl-3 pr-7 text-sm text-white outline-none transition-colors",
-    error
-      ? "border-[#ff6b6b]/50 focus:border-[#ff6b6b]/80"
-      : "border-white/8 focus:border-[#368BFE]/60",
-  );
 
   return (
-    <div className="flex items-center gap-2">
-      {/* Month */}
-      <div className="relative flex-[2]">
-        <select value={selMonth} onChange={handleMonth} className={cls} aria-label="Month">
-          {monthOptions.map(({ name, idx }) => (
-            <option key={idx} value={idx} className="bg-[#1C2026]">{name}</option>
-          ))}
-        </select>
-        <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white/25" aria-hidden />
-      </div>
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger
+        aria-label={`Select publication date${selectedDate ? `: ${displayDate}` : ""}`}
+        className={cn(
+          "flex h-[42px] w-full items-center gap-2 rounded-md border bg-[#0D1117] px-3 text-left text-sm transition-colors",
+          error
+            ? "border-[#ff6b6b]/50 text-white focus-visible:border-[#ff6b6b]/80"
+            : "border-white/8 text-white hover:border-white/15 focus-visible:border-[#368BFE]/70",
+        )}
+      >
+        <CalendarIcon className="size-4 shrink-0 text-[#368BFE]" aria-hidden />
+        <span className={cn("flex-1", !selectedDate && "text-white/40")}>
+          {displayDate}
+        </span>
+        <ChevronDown
+          className={cn(
+            "size-4 shrink-0 text-white/35 transition-transform",
+            open && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </Popover.Trigger>
 
-      {/* Day */}
-      <div className="relative flex-1">
-        <select value={selDay || ""} onChange={handleDay} className={cls} aria-label="Day">
-          <option value="" disabled className="bg-[#1C2026]">DD</option>
-          {dayOptions.map((d) => (
-            <option key={d} value={d} className="bg-[#1C2026]">{d}</option>
-          ))}
-        </select>
-        <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white/25" aria-hidden />
-      </div>
-
-      {/* Year */}
-      <div className="relative flex-[1.5]">
-        <select value={selYear} onChange={handleYear} className={cls} aria-label="Year">
-          {yearOptions.map((y) => (
-            <option key={y} value={y} className="bg-[#1C2026]">{y}</option>
-          ))}
-        </select>
-        <ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-white/25" aria-hidden />
-      </div>
-    </div>
+      <Popover.Portal>
+        <Popover.Positioner align="start" side="bottom" sideOffset={8}>
+          <Popover.Popup
+            aria-label="Publication date"
+            className="z-50 rounded-md border border-white/10 bg-[#171B21] p-2 text-white shadow-[0_12px_24px_rgba(0,0,0,0.28)] outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95"
+            role="dialog"
+          >
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={handleSelect}
+              defaultMonth={selectedDate ?? maxDate}
+              startMonth={minDate}
+              endMonth={new Date(maxDate.getFullYear(), maxDate.getMonth(), 1)}
+              disabled={[{ before: minDate }, { after: maxDate }]}
+              captionLayout="dropdown"
+              navLayout="after"
+              showOutsideDays={false}
+              autoFocus
+              className="bg-transparent p-1"
+              classNames={{
+                button_next: "text-white/55 hover:bg-white/10 hover:text-white",
+                button_previous: "text-white/55 hover:bg-white/10 hover:text-white",
+                caption_label: "text-white",
+                day_button:
+                  "text-white hover:bg-white/10 hover:text-white data-[selected-single=true]:bg-[#1752F0] data-[selected-single=true]:text-white",
+                disabled: "text-white/20 opacity-100",
+                weekday: "text-white/35",
+              }}
+            />
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }

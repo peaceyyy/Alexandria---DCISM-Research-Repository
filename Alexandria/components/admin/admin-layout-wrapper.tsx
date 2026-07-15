@@ -18,7 +18,7 @@ export function AdminLayoutWrapper({
 
   if (isReviewDetail) {
     return (
-      <div className="flex min-h-svh bg-[#14181c]">
+      <div className="flex min-h-svh bg-[var(--color-bg)]">
         <main className="flex-1 min-h-svh flex flex-col" id="admin-main-content">
           {children}
         </main>
@@ -27,7 +27,7 @@ export function AdminLayoutWrapper({
   }
 
   return (
-    <div className="flex min-h-svh bg-[#14181c]">
+    <div className="flex min-h-svh bg-[var(--color-bg)]">
       <AdminSidebar role={role} />
       {/* Main Content — offset by sidebar width */}
       <main

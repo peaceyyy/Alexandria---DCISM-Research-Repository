@@ -28,6 +28,7 @@ export type ReviewFieldKey =
   | "study_type"
   | "publication_date"
   | "publication_link"
+  | "conference"
   | "research_area"
   | "tags"
   | "abstract"
@@ -56,6 +57,7 @@ export const REVIEW_FIELD_LABEL: Record<ReviewFieldKey, string> = {
   study_type: "Study Type",
   publication_date: "Publication Date",
   publication_link: "Publication Link",
+  conference: "Conference",
   research_area: "Research Area",
   tags: "Tags",
   abstract: "Abstract",
@@ -79,6 +81,7 @@ export const REVIEW_FIELD_LABEL: Record<ReviewFieldKey, string> = {
  *   created_at          → createdAt
  *   addressed_at        → addressedAt
  *   addressed_by_user_id → addressedByUserId
+ *   member_revised_at   → memberRevisedAt
  */
 export interface ReviewComment {
   id: number;
@@ -90,6 +93,7 @@ export interface ReviewComment {
   createdAt: string; // ISO 8601
   addressedAt: string | null;
   addressedByUserId: string | null;
+  memberRevisedAt: string | null;
 }
 
 // ─── Audit Event Shape ───────────────────────────────────────────────────────
@@ -147,6 +151,7 @@ export interface ReviewSubmission {
   studyType: "thesis" | "capstone";
   publicationDate: string;        // matches DB publication_date
   publicationLink: string | null; // matches DB publication_link
+  conference: string | null;      // matches DB conference
   researchArea: string | null;    // matches DB research_area
   tags: string[];                 // from thesis_tags
   abstract: string;

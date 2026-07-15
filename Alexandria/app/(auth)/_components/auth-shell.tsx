@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import styles from "./auth-shell.module.css";
-import { ThemeToggle } from "./theme-toggle";
 
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
@@ -15,7 +14,6 @@ export function AuthShell({ children }: { children: ReactNode }) {
       </div>
 
       <div className="absolute top-12 right-11 z-10 flex items-center gap-4 max-sm:top-5 max-sm:right-5">
-        <ThemeToggle />
         <a
           href="https://github.com/peaceyyy/Alexandria---DCISM-Thesis-Repository"
           target="_blank"
@@ -54,7 +52,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
             </span>
           </div>
           <p className="mt-2 text-[clamp(1.5rem,2.2vw,1.8rem)] leading-tight font-black text-[var(--color-text)]">
-            Thesis, Research, and Capstone Hub
+            Thesis and Capstone Hub
           </p>
           <p className="mt-2 text-lg font-semibold text-[var(--color-text-muted)]">
             by DCISM Students, for DCISM Students

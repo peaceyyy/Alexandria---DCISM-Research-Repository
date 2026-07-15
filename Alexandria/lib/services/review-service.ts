@@ -1,6 +1,14 @@
 "use server";
 
 import { createClient } from "../supabase/server";
+import {
+  removeThesisFileFromStorage,
+  uploadThesisFileToStorage,
+} from "../upload/storage-helper";
+import {
+  THESIS_PDF_MIME_TYPE,
+  validateThesisPdf,
+} from "../upload/file-validation";
 import { requireOwnership, requireRole, requireSession } from "./_guards";
 import {
   err,
@@ -25,6 +33,7 @@ import type {
   SetReviewStatusInput,
   StudyType,
   SubmitThesisInput,
+  ThesisAuthor,
   ThesisAuthorInput,
   UpdateFlaggedSubmissionInput,
 } from "./types";
@@ -39,6 +48,7 @@ const REVIEWABLE_FIELDS: ReviewFieldKey[] = [
   "study_type",
   "publication_date",
   "publication_link",
+  "conference",
   "research_area",
   "tags",
   "abstract",
@@ -113,6 +123,7 @@ type CommentRow = {
   created_by_user_id: string;
   addressed_at: string | null;
   addressed_by_user_id: string | null;
+  member_revised_at: string | null;
   created_at: string;
 };
 
@@ -236,6 +247,7 @@ function mutationError(error: unknown, fallbackMessage: string): ServiceError {
   const safeMessages = new Set([
     "An active administrator or moderator account is required",
     "An active authenticated user profile is required",
+    "An active member account is required",
     "A review comment is required",
     "That review field cannot be commented on",
     "Thesis was not found",
@@ -253,6 +265,11 @@ function mutationError(error: unknown, fallbackMessage: string): ServiceError {
     "At least one tag is required",
     "Only flagged submissions can have addressed comments",
     "Review comment was not found",
+    "Save a change to this field before marking the comment addressed",
+    "Only flagged submissions can replace their PDF",
+    "Thesis file type must be application/pdf",
+    "The uploaded file path must belong to the authenticated user",
+    "The uploaded thesis PDF was not found in Storage",
     "Only flagged submissions can be resubmitted",
   ]);
   const message = error.message || fallbackMessage;
@@ -525,6 +542,7 @@ async function loadThesisBundle(thesisId: number): Promise<{
         created_by_user_id,
         addressed_at,
         addressed_by_user_id,
+        member_revised_at,
         created_at
       `)
       .eq("thesis_id", thesisId)
@@ -601,6 +619,7 @@ async function loadReviewSubmission(thesisId: number): Promise<ReviewSubmission>
     createdAt: comment.created_at,
     addressedAt: comment.addressed_at,
     addressedByUserId: comment.addressed_by_user_id,
+    memberRevisedAt: comment.member_revised_at,
   }));
 
   const audits: ReviewAuditEvent[] = bundle.audits.map((audit) => ({
@@ -621,10 +640,18 @@ async function loadReviewSubmission(thesisId: number): Promise<ReviewSubmission>
     advisers: bundle.authors
       .filter((author) => author.contribution_role === "adviser")
       .map((author) => author.display_name),
+    contributorEntries: bundle.authors.map((author): ThesisAuthor => ({
+      id: author.id,
+      user_id: author.user_id,
+      display_name: author.display_name,
+      contribution_role: author.contribution_role,
+      sort_order: author.sort_order,
+    })),
     department: bundle.thesis.department,
     studyType: bundle.thesis.study_type,
     publicationDate: bundle.thesis.publication_date ?? "",
     publicationLink: bundle.thesis.publication_link,
+    conference: bundle.thesis.conference,
     researchArea: bundle.thesis.research_area,
     tags: bundle.tags.map((tag) => tag.tag),
     abstract: bundle.thesis.abstract ?? "",
@@ -660,6 +687,9 @@ function mapListItem(
     studyType: thesis.study_type,
     submittedAt: thesis.created_at,
     reviewStatus: thesis.review_status,
+    year: thesis.year,
+    researchArea: thesis.research_area,
+    abstractPreview: thesis.abstract ?? "",
     commentCount,
   };
 }
@@ -879,7 +909,7 @@ export async function setReviewStatus(
 
     await requireRole(["admin", "moderator"]);
 
-    if (!["flagged", "accepted", "trashed"].includes(input.nextStatus)) {
+    if (!["for_review", "flagged", "accepted", "trashed"].includes(input.nextStatus)) {
       return err(makeError("VALIDATION_FAILED", "A valid next review status is required."));
     }
 
@@ -985,6 +1015,9 @@ export async function getOwnSubmissionForCorrection(
     }
 
     const user = await requireSession();
+    if (user.role !== "member") {
+      return err(makeError("FORBIDDEN", "An active member account is required."));
+    }
     await requireOwnership(thesisId, user.id);
 
     return ok(await loadReviewSubmission(thesisId));
@@ -1010,6 +1043,9 @@ export async function updateFlaggedSubmission(
     }
 
     const user = await requireSession();
+    if (user.role !== "member") {
+      return err(makeError("FORBIDDEN", "An active member account is required."));
+    }
     await requireOwnership(input.thesisId, user.id);
 
     const supabase = await createClient();
@@ -1045,6 +1081,9 @@ export async function markReviewCommentAddressed(input: {
     }
 
     const user = await requireSession();
+    if (user.role !== "member") {
+      return err(makeError("FORBIDDEN", "An active member account is required."));
+    }
     await requireOwnership(input.thesisId, user.id);
 
     const supabase = await createClient();
@@ -1071,6 +1110,78 @@ export async function markReviewCommentAddressed(input: {
   }
 }
 
+export async function replaceFlaggedSubmissionPdf(input: {
+  thesisId: number;
+  file: File;
+}): Promise<ServiceResult<ReviewSubmission>> {
+  try {
+    const validationError = validateThesisId(input.thesisId);
+    if (validationError) {
+      return err(validationError);
+    }
+
+    const fileValidationError = await validateThesisPdf(input.file);
+    if (fileValidationError) {
+      return err(makeError("VALIDATION_FAILED", fileValidationError));
+    }
+
+    const user = await requireSession();
+    if (user.role !== "member") {
+      return err(makeError("FORBIDDEN", "An active member account is required."));
+    }
+    await requireOwnership(input.thesisId, user.id);
+
+    let storedFile: { filePath: string };
+    try {
+      storedFile = await uploadThesisFileToStorage(input.file, user.id);
+    } catch (uploadError) {
+      return err(
+        makeError(
+          "SUPABASE_ERROR",
+          uploadError instanceof Error
+            ? uploadError.message
+            : "The corrected PDF could not be uploaded.",
+        ),
+      );
+    }
+
+    const supabase = await createClient();
+    const { error: rpcError } = await supabase.rpc(
+      "replace_flagged_submission_file",
+      {
+        target_thesis_id: input.thesisId,
+        target_storage_path: storedFile.filePath,
+        target_file_type: THESIS_PDF_MIME_TYPE,
+      },
+    );
+
+    if (rpcError) {
+      const cleanupError = await removeThesisFileFromStorage(storedFile.filePath);
+      const operationError = mutationError(
+        rpcError,
+        "The corrected PDF could not be attached.",
+      );
+      return err({
+        ...operationError,
+        ...(cleanupError
+          ? {
+              details: {
+                ...(operationError.details ?? {}),
+                storage_cleanup_error: cleanupError,
+              },
+            }
+          : {}),
+      });
+    }
+
+    return ok(await loadReviewSubmission(input.thesisId));
+  } catch (error) {
+    return err(
+      normalizeServiceError(error, "The corrected PDF could not be attached."),
+    );
+  }
+}
+
 export async function resubmitFlaggedSubmission(
   thesisId: number,
 ): Promise<ServiceResult<ReviewSubmission>> {
@@ -1081,6 +1192,9 @@ export async function resubmitFlaggedSubmission(
     }
 
     const user = await requireSession();
+    if (user.role !== "member") {
+      return err(makeError("FORBIDDEN", "An active member account is required."));
+    }
     await requireOwnership(thesisId, user.id);
 
     const supabase = await createClient();

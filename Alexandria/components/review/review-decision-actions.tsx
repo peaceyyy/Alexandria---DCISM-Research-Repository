@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckCircle2, Flag, ShieldAlert, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Flag, RotateCcw, ShieldAlert, Pencil, Trash2 } from "lucide-react";
 import type { ReviewStatus } from "@/lib/services/types";
 import type { UserRole } from "@/lib/services/types";
 import styles from "./review-decision-actions.module.css";
@@ -11,7 +11,7 @@ import styles from "./review-decision-actions.module.css";
 //
 //   for_review → accepted | flagged | trashed
 //   flagged    → for_review (only by member resubmission) | trashed
-//   accepted   → (no further moderator transitions)
+//   accepted   → for_review (moderator correction when approved by mistake)
 //   trashed    → (no further moderator transitions)
 //
 // The UI disables irrelevant actions to reflect these rules.
@@ -25,6 +25,48 @@ function canFlag(status: ReviewStatus) {
 function canTrash(status: ReviewStatus) {
   return status === "for_review" || status === "flagged";
 }
+function canSendBackToReview(status: ReviewStatus) {
+  return status === "accepted";
+}
+
+type ConfirmDecision = Extract<ReviewStatus, "accepted" | "for_review" | "trashed">;
+
+const CONFIRM_COPY: Record<
+  ConfirmDecision,
+  {
+    title: string;
+    body: string;
+    actionLabel: string;
+    titleId: string;
+    actionClassName: string;
+    icon: "approve" | "review" | "trash";
+  }
+> = {
+  accepted: {
+    title: "Approve this submission?",
+    body: "This will publish the thesis to the accepted catalog and make it visible through approved-thesis surfaces.",
+    actionLabel: "Approve",
+    titleId: "approve-confirm-title",
+    actionClassName: styles.btnConfirmAccept,
+    icon: "approve",
+  },
+  for_review: {
+    title: "Send back to review?",
+    body: "This will remove the approval and return the submission to the pending review queue.",
+    actionLabel: "Send Back to Review",
+    titleId: "send-back-confirm-title",
+    actionClassName: styles.btnConfirmReview,
+    icon: "review",
+  },
+  trashed: {
+    title: "Trash this submission?",
+    body: "This will remove the submission from the active review queue. It can be reviewed again if retrieved from the trash.",
+    actionLabel: "Move to Trash",
+    titleId: "trash-confirm-title",
+    actionClassName: styles.btnConfirmTrash,
+    icon: "trash",
+  },
+};
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -47,27 +89,51 @@ export function ReviewDecisionActions({
   onDecision,
   isSubmitting = false,
 }: ReviewDecisionActionsProps) {
-  const [showTrashConfirm, setShowTrashConfirm] = useState(false);
+  const [pendingDecision, setPendingDecision] = useState<ConfirmDecision | null>(null);
 
-  const handleTrashClick = () => setShowTrashConfirm(true);
-  const handleTrashCancel = () => setShowTrashConfirm(false);
-  const handleTrashConfirm = () => {
-    setShowTrashConfirm(false);
-    onDecision("trashed");
+  const handleConfirmCancel = () => setPendingDecision(null);
+  const handleConfirmDecision = () => {
+    if (!pendingDecision) {
+      return;
+    }
+
+    const nextStatus = pendingDecision;
+    setPendingDecision(null);
+    onDecision(nextStatus);
   };
 
-  const alreadyDecided = status === "accepted" || status === "trashed";
+  const confirmCopy = pendingDecision ? CONFIRM_COPY[pendingDecision] : null;
+  const confirmIcon = confirmCopy?.icon === "trash"
+    ? <Trash2 size={13} aria-hidden style={{ marginRight: 4 }} />
+    : confirmCopy?.icon === "review"
+      ? <RotateCcw size={13} aria-hidden style={{ marginRight: 4 }} />
+      : <CheckCircle2 size={13} aria-hidden style={{ marginRight: 4 }} />;
+  const alreadyDecided = status === "trashed";
 
   return (
     <>
       <div className={styles.actions}>
         <p className={styles.sectionLabel}>Decision</p>
 
-        {alreadyDecided ? (
+        {canSendBackToReview(status) ? (
+          <div className={styles.primaryActions}>
+            <p className={styles.statusNote}>
+              This submission has been approved.
+            </p>
+            <button
+              type="button"
+              className={styles.btnReview}
+              onClick={() => setPendingDecision("for_review")}
+              disabled={isSubmitting}
+              aria-label="Send submission back to review"
+            >
+              <RotateCcw size={14} aria-hidden />
+              Send Back to Review
+            </button>
+          </div>
+        ) : alreadyDecided ? (
           <p className={styles.statusNote}>
-            {status === "accepted"
-              ? "This submission has been approved. No further moderator actions are available."
-              : "This submission has been trashed."}
+            This submission has been trashed.
           </p>
         ) : (
           <div className={styles.primaryActions}>
@@ -75,7 +141,7 @@ export function ReviewDecisionActions({
             <button
               type="button"
               className={styles.btnAccept}
-              onClick={() => onDecision("accepted")}
+              onClick={() => setPendingDecision("accepted")}
               disabled={isSubmitting || !canAccept(status)}
               aria-label="Approve this submission"
             >
@@ -99,7 +165,7 @@ export function ReviewDecisionActions({
             <button
               type="button"
               className={styles.btnTrash}
-              onClick={handleTrashClick}
+              onClick={() => setPendingDecision("trashed")}
               disabled={isSubmitting || !canTrash(status)}
               aria-label="Move submission to trash"
             >
@@ -137,40 +203,39 @@ export function ReviewDecisionActions({
         )}
       </div>
 
-      {/* ── Trash Confirmation Modal (portaled to body to escape stacking context) ── */}
-      {showTrashConfirm &&
+      {/* ── Decision Confirmation Modal (portaled to body to escape stacking context) ── */}
+      {confirmCopy &&
         typeof document !== "undefined" &&
         createPortal(
           <div
             className={styles.confirmOverlay}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="trash-confirm-title"
+            aria-labelledby={confirmCopy.titleId}
           >
             <div className={styles.confirmDialog}>
-              <h2 id="trash-confirm-title" className={styles.confirmTitle}>
-                Trash this submission?
+              <h2 id={confirmCopy.titleId} className={styles.confirmTitle}>
+                {confirmCopy.title}
               </h2>
               <p className={styles.confirmBody}>
-                This will remove the submission from the active review queue.
-                It can be reviewed again if retrieved from the trash.
+                {confirmCopy.body}
               </p>
               <div className={styles.confirmActions}>
                 <button
                   type="button"
                   className={styles.btnConfirmCancel}
-                  onClick={handleTrashCancel}
+                  onClick={handleConfirmCancel}
                   autoFocus
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  className={styles.btnConfirmTrash}
-                  onClick={handleTrashConfirm}
+                  className={confirmCopy.actionClassName}
+                  onClick={handleConfirmDecision}
                 >
-                  <Trash2 size={13} aria-hidden style={{ marginRight: 4 }} />
-                  Move to Trash
+                  {confirmIcon}
+                  {confirmCopy.actionLabel}
                 </button>
               </div>
             </div>

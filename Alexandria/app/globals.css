@@ -4,13 +4,15 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
   --color-bg: #14181c;
   --color-surface: #1e1e1e;
+  --color-surface-alt: #1a1e23;
   --color-text: #ffffff;
   --color-text-muted: #969696;
   --color-placeholder: #b3b3b3;
   --color-border: #368bfe;
+  --color-border-subtle: rgba(255, 255, 255, 0.1);
   --color-brand: #1752f0;
   --color-brand-bright: #368bfe;
   --color-brand-cyan: #1da0c9;
@@ -57,9 +59,30 @@
   color-scheme: light;
   --color-bg: #f5f7fa;
   --color-surface: #ffffff;
+  --color-surface-alt: #f0f2f5;
   --color-text: #14181c;
   --color-text-muted: #59616a;
   --color-placeholder: #6d747c;
+  --color-border: #1752f0;
+  --color-border-subtle: rgba(0, 0, 0, 0.1);
+  --color-brand: #1752f0;
+  --color-brand-bright: #368bfe;
+  --color-brand-cyan: #1da0c9;
+  --color-danger: #d63031;
+  --color-success: #27ae60;
+  --color-pronunciation: #c8a000;
+
+  /* Shadcn overrides for light mode */
+  --background: oklch(0.98 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --border: oklch(0.88 0 0);
+  --input: oklch(0.88 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.5 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
 }
 
 @theme inline {

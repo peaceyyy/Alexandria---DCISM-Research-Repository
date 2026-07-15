@@ -127,7 +127,7 @@ export function ReviewDetailClient({
 
   const handleDecision = useCallback(
     async (nextStatus: ReviewStatus) => {
-      if (nextStatus === "for_review") {
+      if (nextStatus === "for_review" && submission.reviewStatus !== "accepted") {
         setActionError("Members return flagged submissions to pending by resubmitting.");
         return;
       }
@@ -525,6 +525,18 @@ export function ReviewDetailClient({
               >
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
                   {submission.publicationDate}
+                </p>
+              </ReviewableField>
+
+              <ReviewableField
+                fieldKey="conference"
+                label="Conference"
+                comments={fieldComments("conference")}
+                isActive={activeCommentField === "conference"}
+                onCommentIconClick={handleCommentIconClick}
+              >
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "#ffffff" }}>
+                  {submission.conference ?? "Not provided"}
                 </p>
               </ReviewableField>
             </div>

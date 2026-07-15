@@ -22,18 +22,18 @@ export function ProfilePage({
   const initial = user.profile_name.trim().charAt(0).toUpperCase() || "A";
 
   return (
-    <div className="min-h-screen bg-[#14181c] text-white">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
       <AppHeader role={user.role} />
 
 
       <main className="mx-auto flex min-h-[calc(100vh-65px)] max-w-6xl items-center px-5 py-12 sm:px-8 lg:py-16">
         <section
           aria-labelledby="profile-heading"
-          className="w-full rounded-[7px] border border-white/20 bg-[#171c21] shadow-[0_24px_70px_rgba(0,0,0,0.22)]"
+          className="w-full rounded-[7px] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-[0_24px_70px_rgba(0,0,0,0.22)]"
         >
-          <div className="flex items-center justify-between border-b border-white/10 px-6 py-5 sm:px-8">
+          <div className="flex items-center justify-between border-b border-[var(--color-border-subtle)] px-6 py-5 sm:px-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#7e858c]">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
                 Account
               </p>
               <h1 id="profile-heading" className="mt-1 text-xl font-semibold">
@@ -42,7 +42,7 @@ export function ProfilePage({
             </div>
             <Link
               href="/home"
-              className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-[#b9bec3] transition-colors hover:bg-white/5 hover:text-white"
+              className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)]"
             >
               Back to Home
             </Link>
@@ -51,7 +51,7 @@ export function ProfilePage({
           {logoutError ? (
             <div
               role="alert"
-              className="mx-6 mt-6 rounded-md border border-[#ff6b6b]/35 bg-[#ff6b6b]/10 px-4 py-3 text-sm text-[#ff9a9a] sm:mx-8"
+              className="mx-6 mt-6 rounded-md border border-[var(--color-danger)]/35 bg-[var(--color-danger)]/10 px-4 py-3 text-sm text-[var(--color-danger)] sm:mx-8"
             >
               We could not log you out. Please try again.
             </div>
@@ -59,10 +59,10 @@ export function ProfilePage({
 
           <div className="grid gap-10 p-6 sm:p-8 md:grid-cols-[220px_minmax(0,1fr)] md:items-center lg:gap-14 lg:p-12">
             <div className="mx-auto flex flex-col items-center">
-              <div className="grid h-44 w-44 place-items-center rounded-full border border-white/30 bg-[#0f1317] shadow-[inset_0_0_0_8px_rgba(255,255,255,0.02)] sm:h-48 sm:w-48">
+              <div className="grid h-44 w-44 place-items-center rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-surface-alt)] shadow-[inset_0_0_0_8px_var(--color-border-subtle)] sm:h-48 sm:w-48">
                 <span
                   aria-hidden="true"
-                  className="text-6xl font-light tracking-[-0.06em] text-white"
+                  className="text-6xl font-light tracking-[-0.06em] text-[var(--color-text)]"
                 >
                   {initial}
                 </span>
@@ -75,35 +75,35 @@ export function ProfilePage({
             </div>
 
             <div className="min-w-0">
-              <div className="border-b border-white/10 pb-6">
-                <p className="text-sm text-[#7e858c]">Signed in as</p>
+              <div className="border-b border-[var(--color-border-subtle)] pb-6">
+                <p className="text-sm text-[var(--color-text-muted)]">Signed in as</p>
                 <h2 className="mt-1 truncate text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
                   {user.profile_name}
                 </h2>
               </div>
 
-              <dl className="grid gap-x-8 gap-y-4 border-b border-white/10 py-6 text-sm sm:grid-cols-[140px_minmax(0,1fr)]">
-                <dt className="text-[#969696]">Email</dt>
-                <dd className="break-all text-[#e4e6e8] sm:text-right">
+              <dl className="grid gap-x-8 gap-y-4 border-b border-[var(--color-border-subtle)] py-6 text-sm sm:grid-cols-[140px_minmax(0,1fr)]">
+                <dt className="text-[var(--color-text-muted)]">Email</dt>
+                <dd className="break-all text-[var(--color-text)] sm:text-right">
                   {user.email}
                 </dd>
 
-                <dt className="text-[#969696]">Affiliation</dt>
-                <dd className="text-[#e4e6e8] sm:text-right">
+                <dt className="text-[var(--color-text-muted)]">Affiliation</dt>
+                <dd className="text-[var(--color-text)] sm:text-right">
                   {getAffiliationLabel(user.affiliation)}
                 </dd>
 
-                <dt className="text-[#969696]">Member since</dt>
-                <dd className="text-[#e4e6e8] sm:text-right">
+                <dt className="text-[var(--color-text-muted)]">Member since</dt>
+                <dd className="text-[var(--color-text)] sm:text-right">
                   {formatMemberSince(user.created_at)}
                 </dd>
 
-                <dt className="text-[#969696]">Access</dt>
+                <dt className="text-[var(--color-text-muted)]">Access</dt>
                 <dd className="flex flex-wrap gap-2 sm:justify-end">
                   {accessLevels.map((level) => (
                     <span
                       key={level}
-                      className="rounded-md border border-white/15 bg-white/[0.03] px-2.5 py-1 text-xs font-medium text-[#d8dadc]"
+                      className="rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-text)]/5 px-2.5 py-1 text-xs font-medium text-[var(--color-text)]"
                     >
                       {level}
                     </span>
@@ -116,7 +116,7 @@ export function ProfilePage({
                   type="button"
                   disabled
                   title="Password changes are not available yet"
-                  className="inline-flex min-h-11 cursor-not-allowed items-center justify-center rounded-md border border-white/15 bg-white/[0.03] px-6 text-sm font-semibold text-[#7e858c]"
+                  className="inline-flex min-h-11 cursor-not-allowed items-center justify-center rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-text)]/5 px-6 text-sm font-semibold text-[var(--color-text-muted)]"
                 >
                   Change Password
                 </button>

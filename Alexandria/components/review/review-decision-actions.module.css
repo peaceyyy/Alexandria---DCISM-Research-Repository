@@ -135,6 +135,35 @@
   cursor: not-allowed;
 }
 
+.btnReview {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 16px;
+  border-radius: 7px;
+  border: 1px solid rgba(100, 120, 160, 0.25);
+  background: rgba(100, 120, 160, 0.07);
+  color: #aab8d0;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.btnReview:hover:not(:disabled) {
+  background: rgba(100, 120, 160, 0.14);
+  border-color: rgba(100, 120, 160, 0.4);
+  color: #d8dadc;
+}
+
+.btnReview:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
 /* ─── Admin-Only Section ─────────────────────────────────────────────────── */
 
 .adminDivider {
@@ -269,6 +298,40 @@
 
 .btnConfirmTrash:hover {
   background: rgba(255, 107, 107, 0.25);
+}
+
+.btnConfirmAccept {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(23, 82, 240, 0.9);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.btnConfirmAccept:hover {
+  background: #1a5bff;
+}
+
+.btnConfirmReview {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(100, 120, 160, 0.18);
+  color: #d8dadc;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.btnConfirmReview:hover {
+  background: rgba(100, 120, 160, 0.28);
 }
 
 /* ─── Already-decided state label ────────────────────────────────────────── */
