@@ -11,6 +11,10 @@
  *   • Admin   → role pill  +  "Dashboard →"  (no Contribute — admins don't submit)
  *
  * The search input is a placeholder skeleton for now; the
+ *   • Mod     → role pill  +  "Dashboard →"  (no Contribute — mods don't submit)
+ *   • Admin   → role pill  +  "Dashboard →"  (no Contribute — admins don't submit)
+ *
+ * The search input is a placeholder skeleton for now; the
  * real search handler will be wired in the repository browsing feature phase.
  */
 import Image from "next/image";
@@ -19,6 +23,7 @@ import { Search } from "lucide-react";
 import type { UserRole } from "@/lib/auth/auth-contract";
 import { AuthInterceptModal } from "@/app/(auth)/_components/auth-intercept-modal";
 import { RoleIndicator } from "@/app/(auth)/_components/role-indicator";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 interface AppHeaderProps {
   role: UserRole | null;
@@ -29,12 +34,12 @@ export function AppHeader({ role }: AppHeaderProps) {
   const isPrivileged = role === "admin" || role === "moderator";
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-[#d9d9d9]/15 bg-[#14181c]/95 px-6 backdrop-blur-md sm:px-10">
+    <header className="sticky top-0 z-50 flex h-16 items-center gap-4 border-b border-[var(--color-border-subtle)] bg-[var(--color-bg)]/95 px-6 backdrop-blur-md sm:px-10">
 
       {/* ── Brand ──────────────────────────────────────────────────────── */}
       <a
         href="/home"
-        className="flex shrink-0 items-center gap-2.5 text-white no-underline"
+        className="flex shrink-0 items-center gap-2.5 text-[var(--color-text)] no-underline"
         aria-label="Alexandria repository home"
       >
         <Image
@@ -55,16 +60,16 @@ export function AppHeader({ role }: AppHeaderProps) {
           <span className="sr-only">Search theses</span>
           <Search
             size={14}
-            className="pointer-events-none absolute left-3 text-[#969696]"
+            className="pointer-events-none absolute left-3 text-[var(--color-text-muted)]"
             aria-hidden
           />
           <input
             type="search"
             name="q"
             placeholder="Search Alexandria"
-            className="h-8 w-full rounded-md border border-[#d9d9d9]/20 bg-transparent pl-9 pr-8 text-sm text-white placeholder-[#969696] transition-colors focus:border-[#368bfe]/60 focus:bg-white/5 focus:outline-none"
+            className="h-8 w-full rounded-md border border-[var(--color-border-subtle)] bg-transparent pl-9 pr-8 text-sm text-[var(--color-text)] placeholder-[var(--color-placeholder)] transition-colors focus:border-[#368bfe]/60 focus:bg-[var(--color-text)]/5 focus:outline-none"
           />
-          <div className="pointer-events-none absolute right-2 flex items-center justify-center rounded border border-[#d9d9d9]/20 bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-[#969696]">
+          <div className="pointer-events-none absolute right-2 flex items-center justify-center rounded border border-[var(--color-border-subtle)] bg-[var(--color-text)]/5 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-text-muted)]">
             /
           </div>
         </label>
@@ -78,7 +83,7 @@ export function AppHeader({ role }: AppHeaderProps) {
 
         {/* Separator — only between role chip and a CTA pill */}
         {!isPrivileged && (
-          <span className="h-5 w-px bg-[#d9d9d9]/20" aria-hidden="true" />
+          <span className="h-5 w-px bg-[var(--color-border-subtle)]" aria-hidden="true" />
         )}
 
         {/* Primary CTA — contextual by role */}
@@ -93,6 +98,9 @@ export function AppHeader({ role }: AppHeaderProps) {
           </Link>
         )}
         {/* Privileged users: Dashboard → is already rendered inside RoleIndicator */}
+
+        {/* Theme toggle — always last in the right cluster */}
+        <ThemeToggle />
       </div>
     </header>
   );

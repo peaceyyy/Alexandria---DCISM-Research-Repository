@@ -4,75 +4,124 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  color-scheme: light dark;
-  --color-bg: #14181c;
-  --color-surface: #1e1e1e;
-  --color-surface-alt: #1a1e23;
-  --color-text: #ffffff;
-  --color-text-muted: #969696;
-  --color-placeholder: #b3b3b3;
-  --color-border: #368bfe;
-  --color-border-subtle: rgba(255, 255, 255, 0.1);
-  --color-brand: #1752f0;
-  --color-brand-bright: #368bfe;
-  --color-brand-cyan: #1da0c9;
-  --color-pronunciation: #ffd900;
-  --color-danger: #ff6b6b;
-  --color-success: #59c987;
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-khula);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  /* ─── Color Scheme ──────────────────────────────── */
+  color-scheme: dark;
+
+  /* ─── App Surface ───────────────────────────────── */
+  --color-bg:             oklch(0.17 0.009 264);   /* #1e2328 — page bg (charcoal, not pure black) */
+  --color-surface:        oklch(0.20 0.008 264);   /* card / panel */
+  --color-surface-alt:    oklch(0.18 0.009 264);   /* nested surface */
+
+  /* ─── Text ──────────────────────────────────────── */
+  --color-text:           oklch(1 0 0);            /* #ffffff — primary text */
+  --color-text-muted:     oklch(0.62 0.005 264);   /* #969696 — secondary text */
+  --color-placeholder:    oklch(0.73 0.004 264);   /* #b3b3b3 — input placeholder */
+
+  /* ─── Separators / Borders ──────────────────────── */
+  /* Use --color-separator for structural dividers, not brand. */
+  --color-separator:      oklch(1 0 0 / 6%);       /* replaces old border-subtle */
+  --color-separator-mid:  oklch(1 0 0 / 10%);      /* slightly more visible */
+
+  /* ─── Brand ─────────────────────────────────────── */
+  --color-brand:          oklch(0.47 0.22 264);    /* #1752f0 — primary brand */
+  --color-brand-bright:   oklch(0.60 0.20 264);    /* #368bfe — hover/CTA bright */
+  --color-brand-cyan:     oklch(0.63 0.12 220);    /* #1da0c9 — chip accent */
+
+  /* ─── Chip colors (theme-aware pairs) ───────────── */
+  /* Cyan chip: research area tags */
+  --color-chip-cyan-bg:   oklch(0.63 0.12 220 / 12%); /* subtle wash */
+  --color-chip-cyan-bd:   oklch(0.63 0.12 220 / 45%); /* stroke */
+  --color-chip-cyan-text: oklch(0.85 0.08 210);    /* #9ddff2 — readable on dark */
+
+  /* Red chip: flagged / danger */
+  --color-chip-red-bg:    oklch(0.65 0.22 27 / 10%);
+  --color-chip-red-bd:    oklch(0.65 0.22 27 / 35%);
+  --color-chip-red-text:  oklch(0.80 0.12 27);     /* #ff9b9b */
+
+  /* Green chip: accepted / success */
+  --color-chip-green-bg:  oklch(0.72 0.17 150 / 10%);
+  --color-chip-green-bd:  oklch(0.72 0.17 150 / 35%);
+  --color-chip-green-text:oklch(0.82 0.12 150);    /* #8ee1ae */
+
+  /* ─── Semantic States ───────────────────────────── */
+  --color-danger:         oklch(0.65 0.22 27);     /* #ff6b6b */
+  --color-success:        oklch(0.72 0.17 150);    /* #59c987 */
+  --color-pronunciation:  oklch(0.88 0.17 90);     /* #ffd900 */
+
+  /* ─── Shadcn primitives (dark) ──────────────────── */
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.488 0.243 264.376);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.488 0.243 264.376);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.488 0.243 264.376);
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --color-bg: #f5f7fa;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f0f2f5;
-  --color-text: #14181c;
-  --color-text-muted: #59616a;
-  --color-placeholder: #6d747c;
-  --color-border: #1752f0;
-  --color-border-subtle: rgba(0, 0, 0, 0.1);
-  --color-brand: #1752f0;
-  --color-brand-bright: #368bfe;
-  --color-brand-cyan: #1da0c9;
-  --color-danger: #d63031;
-  --color-success: #27ae60;
-  --color-pronunciation: #c8a000;
 
-  /* Shadcn overrides for light mode */
+  /* ─── App Surface ───────────────────────────────── */
+  --color-bg:             oklch(0.97 0.005 264);   /* #f5f7fa — light page bg */
+  --color-surface:        oklch(1 0 0);             /* #ffffff — card / panel */
+  --color-surface-alt:    oklch(0.95 0.005 264);   /* #f0f2f5 — nested surface */
+
+  /* ─── Text ──────────────────────────────────────── */
+  --color-text:           oklch(0.14 0.009 264);   /* #14181c — primary text */
+  --color-text-muted:     oklch(0.44 0.01 264);    /* #59616a — secondary text */
+  --color-placeholder:    oklch(0.50 0.01 264);    /* #6d747c — input placeholder */
+
+  /* ─── Separators ────────────────────────────────── */
+  --color-separator:      oklch(0 0 0 / 6%);       /* dark-on-light equivalent */
+  --color-separator-mid:  oklch(0 0 0 / 10%);
+
+  /* ─── Brand (unchanged across themes) ──────────── */
+  --color-brand:          oklch(0.47 0.22 264);    /* #1752f0 */
+  --color-brand-bright:   oklch(0.60 0.20 264);    /* #368bfe */
+  --color-brand-cyan:     oklch(0.63 0.12 220);    /* #1da0c9 */
+
+  /* ─── Chip colors (light-adjusted) ─────────────── */
+  /* Cyan chip on light: darker text so it reads as teal-ink, not browser-highlight-blue */
+  --color-chip-cyan-bg:   oklch(0.94 0.03 220);    /* very pale teal wash */
+  --color-chip-cyan-bd:   oklch(0.63 0.12 220 / 40%);
+  --color-chip-cyan-text: oklch(0.38 0.10 220);    /* deep teal — readable, not electric */
+
+  /* Red chip on light */
+  --color-chip-red-bg:    oklch(0.96 0.02 27);     /* pale rose */
+  --color-chip-red-bd:    oklch(0.65 0.22 27 / 30%);
+  --color-chip-red-text:  oklch(0.40 0.20 27);     /* deep red */
+
+  /* Green chip on light */
+  --color-chip-green-bg:  oklch(0.95 0.03 150);    /* pale mint */
+  --color-chip-green-bd:  oklch(0.72 0.17 150 / 30%);
+  --color-chip-green-text:oklch(0.35 0.15 150);    /* deep green */
+
+  /* ─── Semantic States ───────────────────────────── */
+  --color-danger:         oklch(0.45 0.20 27);     /* #d63031 */
+  --color-success:        oklch(0.45 0.16 150);    /* #27ae60 */
+  --color-pronunciation:  oklch(0.62 0.17 80);     /* #c8a000 — amber */
+
+  /* ─── Shadcn overrides (light) ──────────────────── */
   --background: oklch(0.98 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -83,6 +132,9 @@
   --muted-foreground: oklch(0.5 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
+  --ring: oklch(0.47 0.22 264);
+  --primary: oklch(0.47 0.22 264);
+  --primary-foreground: oklch(1 0 0);
 }
 
 @theme inline {
@@ -159,8 +211,8 @@ select {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-brand-bright);
-  outline-offset: 3px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-brand-bright);
 }
 
 .dark {

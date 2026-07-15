@@ -16,48 +16,61 @@ The current Figma file defines three main screens:
 
 ## Color Palette
 
-### Core Tokens
+> **Source of truth**: `Alexandria/app/globals.css` — `:root` (dark default) and `:root[data-theme="light"]`.
+> **Format**: All tokens use OKLCH for perceptual consistency. Hex approximations are noted for reference.
 
-| Token | Hex | Figma Evidence | Use |
-| --- | --- | --- | --- |
-| `--color-bg` | `#14181C` | main frame fill, 69 uses | App background and primary page surface. |
-| `--color-text-primary` | `#FFFFFF` | dominant text fill, 152 uses | Main text, icons, active labels, primary UI copy. |
-| `--color-text-muted` | `#D8DADC` | icon and line color, 27 uses | Secondary icons, subtle dividers, supporting UI marks. |
-| `--color-border` | `#D9D9D9` | separators, 12 uses | Standard separator lines and light outlines. |
-| `--color-border-subtle` | `rgba(217, 217, 217, 0.15)` | nav separators, 14 uses | Low-emphasis vertical/horizontal section dividers. |
-| `--color-brand-blue` | `#1752F0` | logo text, selected accents, 4 uses | Alexandria brand accent, selected state, focus accent. |
-| `--color-brand-blue-bright` | `#368BFE` | landing CTA and wordmark gradient | Primary CTA fill and brighter blue highlights. |
-| `--color-brand-cyan` | `#1DA0C9` | repeated chip/input strokes, 9 uses | Thin accent stroke for selected/filter affordances. |
-| `--color-pronunciation` | `#FFD900` | pronunciation helper text | One-off yellow accent for pronunciation or warning-style emphasis only. |
-| `--color-text-tertiary` | `#969696` | landing supporting copy | Muted hero subtitle and secondary landing copy. |
-| `--color-placeholder` | `#B3B3B3` | search placeholder | Placeholder text in inputs. |
+### Naming Rules
+
+| Prefix | Purpose |
+|---|---|
+| `--color-bg` / `--color-surface` / `--color-surface-alt` | Page and panel backgrounds |
+| `--color-text` / `--color-text-muted` / `--color-placeholder` | Text hierarchy |
+| `--color-separator` / `--color-separator-mid` | Structural dividers. **Never** use for brand accents. |
+| `--color-brand` / `--color-brand-bright` / `--color-brand-cyan` | Brand accent colors |
+| `--color-chip-{cyan\|red\|green}-{bg\|bd\|text}` | Semantic status chip triplets (theme-aware) |
+| `--color-danger` / `--color-success` / `--color-pronunciation` | Semantic one-off states |
+
+> [!IMPORTANT]
+> Do **not** use `--color-separator` for interactive highlights. Use `--color-brand` or `--color-brand-bright` for focus/active states. Do **not** add raw `rgba(255,255,255,0.X)` or `rgba(0,0,0,0.X)` in component classes — use `--color-separator` or `var(--color-text)/opacity` patterns instead.
+
+### Core Token Values (Dual Theme)
+
+| Token | Dark (`:root`) | Light (`[data-theme="light"]`) | Purpose |
+|---|---|---|---|
+| `--color-bg` | `oklch(0.14 0.009 264)` ≈ `#14181c` | `oklch(0.97 0.005 264)` ≈ `#f5f7fa` | Page background |
+| `--color-surface` | `oklch(0.16 0.008 264)` ≈ `#1e1e1e` | `oklch(1 0 0)` = `#ffffff` | Card / panel surface |
+| `--color-surface-alt` | `oklch(0.15 0.009 264)` ≈ `#1a1e23` | `oklch(0.95 0.005 264)` ≈ `#f0f2f5` | Nested / inset surface |
+| `--color-text` | `oklch(1 0 0)` = `#ffffff` | `oklch(0.14 0.009 264)` ≈ `#14181c` | Primary text |
+| `--color-text-muted` | `oklch(0.62 0.005 264)` ≈ `#969696` | `oklch(0.44 0.01 264)` ≈ `#59616a` | Secondary / supporting text |
+| `--color-placeholder` | `oklch(0.73 0.004 264)` ≈ `#b3b3b3` | `oklch(0.50 0.01 264)` ≈ `#6d747c` | Input placeholder |
+| `--color-separator` | `oklch(1 0 0 / 6%)` | `oklch(0 0 0 / 6%)` | Structural dividers |
+| `--color-separator-mid` | `oklch(1 0 0 / 10%)` | `oklch(0 0 0 / 10%)` | More visible dividers |
+| `--color-brand` | `oklch(0.47 0.22 264)` = `#1752f0` | same | Primary brand blue |
+| `--color-brand-bright` | `oklch(0.60 0.20 264)` = `#368bfe` | same | CTA / hover bright |
+| `--color-brand-cyan` | `oklch(0.63 0.12 220)` = `#1da0c9` | same | Cyan accent (base only) |
+| `--color-danger` | `oklch(0.65 0.22 27)` ≈ `#ff6b6b` | `oklch(0.45 0.20 27)` ≈ `#d63031` | Error / destructive |
+| `--color-success` | `oklch(0.72 0.17 150)` ≈ `#59c987` | `oklch(0.45 0.16 150)` ≈ `#27ae60` | Confirmation |
+| `--color-pronunciation` | `oklch(0.88 0.17 90)` = `#ffd900` | `oklch(0.62 0.17 80)` = `#c8a000` | Yellow accent |
+
+### Status Chip Token Pairs
+
+Chips must **always** use the three-token triplet (`bg`, `bd`, `text`), never raw hex. The triplet inverts correctly in both themes:
+
+| Chip | Token base | Dark feel | Light feel |
+|---|---|---|---|
+| Cyan (research area / under review) | `--color-chip-cyan-*` | Electric `#9ddff2` on teal wash | Deep teal ink on pale teal wash — no browser-select blue |
+| Red (flagged / needs revision) | `--color-chip-red-*` | Soft `#ff9b9b` on rose wash | Deep crimson ink on pale rose wash |
+| Green (accepted / published) | `--color-chip-green-*` | Soft `#8ee1ae` on mint wash | Deep forest ink on pale mint wash |
+| Gray (archived / trashed) | `--color-separator` + text opacity | Subtle | Subtle |
 
 ### Gradients
 
 Use gradients sparingly. They are part of the landing identity, not general UI chrome.
 
-- Landing wordmark: angular blue gradient from `#368BFE` to `#1752F0`.
-- Landing tagline: linear light gradient from `#FFFFFF` to `#C5C5C5`.
+- Landing wordmark: `conic-gradient(from 180deg at 50% 50%, #368BFE 0deg, #1752F0 180deg, #368BFE 360deg)`.
+- Landing tagline in dark: white-to-gray gradient (light mode: use `--color-text` directly — no gradient needed).
 
-Do not introduce broad background gradients or decorative glow fields. The mockup uses a flat charcoal base with layered wave artwork on the landing page.
-
-### Suggested CSS Variables
-
-```css
-:root {
-  --color-bg: #14181c;
-  --color-text-primary: #ffffff;
-  --color-text-muted: #d8dadc;
-  --color-text-tertiary: #969696;
-  --color-placeholder: #b3b3b3;
-  --color-border: #d9d9d9;
-  --color-border-subtle: rgba(217, 217, 217, 0.15);
-  --color-brand-blue: #1752f0;
-  --color-brand-blue-bright: #368bfe;
-  --color-brand-cyan: #1da0c9;
-  --color-pronunciation: #ffd900;
-}
-```
+Do not introduce broad background gradients or decorative glow fields.
 
 ## Typography
 
@@ -220,8 +233,8 @@ Define these states explicitly in CSS/components:
 
 - Hover: subtle increase in text brightness or border opacity.
 - Focus: use `#1752F0` outline or ring, never remove keyboard focus indication.
-- Active selected filters: use `#1DA0C9` or `#1752F0` as the accent stroke/fill.
-- Disabled/inactive: lower opacity to 30-50%, matching the mock's `#FFFFFF` at 0.3 usage.
+- Active selected filters: use `--color-brand` or `--color-brand-cyan` as the accent stroke/fill.
+- Disabled/inactive: lower opacity to 30-50%. Use `var(--color-text)/0.3` to stay theme-safe.
 - Theme toggle: keep dimensions stable; do not let icon changes resize the control.
 
 ## Accessibility Notes
@@ -236,12 +249,14 @@ The Figma mock contains several very small text sizes: 6px footer text, 7px tag 
 
 ## Implementation Checklist
 
-- Use `#14181C` as the app background across all main screens.
+- Use `--color-bg` as the app background across all main screens (dark: `#14181c`, light: `#f5f7fa`).
 - Install and load Inter and Khula before implementing the typography system.
-- Encode palette tokens in `Alexandria/app/globals.css` or the project theme layer.
+- Encode palette tokens in `Alexandria/app/globals.css` using the OKLCH dual-theme token system.
 - Build the main app shell as a three-column desktop grid with responsive collapse.
 - Keep content cards flat, sharp, and dense.
-- Use blue only for brand, primary action, focus, selected state, and logo emphasis.
-- Keep yellow reserved for the pronunciation accent unless a new semantic warning color is intentionally added.
+- Use `--color-brand` only for primary action, focus ring, selected state, and logo emphasis. Never dump `--color-brand-bright` directly on a light background as a text or border color.
+- Use the `--color-chip-{cyan|red|green}-{bg|bd|text}` triplet for all status chips — never raw hex.
+- Use `--color-separator` for all structural dividers. Never use raw `rgba` opacity values for borders.
+- Keep yellow (`--color-pronunciation`) reserved for the pronunciation accent unless a new semantic warning color is intentionally added.
 - Replace Figma microtype with accessible production sizes.
 - Preserve the research-index feel: precise lines, compact metadata, restrained accents, and no ornamental UI that does not help orientation.

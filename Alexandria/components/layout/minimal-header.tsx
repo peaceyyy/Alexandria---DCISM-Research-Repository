@@ -14,7 +14,7 @@ export function MinimalHeader() {
       {/* Brand */}
       <a
         href="/home"
-        className="flex items-center gap-2.5 text-white no-underline"
+        className="flex items-center gap-2.5 text-[var(--color-text)] no-underline"
         aria-label="Alexandria — go to repository"
       >
         <Image
@@ -35,7 +35,7 @@ export function MinimalHeader() {
         target="_blank"
         rel="noreferrer"
         aria-label="View Alexandria source on GitHub"
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/60 transition-colors hover:border-white/30 hover:text-white"
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-border-subtle)] hover:text-[var(--color-text)]"
       >
         <GitFork size={18} aria-hidden />
       </a>

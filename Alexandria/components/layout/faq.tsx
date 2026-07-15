@@ -50,17 +50,17 @@ export default function FaqRail() {
 
   return (
     <aside className="px-4 py-5 lg:px-6">
-      <div className="rounded-lg border border-white/30 p-4">
-        <h3 className="mb-4 text-sm font-semibold">
+      <div className="rounded-lg border border-[var(--color-separator-mid)] p-4">
+        <h3 className="mb-4 text-sm font-semibold text-[var(--color-text)]">
           Frequently Asked Questions (FAQ)
         </h3>
 
-        <div className="space-y-3 text-sm text-white/75">
+        <div className="space-y-3 text-sm text-[var(--color-text)]">
           {faqItems.map((item, index) => {
             const isOpen = openIndex === index;
 
             return (
-              <div key={item.question} className="border-b border-white/10 pb-2">
+              <div key={item.question} className="border-b border-[var(--color-separator)] pb-2">
                 <button
                   type="button"
                   onClick={() =>
@@ -78,7 +78,7 @@ export default function FaqRail() {
                     }`}
                     >
                     <div className="overflow-hidden">
-                        <p className="text-sm leading-6 text-white/60">
+                        <p className="text-sm leading-6 text-[var(--color-text-muted)]">
                         {item.answer}
                         </p>
                     </div>

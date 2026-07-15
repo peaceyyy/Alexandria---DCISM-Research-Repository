@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Khula, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -48,7 +47,6 @@ export default function RootLayout({
       </head>
       <body>
         {children}
-        <ThemeToggle />
       </body>
     </html>
   );

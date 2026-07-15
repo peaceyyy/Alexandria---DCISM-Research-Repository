@@ -26,19 +26,19 @@ type ThesesBrowserProps = {
 const REVIEW_STATUS_META: Record<ReviewStatus, { label: string; className: string }> = {
   for_review: {
     label: "Under review",
-    className: "border-[#1da0c9]/40 bg-[#1da0c9]/10 text-[#9ddff2]",
+    className: "border-[var(--color-chip-cyan-bd)] bg-[var(--color-chip-cyan-bg)] text-[var(--color-chip-cyan-text)]",
   },
   flagged: {
     label: "Needs revision",
-    className: "border-[#ff6b6b]/35 bg-[#ff6b6b]/10 text-[#ff9b9b]",
+    className: "border-[var(--color-chip-red-bd)] bg-[var(--color-chip-red-bg)] text-[var(--color-chip-red-text)]",
   },
   accepted: {
     label: "Published",
-    className: "border-[#59c987]/35 bg-[#59c987]/10 text-[#8ee1ae]",
+    className: "border-[var(--color-chip-green-bd)] bg-[var(--color-chip-green-bg)] text-[var(--color-chip-green-text)]",
   },
   trashed: {
     label: "Archived",
-    className: "border-white/15 bg-white/[0.04] text-white/45",
+    className: "border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] text-[var(--color-text-muted)]",
   },
 };
 
@@ -128,15 +128,15 @@ export default function ThesesBrowser({
     <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 xl:h-[calc(100vh-4rem)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
       <FilterSidebar className="hidden xl:block" {...filterSidebarProps} />
 
-      <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:border-r xl:border-white/15 xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4 xl:hidden">
-          <p className="text-xs font-medium text-white/55">
+      <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:border-r xl:border-[var(--color-border-subtle)] xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mb-5 flex items-center justify-between border-b border-[var(--color-border-subtle)] pb-4 xl:hidden">
+          <p className="text-xs font-medium text-[var(--color-text-muted)]">
             {filteredItems.length} {filteredItems.length === 1 ? "study" : "studies"}
           </p>
           <button
             type="button"
             onClick={() => setFiltersOpen(true)}
-            className="inline-flex min-h-10 items-center gap-2 border border-white/20 px-3 text-sm font-semibold text-white transition-colors hover:border-[#368bfe]/70 hover:bg-white/[0.04]"
+            className="inline-flex min-h-10 items-center gap-2 border border-[var(--color-border-subtle)] px-3 text-sm font-semibold text-[var(--color-text)] transition-colors hover:border-[#368bfe]/70 hover:bg-[var(--color-text)]/[0.04]"
           >
             <SlidersHorizontal size={16} aria-hidden />
             Filters
@@ -150,10 +150,10 @@ export default function ThesesBrowser({
               : null;
             const card = (
               <article
-                className="group flex h-[380px] flex-col overflow-hidden rounded-xl border border-white/15 bg-white/[0.03] p-4 transition hover:-translate-y-0.5 hover:border-white/35 hover:bg-white/[0.06]"
+                className="group flex h-[440px] flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]"
               >
                 {/* Thumbnail — fixed height, never shrinks */}
-                <div className="mb-3 flex-shrink-0 overflow-hidden rounded-lg border border-white/10 bg-white/5">
+                <div className="mb-4 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--color-separator)] bg-[var(--color-text)]/5">
                   <Image
                     src="/placeholder.svg"
                     alt="Article preview"
@@ -164,8 +164,8 @@ export default function ThesesBrowser({
                 </div>
 
                 {/* Authors — single line, never wraps */}
-                <div className="mb-2 flex min-h-5 items-center gap-2">
-                  <div className="min-w-0 flex-1 truncate text-[11px] uppercase tracking-wide text-white/50">
+                <div className="mb-3 flex min-h-5 items-center gap-2">
+                  <div className="min-w-0 flex-1 truncate text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
                     {item.authors.map((a) => a.display_name).join(" • ")} | {item.year}
                   </div>
                   {statusMeta && (
@@ -176,17 +176,17 @@ export default function ThesesBrowser({
                 </div>
 
                 {/* Title — 2-line max */}
-                <h2 className="flex-shrink-0 line-clamp-2 text-base font-extrabold leading-tight text-white">
+                <h2 className="mb-2 flex-shrink-0 line-clamp-2 text-[17px] font-extrabold leading-tight text-[var(--color-text)]">
                   {item.title}
                 </h2>
 
-                {/* Abstract — 3-line max, capped so tags are never pushed out */}
-                <p className="mt-2 max-h-[3.75rem] overflow-hidden line-clamp-3 text-sm leading-5 text-white/70">
+                {/* Abstract — flex-grow to fill space, clamps at ~5 lines */}
+                <p className="flex-grow overflow-hidden line-clamp-5 text-sm leading-relaxed text-[var(--color-text-muted)]">
                   {item.abstract_preview}
                 </p>
 
                 {item.reviewStatus === "flagged" && item.flaggedCommentCount ? (
-                  <p className="mt-2 text-[11px] font-medium text-[#ff9b9b]">
+                  <p className="mt-3 text-[11px] font-medium text-[var(--color-danger)]">
                     {item.flaggedCommentCount} moderator comment{item.flaggedCommentCount === 1 ? "" : "s"}
                   </p>
                 ) : null}
@@ -199,11 +199,11 @@ export default function ThesesBrowser({
                   const remainingTags = item.tags.length - visibleTags.length;
 
                   return (
-                    <div className="mt-3 flex-shrink-0 flex flex-wrap items-center gap-2">
+                    <div className="mt-auto pt-4 flex-shrink-0 flex flex-wrap items-center gap-2">
                       {researchAreas[0] && (
                         <span
                           title={researchAreas[0]}
-                          className="flex-shrink-0 max-w-[9rem] truncate rounded-full border border-[#1da0c9]/50 bg-[#1da0c9]/10 px-2 py-0.5 text-[11px] font-medium text-[#9ddff2]"
+                          className="flex-shrink-0 max-w-[9rem] truncate rounded-full border border-[var(--color-chip-cyan-bd)] bg-[var(--color-chip-cyan-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-chip-cyan-text)]"
                         >
                           {researchAreas[0]}
                         </span>
@@ -212,7 +212,7 @@ export default function ThesesBrowser({
                         <span
                           title={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
                           aria-label={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
-                          className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[#1da0c9]/50 bg-[#1da0c9]/10 text-[10px] font-semibold text-[#9ddff2]"
+                          className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-chip-cyan-bd)] bg-[var(--color-chip-cyan-bg)] text-[10px] font-semibold text-[var(--color-chip-cyan-text)]"
                         >
                           +{remainingResearchAreas}
                         </span>
@@ -221,7 +221,7 @@ export default function ThesesBrowser({
                         <span
                           key={tag}
                           title={tag}
-                          className="flex-shrink-0 max-w-[6rem] truncate rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-medium text-white/40"
+                          className="flex-shrink-0 max-w-[6rem] truncate rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-muted)]"
                         >
                           {tag}
                         </span>
@@ -230,7 +230,7 @@ export default function ThesesBrowser({
                         <span
                           title={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
                           aria-label={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
-                          className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-[10px] font-semibold text-white/60"
+                          className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] text-[10px] font-semibold text-[var(--color-text-muted)]"
                         >
                           +{remainingTags}
                         </span>
@@ -260,7 +260,7 @@ export default function ThesesBrowser({
           })}
         </div>
 
-        <div className="mt-8 border-t border-white/10 pt-2 xl:hidden">
+        <div className="mt-8 border-t border-[var(--color-border-subtle)] pt-2 xl:hidden">
           <FaqRail />
         </div>
       </section>
@@ -271,10 +271,10 @@ export default function ThesesBrowser({
 
       <Dialog open={filtersOpen} onOpenChange={(open) => setFiltersOpen(open)}>
         <DialogContent
-          className="!left-0 !top-0 h-dvh w-[min(22rem,calc(100%-2rem))] !max-w-none !translate-x-0 !translate-y-0 gap-0 overflow-y-auto rounded-none border-r border-white/15 bg-[#14181c] p-0 text-white"
+          className="!left-0 !top-0 h-dvh w-[min(22rem,calc(100%-2rem))] !max-w-none !translate-x-0 !translate-y-0 gap-0 overflow-y-auto rounded-none border-r border-[var(--color-border-subtle)] bg-[var(--color-bg)] p-0 text-[var(--color-text)]"
         >
-          <div className="border-b border-white/10 px-5 py-5">
-            <DialogTitle className="font-semibold text-white">Filter studies</DialogTitle>
+          <div className="border-b border-[var(--color-border-subtle)] px-5 py-5">
+            <DialogTitle className="font-semibold text-[var(--color-text)]">Filter studies</DialogTitle>
           </div>
           <FilterSidebar className="border-0 px-5 py-5" {...filterSidebarProps} />
         </DialogContent>

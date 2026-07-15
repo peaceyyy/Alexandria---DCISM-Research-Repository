@@ -21,8 +21,8 @@ export default function Landing() {
             </span>
           </div>
 
-          <h2 className="max-w-none whitespace-nowrap text-[clamp(2.25rem,4vw,3.45rem)] font-black leading-[0.95] tracking-[-0.04em] text-white">
-            Researchk and Capstone Hub
+          <h2 className="max-w-none whitespace-nowrap text-[clamp(2.25rem,4vw,3.45rem)] font-black leading-[0.95] tracking-[-0.04em] text-[var(--color-text)]">
+            Research and Capstone Hub
           </h2>
 
           <p className="mt-6 text-xl font-semibold text-[var(--color-text-muted)] sm:text-[28px]">
