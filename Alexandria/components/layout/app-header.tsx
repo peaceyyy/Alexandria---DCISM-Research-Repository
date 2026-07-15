@@ -27,9 +27,10 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 interface AppHeaderProps {
   role: UserRole | null;
+  query?: string;
 }
 
-export function AppHeader({ role }: AppHeaderProps) {
+export function AppHeader({ role, query = "" }: AppHeaderProps) {
   const isGuest = !role;
   const isPrivileged = role === "admin" || role === "moderator";
 
@@ -58,20 +59,20 @@ export function AppHeader({ role }: AppHeaderProps) {
       <div className="flex flex-1 justify-start pl-6 pr-4">
         <label className="relative flex w-full max-w-lg items-center">
           <span className="sr-only">Search theses</span>
-          <Search
-            size={14}
-            className="pointer-events-none absolute left-3 text-[var(--color-text-muted)]"
-            aria-hidden
-          />
-          <input
-            type="search"
-            name="q"
-            placeholder="Search Alexandria"
-            className="h-8 w-full rounded-md border border-[var(--color-separator)] bg-transparent pl-9 pr-8 text-sm text-[var(--color-text)] placeholder-[var(--color-placeholder)] transition-colors focus:border-[var(--color-brand-bright)]/30 focus:bg-[var(--color-text)]/5 focus:outline-none"
-          />
-          <div className="pointer-events-none absolute right-2 flex items-center justify-center rounded border border-[var(--color-separator)] bg-[var(--color-text)]/5 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-text-muted)]">
-            /
-          </div>
+          <form action="/home" method="get" className="flex flex-1 justify-start pl-6 pr-4">
+            <label className="relative flex w-full max-w-lg items-center">
+              <span className="sr-only">Search theses</span>
+              <Search size={14} className="pointer-events-none absolute left-3 text-[var(--color-text-muted)]" aria-hidden />
+              <input
+                type="search"
+                name="q"
+                defaultValue={query}
+                placeholder="Search Alexandria"
+                aria-label="Search theses"
+                className="h-8 w-full rounded-md border border-[var(--color-separator)] bg-transparent pl-9 pr-8 text-sm text-[var(--color-text)] placeholder-[var(--color-placeholder)] transition-colors focus:border-[var(--color-brand-bright)]/30 focus:bg-[var(--color-text)]/5 focus:outline-none"
+              />
+            </label>
+          </form>
         </label>
       </div>
 
@@ -105,3 +106,17 @@ export function AppHeader({ role }: AppHeaderProps) {
     </header>
   );
 }
+
+/*
+<input
+  type="search"
+  name="q"
+  placeholder="Search Alexandria"
+  className="h-8 w-full rounded-md border border-[var(--color-separator)] bg-transparent pl-9 pr-8 text-sm text-[var(--color-text)] placeholder-[var(--color-placeholder)] transition-colors focus:border-[var(--color-brand-bright)]/30 focus:bg-[var(--color-text)]/5 focus:outline-none"
+/>
+
+Random line
+<div className="pointer-events-none absolute right-2 flex items-center justify-center rounded border border-[var(--color-separator)] bg-[var(--color-text)]/5 px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-text-muted)]">
+  /
+</div>
+*/
