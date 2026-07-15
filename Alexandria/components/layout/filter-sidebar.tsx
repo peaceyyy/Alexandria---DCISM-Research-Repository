@@ -1,6 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { DEPARTMENTS } from "@/lib/domain/departments";
+import { RESEARCH_AREAS } from "@/lib/domain/research-areas";
 
 type FilterSidebarProps = {
   className?: string;
@@ -17,21 +19,6 @@ type FilterSidebarProps = {
   flaggedSubmissionCount: number;
   onToggleMySubmissions: () => void;
 };
-
-const researchAreas = [
-  "AI / ML",
-  "Web Development",
-  "Mobile Development",
-  "Cybersecurity",
-  "IoT",
-  "Data Science",
-];
-
-const departments = [
-  "Computer Science",
-  "Information Technology",
-  "Information Systems",
-];
 
 export default function FilterSidebar({
   className,
@@ -53,7 +40,7 @@ export default function FilterSidebar({
       <div className="mb-4 text-sm font-semibold text-[var(--color-text-muted)]">Filter</div>
 
       {showMySubmissions && (
-        <section className="mb-5 border-y border-[var(--color-border-subtle)] py-3" aria-label="My submissions">
+        <section className="mb-5 border-y border-[var(--color-separator)] py-3" aria-label="My submissions">
           <label className="flex min-h-8 cursor-pointer items-center gap-2 text-xs font-semibold text-[var(--color-text)]">
             <input
               type="checkbox"
@@ -86,13 +73,13 @@ export default function FilterSidebar({
             <input
               value={fromYear}
               onChange={(e) => setFromYear(e.target.value)}
-              className="w-full rounded border border-[var(--color-border-subtle)] bg-transparent px-2 py-1 outline-none text-[var(--color-text)] placeholder:text-[var(--color-placeholder)]"
+              className="w-full rounded border border-[var(--color-separator)] bg-transparent px-2 py-1 outline-none text-[var(--color-text)] placeholder:text-[var(--color-placeholder)]"
               placeholder="From"
             />
             <input
               value={toYear}
               onChange={(e) => setToYear(e.target.value)}
-              className="w-full rounded border border-[var(--color-border-subtle)] bg-transparent px-2 py-1 outline-none text-[var(--color-text)] placeholder:text-[var(--color-placeholder)]"
+              className="w-full rounded border border-[var(--color-separator)] bg-transparent px-2 py-1 outline-none text-[var(--color-text)] placeholder:text-[var(--color-placeholder)]"
               placeholder="To"
             />
           </div>
@@ -101,14 +88,14 @@ export default function FilterSidebar({
         <div>
           <div className="mb-2 font-semibold">Research Area</div>
           <div className="space-y-1">
-            {researchAreas.map((item) => (
-              <label key={item} className="flex items-center gap-2">
+            {RESEARCH_AREAS.map((area) => (
+              <label key={area.id} className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={selectedResearchAreas.includes(item)}
-                  onChange={() => onToggleResearchArea(item)}
+                  checked={selectedResearchAreas.includes(area.id)}
+                  onChange={() => onToggleResearchArea(area.id)}
                 />
-                <span>{item}</span>
+                <span>{area.label}</span>
               </label>
             ))}
           </div>
@@ -117,14 +104,14 @@ export default function FilterSidebar({
         <div>
           <div className="mb-2 font-semibold">Department</div>
           <div className="space-y-1">
-            {departments.map((item) => (
-              <label key={item} className="flex items-center gap-2">
+            {DEPARTMENTS.map((department) => (
+              <label key={department} className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={selectedDepartments.includes(item)}
-                  onChange={() => onToggleDepartment(item)}
+                  checked={selectedDepartments.includes(department)}
+                  onChange={() => onToggleDepartment(department)}
                 />
-                <span>{item}</span>
+                <span>{department}</span>
               </label>
             ))}
           </div>

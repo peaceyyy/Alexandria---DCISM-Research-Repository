@@ -10,6 +10,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReviewStatus, ThesisCard } from "@/lib/services/types";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { getResearchAreaLabel } from "@/lib/domain/research-areas";
 
 export type BrowseThesisItem = ThesisCard & {
   reviewStatus?: ReviewStatus;
@@ -129,7 +130,7 @@ export default function ThesesBrowser({
       <FilterSidebar className="hidden xl:block" {...filterSidebarProps} />
 
       <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mb-5 flex items-center justify-between border-b border-[var(--color-border-subtle)] pb-4 xl:hidden">
+        <div className="mb-5 flex items-center justify-between border-b border-[var(--color-separator)] pb-4 xl:hidden">
           <p className="text-xs font-medium text-[var(--color-text-muted)]">
             {filteredItems.length} {filteredItems.length === 1 ? "study" : "studies"}
           </p>
@@ -150,7 +151,7 @@ export default function ThesesBrowser({
               : null;
             const card = (
               <article
-                className="group flex h-[440px] flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]"
+                className="group flex h-[480px] flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]"
               >
                 {/* Thumbnail — fixed height, never shrinks */}
                 <div className="mb-4 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--color-separator)] bg-[var(--color-text)]/5">
@@ -164,7 +165,7 @@ export default function ThesesBrowser({
                 </div>
 
                 {/* Authors — single line, never wraps */}
-                <div className="mb-3 flex min-h-5 items-center gap-2">
+                <div className="mb-4 flex min-h-5 items-center gap-2">
                   <div className="min-w-0 flex-1 truncate text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
                     {item.authors.map((a) => a.display_name).join(" • ")} | {item.year}
                   </div>
@@ -176,18 +177,18 @@ export default function ThesesBrowser({
                 </div>
 
                 {/* Title — 2-line max */}
-                <h2 className="mb-2 flex-shrink-0 line-clamp-2 text-[17px] font-extrabold leading-tight text-[var(--color-text)]">
+                <h2 className="mb-3 flex-shrink-0 line-clamp-2 text-[17px] font-extrabold leading-tight text-[var(--color-text)]">
                   {item.title}
                 </h2>
 
-                {/* Abstract — flex-grow to fill space, clamps at ~5 lines */}
-                <p className="flex-grow overflow-hidden line-clamp-5 text-sm leading-relaxed text-[var(--color-text-muted)]">
+                {/* Abstract — flex-grow to fill space, clamps at ~6 lines */}
+                <p className="flex-grow overflow-hidden line-clamp-6 text-sm leading-relaxed text-[var(--color-text-muted)]">
                   {item.abstract_preview}
                 </p>
 
                 {item.reviewStatus === "flagged" && item.flaggedCommentCount ? (
                   <p className="mt-3 text-[11px] font-medium text-[var(--color-danger)]">
-                    {item.flaggedCommentCount} moderator comment{item.flaggedCommentCount === 1 ? "" : "s"}
+                    {item.flaggedCommentCount} feedback item{item.flaggedCommentCount === 1 ? "" : "s"} need revision
                   </p>
                 ) : null}
 
@@ -202,10 +203,10 @@ export default function ThesesBrowser({
                     <div className="mt-auto pt-4 flex-shrink-0 flex flex-wrap items-center gap-2">
                       {researchAreas[0] && (
                         <span
-                          title={researchAreas[0]}
+                          title={getResearchAreaLabel(researchAreas[0])}
                           className="flex-shrink-0 max-w-[9rem] truncate rounded-full border border-[var(--color-chip-cyan-bd)] bg-[var(--color-chip-cyan-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-chip-cyan-text)]"
                         >
-                          {researchAreas[0]}
+                          {getResearchAreaLabel(researchAreas[0])}
                         </span>
                       )}
                       {remainingResearchAreas > 0 && (
@@ -260,7 +261,7 @@ export default function ThesesBrowser({
           })}
         </div>
 
-        <div className="mt-8 border-t border-[var(--color-border-subtle)] pt-2 xl:hidden">
+        <div className="mt-8 border-t border-[var(--color-separator)] pt-2 xl:hidden">
           <FaqRail />
         </div>
       </section>
@@ -271,9 +272,9 @@ export default function ThesesBrowser({
 
       <Dialog open={filtersOpen} onOpenChange={(open) => setFiltersOpen(open)}>
         <DialogContent
-          className="!left-0 !top-0 h-dvh w-[min(22rem,calc(100%-2rem))] !max-w-none !translate-x-0 !translate-y-0 gap-0 overflow-y-auto rounded-none border-r border-[var(--color-border-subtle)] bg-[var(--color-bg)] p-0 text-[var(--color-text)]"
+          className="!left-0 !top-0 h-dvh w-[min(22rem,calc(100%-2rem))] !max-w-none !translate-x-0 !translate-y-0 gap-0 overflow-y-auto rounded-none border-r border-[var(--color-separator)] bg-[var(--color-bg)] p-0 text-[var(--color-text)]"
         >
-          <div className="border-b border-[var(--color-border-subtle)] px-5 py-5">
+          <div className="border-b border-[var(--color-separator)] px-5 py-5">
             <DialogTitle className="font-semibold text-[var(--color-text)]">Filter studies</DialogTitle>
           </div>
           <FilterSidebar className="border-0 px-5 py-5" {...filterSidebarProps} />

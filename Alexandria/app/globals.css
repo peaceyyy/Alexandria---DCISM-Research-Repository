@@ -43,6 +43,16 @@
   --color-chip-green-bd:  oklch(0.72 0.17 150 / 35%);
   --color-chip-green-text:oklch(0.82 0.12 150);    /* #8ee1ae */
 
+  /* Yellow chip: pending / warning */
+  --color-chip-yellow-bg: oklch(0.88 0.17 90 / 10%);
+  --color-chip-yellow-bd: oklch(0.88 0.17 90 / 35%);
+  --color-chip-yellow-text:oklch(0.88 0.17 90);    /* #ffd900 */
+
+  /* Gray chip: deactivated / trashed */
+  --color-chip-gray-bg:   oklch(0.70 0 0 / 10%);
+  --color-chip-gray-bd:   oklch(0.70 0 0 / 35%);
+  --color-chip-gray-text: oklch(0.80 0 0);         /* #b8b8b8 */
+
   /* ─── Semantic States ───────────────────────────── */
   --color-danger:         oklch(0.65 0.22 27);     /* #ff6b6b */
   --color-success:        oklch(0.72 0.17 150);    /* #59c987 */
@@ -101,25 +111,35 @@
   --color-brand-cyan:     oklch(0.63 0.12 220);    /* #1da0c9 */
 
   /* ─── Chip colors (light-adjusted) ─────────────── */
-  /* Cyan chip on light: darker text so it reads as teal-ink, not browser-highlight-blue */
-  --color-chip-cyan-bg:   oklch(0.94 0.03 220);    /* very pale teal wash */
-  --color-chip-cyan-bd:   oklch(0.63 0.12 220 / 40%);
-  --color-chip-cyan-text: oklch(0.38 0.10 220);    /* deep teal — readable, not electric */
+  /* Cyan chip on light */
+  --color-chip-cyan-bg:   var(--color-brand-cyan);
+  --color-chip-cyan-bd:   var(--color-brand-cyan);
+  --color-chip-cyan-text: #ffffff;
 
   /* Red chip on light */
-  --color-chip-red-bg:    oklch(0.96 0.02 27);     /* pale rose */
-  --color-chip-red-bd:    oklch(0.65 0.22 27 / 30%);
-  --color-chip-red-text:  oklch(0.40 0.20 27);     /* deep red */
+  --color-chip-red-bg:    var(--color-danger);
+  --color-chip-red-bd:    var(--color-danger);
+  --color-chip-red-text:  #ffffff;
 
   /* Green chip on light */
-  --color-chip-green-bg:  oklch(0.95 0.03 150);    /* pale mint */
-  --color-chip-green-bd:  oklch(0.72 0.17 150 / 30%);
-  --color-chip-green-text:oklch(0.35 0.15 150);    /* deep green */
+  --color-chip-green-bg:  var(--color-success);
+  --color-chip-green-bd:  var(--color-success);
+  --color-chip-green-text:#ffffff;
+
+  /* Yellow chip on light */
+  --color-chip-yellow-bg: oklch(0.70 0.17 80);     /* solid amber */
+  --color-chip-yellow-bd: oklch(0.70 0.17 80);
+  --color-chip-yellow-text:#ffffff;
+
+  /* Gray chip on light */
+  --color-chip-gray-bg:   oklch(0.55 0 0);         /* solid gray */
+  --color-chip-gray-bd:   oklch(0.55 0 0);
+  --color-chip-gray-text: #ffffff;
 
   /* ─── Semantic States ───────────────────────────── */
   --color-danger:         oklch(0.45 0.20 27);     /* #d63031 */
   --color-success:        oklch(0.45 0.16 150);    /* #27ae60 */
-  --color-pronunciation:  oklch(0.62 0.17 80);     /* #c8a000 — amber */
+  --color-pronunciation:  oklch(0.45 0.17 80);     /* darker amber for light mode */
 
   /* ─── Shadcn overrides (light) ──────────────────── */
   --background: oklch(0.98 0 0);
@@ -237,8 +257,18 @@ select {
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-4: oklch(0.704 0.191 22.216);
+  --chart-5: oklch(0.828 0.189 84.429);
+}
+
+@utility theme-invert {
+  filter: invert(0);
+}
+:root[data-theme="light"] .theme-invert {
+  filter: invert(1);
+}
+
+.dark {
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);

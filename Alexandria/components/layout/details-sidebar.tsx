@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ThesisDetail } from "@/lib/services/types";
+import { getResearchAreaLabel } from "@/lib/domain/research-areas";
 
 type SelectedRightRailProps = {
   thesis: ThesisDetail;
@@ -41,7 +42,7 @@ export default function DetailsSidebar({ thesis }: SelectedRightRailProps) {
                 key={area}
                 className="inline-flex items-center rounded-full border border-white/30 bg-transparent px-3 py-1 text-[11px] text-white/80"
               >
-                {area}
+                {getResearchAreaLabel(area)}
               </span>
             ))}
           </div>

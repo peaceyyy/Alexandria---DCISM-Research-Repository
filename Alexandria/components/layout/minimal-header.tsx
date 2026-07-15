@@ -7,6 +7,7 @@
  */
 import Image from "next/image";
 import { GitFork } from "lucide-react";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 export function MinimalHeader() {
   return (
@@ -19,9 +20,10 @@ export function MinimalHeader() {
       >
         <Image
           src="/brand/alexandria-mark.svg"
-          width={32}
-          height={32}
+          width={28}
+          height={28}
           alt=""
+          className="theme-invert"
           priority
         />
         <span className="font-[var(--font-khula)] text-[20px] font-black tracking-tight">
@@ -29,16 +31,19 @@ export function MinimalHeader() {
         </span>
       </a>
 
-      {/* GitHub repo link — the only chrome on a landing page */}
-      <a
-        href="https://github.com/peaceyyy/Alexandria---DCISM-Thesis-Repository"
-        target="_blank"
-        rel="noreferrer"
-        aria-label="View Alexandria source on GitHub"
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-border-subtle)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-border-subtle)] hover:text-[var(--color-text)]"
-      >
-        <GitFork size={18} aria-hidden />
-      </a>
+      {/* Actions */}
+      <div className="flex items-center gap-4">
+        <ThemeToggle />
+        <a
+          href="https://github.com/peaceyyy/Alexandria---DCISM-Thesis-Repository"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="View Alexandria source on GitHub"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-separator-mid)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)]"
+        >
+          <GitFork size={18} aria-hidden />
+        </a>
+      </div>
     </header>
   );
 }

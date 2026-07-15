@@ -18,7 +18,7 @@ function mapOwnSubmission(item: MySubmissionListItem): BrowseThesisItem {
     id: item.id,
     title: item.title,
     year: item.year,
-    abstract_preview: item.abstractPreview.slice(0, 200),
+    abstract_preview: item.abstractPreview.slice(0, 400),
     research_area: item.researchArea,
     department: item.department,
     authors: item.authors.map((display_name, index) => ({
@@ -37,9 +37,13 @@ function mapOwnSubmission(item: MySubmissionListItem): BrowseThesisItem {
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ mine?: string | string[] }>;
+  searchParams: Promise<{
+    mine?: string | string[];
+    q?: string | string[];
+  }>;
 }) {
   const params = await searchParams;
+  const query = firstValue(params.q)?.trim() ?? "";
   const userResult = await getCurrentUser();
   const user = userResult.data;
   const requestedOwnSubmissions = firstValue(params.mine) === "1";
@@ -47,8 +51,12 @@ export default async function HomePage({
 
   const [publicThesesResult, ownSubmissionsResult, flaggedSubmissionsResult] =
     await Promise.all([
-      showOwnSubmissions ? Promise.resolve(null) : getTheses({ limit: 100 }),
-      showOwnSubmissions ? listOwnSubmissions() : Promise.resolve(null),
+      showOwnSubmissions
+        ? Promise.resolve(null)
+        : getTheses({ limit: 100, q: query || undefined }),
+      showOwnSubmissions
+        ? listOwnSubmissions({ q: query || undefined })
+        : Promise.resolve(null),
       user ? listOwnSubmissions({ status: "flagged" }) : Promise.resolve(null),
     ]);
 
@@ -60,7 +68,11 @@ export default async function HomePage({
 
   return (
     <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] xl:h-screen xl:overflow-hidden">
-      <AppHeader role={role} />
+      <AppHeader
+        role={role}
+        query={query}
+        isMySubmissions={showOwnSubmissions}
+      />
       <Suspense fallback={null}>
         <SubmissionBanner />
       </Suspense>

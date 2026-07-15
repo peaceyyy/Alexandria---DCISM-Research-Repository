@@ -77,7 +77,7 @@ export function SubmissionBanner() {
         role="status"
         aria-live="polite"
         className={cn(
-          "pointer-events-auto flex items-center gap-3 overflow-hidden border border-[#34d399]/25 bg-[#14181C] py-2.5 pl-3 pr-4 text-sm shadow-2xl shadow-[#34d399]/10 transition-all",
+          "pointer-events-auto flex items-center gap-3 overflow-hidden border border-[var(--color-success)]/25 bg-[var(--color-surface-alt)] py-2.5 pl-3 pr-4 text-sm shadow-2xl shadow-[var(--color-success)]/10 transition-all",
           isResubmitted ? "w-full max-w-sm rounded-md" : "rounded-full",
           isExiting
             ? "animate-out fade-out duration-300 fill-mode-forwards"
@@ -89,16 +89,16 @@ export function SubmissionBanner() {
         )}
       >
         {/* Icon wrapper */}
-        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[#34d399]/10">
-          <CheckCircle2 size={16} className="text-[#34d399]" aria-hidden />
+        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-success)]/10">
+          <CheckCircle2 size={16} className="text-[var(--color-success)]" aria-hidden />
         </div>
 
         {/* Messaging */}
-        <p className="text-white/90">
-          <span className="font-semibold text-white">
+        <p className="text-[var(--color-text)] opacity-90">
+          <span className="font-semibold text-[var(--color-text)]">
             {isResubmitted ? "Submitted for review." : "Thesis submitted!"}
           </span>{" "}
-          <span className="text-white/60">
+          <span className="text-[var(--color-text-muted)] opacity-80">
             {isResubmitted
               ? "Editing is locked until it is flagged again."
               : "Pending moderator review."}
@@ -106,14 +106,14 @@ export function SubmissionBanner() {
         </p>
 
         {/* Divider */}
-        <div className="ml-2 h-4 w-px bg-white/10" />
+        <div className="ml-2 h-4 w-px bg-[var(--color-separator-mid)]" />
 
         {/* Close Button */}
         <button
           type="button"
           onClick={() => setIsExiting(true)}
           aria-label="Dismiss"
-          className="flex h-6 w-6 items-center justify-center rounded-full text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+          className="flex h-6 w-6 items-center justify-center rounded-full text-[var(--color-text-muted)] opacity-80 transition-colors hover:bg-[var(--color-text)]/10 hover:text-[var(--color-text)]"
         >
           <X size={14} aria-hidden />
         </button>
