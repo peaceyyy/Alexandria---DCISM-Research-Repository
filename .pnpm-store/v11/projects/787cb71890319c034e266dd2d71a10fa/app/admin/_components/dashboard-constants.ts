@@ -1,1 +1,0 @@
-export const DASHBOARD_QUEUE_PAGE_SIZE = 20;
