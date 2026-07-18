@@ -43,6 +43,8 @@ const REVIEW_STATUS_META: Record<ReviewStatus, { label: string; className: strin
   },
 };
 
+const FILTER_STORAGE_KEY = "alex:thesis-browser-filters";
+
 function splitResearchAreas(value: string | null) {
   return value
     ? value
@@ -65,14 +67,77 @@ export default function ThesesBrowser({
   const [toYear, setToYear] = useState("");
   const [selectedResearchAreas, setSelectedResearchAreas] = useState<string[]>([]);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [selectedStudyTypes, setSelectedStudyTypes] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
 
   // Hydrate collapse preference from localStorage after mount
   useEffect(() => {
     const stored = localStorage.getItem("alex:filter-sidebar-collapsed");
     if (stored === "1") setIsSidebarCollapsed(true);
   }, []);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(FILTER_STORAGE_KEY);
+      if (!stored) return;
+
+      const parsed: unknown = JSON.parse(stored);
+      if (!parsed || typeof parsed !== "object") return;
+
+      const filters = parsed as {
+        fromYear?: unknown;
+        toYear?: unknown;
+        researchAreas?: unknown;
+        departments?: unknown;
+        studyTypes?: unknown;
+      };
+      if (typeof filters.fromYear === "string") setFromYear(filters.fromYear);
+      if (typeof filters.toYear === "string") setToYear(filters.toYear);
+      if (Array.isArray(filters.researchAreas)) {
+        setSelectedResearchAreas(filters.researchAreas.filter(
+          (value): value is string => typeof value === "string",
+        ));
+      }
+      if (Array.isArray(filters.departments)) {
+        setSelectedDepartments(filters.departments.filter(
+          (value): value is string => typeof value === "string",
+        ));
+      }
+      if (Array.isArray(filters.studyTypes)) {
+        setSelectedStudyTypes(filters.studyTypes.filter(
+          (value): value is string => value === "thesis" || value === "capstone",
+        ));
+      }
+    } catch {
+      localStorage.removeItem(FILTER_STORAGE_KEY);
+    } finally {
+      setFiltersHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!filtersHydrated) return;
+
+    localStorage.setItem(
+      FILTER_STORAGE_KEY,
+      JSON.stringify({
+        fromYear,
+        toYear,
+        researchAreas: selectedResearchAreas,
+        departments: selectedDepartments,
+        studyTypes: selectedStudyTypes,
+      }),
+    );
+  }, [
+    filtersHydrated,
+    fromYear,
+    selectedDepartments,
+    selectedResearchAreas,
+    selectedStudyTypes,
+    toYear,
+  ]);
 
   const toggleSidebarCollapse = () => {
     setIsSidebarCollapsed((prev) => {
@@ -97,7 +162,11 @@ export default function ThesesBrowser({
       selectedDepartments.length === 0 ||
       selectedDepartments.includes(item.department);
 
-    return yearMatch && researchAreaMatch && departmentMatch;
+    const studyTypeMatch =
+      selectedStudyTypes.length === 0 ||
+      (item.study_type !== undefined && selectedStudyTypes.includes(item.study_type));
+
+    return yearMatch && researchAreaMatch && departmentMatch && studyTypeMatch;
   });
 
   const toggleValue = (
@@ -130,10 +199,13 @@ export default function ThesesBrowser({
     setToYear,
     selectedResearchAreas,
     selectedDepartments,
+    selectedStudyTypes,
     onToggleResearchArea: (value: string) =>
       toggleValue(value, setSelectedResearchAreas),
     onToggleDepartment: (value: string) =>
       toggleValue(value, setSelectedDepartments),
+    onToggleStudyType: (value: string) =>
+      toggleValue(value, setSelectedStudyTypes),
     showMySubmissions,
     mySubmissionsActive: isMySubmissions,
     flaggedSubmissionCount,
@@ -205,7 +277,7 @@ export default function ThesesBrowser({
                 </h2>
 
                 {/* Abstract stays within its own shrinkable region before the chip strip. */}
-                <p className="min-h-0 flex-1 overflow-hidden line-clamp-6 text-sm leading-relaxed text-[var(--color-text-muted)]">
+                <p className="min-h-0 flex-1 overflow-hidden text-justify line-clamp-6 text-sm leading-relaxed text-[var(--color-text-muted)]">
                   {item.abstract_preview}
                 </p>
 
@@ -275,7 +347,11 @@ export default function ThesesBrowser({
                 {card}
               </Link>
             ) : (
-              <Link key={item.id} href={`/theses/${item.id}`} className="block">
+              <Link
+                key={item.id}
+                href={isMySubmissions ? `/theses/${item.id}?mine=1` : `/theses/${item.id}`}
+                className="block"
+              >
                 {card}
               </Link>
             );

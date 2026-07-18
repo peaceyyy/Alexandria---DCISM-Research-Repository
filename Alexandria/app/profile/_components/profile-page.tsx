@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
 import { logoutAction } from "@/lib/auth/actions";
 import {
@@ -42,9 +43,10 @@ export function ProfilePage({
             </div>
             <Link
               href="/home"
-              className="inline-flex min-h-11 items-center rounded-md px-3 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)]"
+              className="inline-flex h-9 items-center gap-2 rounded-full border border-[var(--color-separator-mid)] px-3 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand-bright)]/35 hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30"
             >
-              Back to Home
+              <ArrowLeft size={15} aria-hidden />
+              Back
             </Link>
           </div>
 

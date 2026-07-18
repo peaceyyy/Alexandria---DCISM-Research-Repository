@@ -268,7 +268,7 @@ export default function UploadPage() {
             className="absolute left-6 top-1/2 hidden h-9 -translate-y-1/2 items-center gap-2 rounded-full border border-[var(--color-separator-mid)] px-3 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand-bright)]/35 hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 lg:inline-flex lg:left-10"
           >
             <ArrowLeft size={15} aria-hidden />
-            Return to Home
+            Back
           </button>
           <Stepper
             steps={STEPS}

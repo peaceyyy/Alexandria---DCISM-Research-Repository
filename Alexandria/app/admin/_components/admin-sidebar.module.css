@@ -55,7 +55,8 @@
 
 .collapseButton {
   position: absolute;
-  top: 22px;
+  top: 50%;
+  transform: translateY(-50%);
   right: -14px;
   width: 28px;
   height: 28px;
@@ -74,7 +75,7 @@
 .collapseButton:hover {
   color: var(--color-text);
   background: var(--color-surface-alt);
-  transform: scale(1.05);
+  transform: translateY(-50%) scale(1.05);
 }
 
 .mobileCloseButton:hover {

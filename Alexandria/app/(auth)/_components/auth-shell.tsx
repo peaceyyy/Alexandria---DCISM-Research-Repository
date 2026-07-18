@@ -51,7 +51,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
               ALEXANDRIA
             </h1>
             <span className="text-base font-medium text-[var(--color-pronunciation)] max-md:hidden">
-              (al-ig-ZAN-dree-uh)
+              Vivlio!
             </span>
           </div>
           <p className="mt-2 text-[clamp(1.5rem,2.2vw,1.8rem)] leading-tight font-black text-[var(--color-text)]">

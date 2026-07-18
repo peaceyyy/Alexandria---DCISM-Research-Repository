@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  ExternalLink,
+  Book,
   LayoutDashboard,
   LogOut,
   PanelLeftClose,
@@ -145,7 +145,7 @@ export function AdminSidebar({
           title={isCollapsed ? "Browse Repository" : undefined}
           onClick={onNavigate}
         >
-          <ExternalLink size={14} aria-hidden />
+          <Book size={14} aria-hidden />
           <span className={styles.viewSiteText}>Browse Repository</span>
         </Link>
       </div>
