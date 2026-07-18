@@ -21,6 +21,7 @@ function mapOwnSubmission(item: MySubmissionListItem): BrowseThesisItem {
     abstract_preview: item.abstractPreview.slice(0, 400),
     research_area: item.researchArea,
     department: item.department,
+    study_type: item.studyType,
     authors: item.authors.map((display_name, index) => ({
       id: index + 1,
       user_id: null,

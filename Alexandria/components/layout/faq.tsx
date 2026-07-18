@@ -4,44 +4,39 @@ import { useState } from "react";
 
 const faqItems = [
   {
-    question: "When is thesis?",
+    question: "Why DCISM only?",
     answer:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      "It's a proof of concept and it was an idea proposed by DCISM alumni and made by DCISM students. So starting it in such a manner would only make sense.",
   },
   {
-    question: "When is capstone?",
+    question: "Who can upload a thesis?",
     answer:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      "Anyone with a valid usc.edu.ph email address can create an account to contribute. However, administrators and moderators must approve submissions before they are published.",
   },
   {
-    question: "Who are the advisors?",
+    question: "Can I download the full thesis?",
     answer:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      "Yes, authenticated users can preview and download the full PDF for accepted theses. Anonymous visitors are restricted to browsing metadata and abstracts.",
   },
   {
-    question: "How do I submit my paper?",
+    question: "How are related theses found?",
     answer:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      "Related theses are dynamically computed by the system on the frontend. It matches projects based on overlapping keywords, tags, and research areas.",
   },
   {
-    question: "Can I contribute?",
+    question: "What are \"Lessons Learned\"?",
     answer:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      "Lessons learned capture practical execution guidance from previous researchers. This includes development challenges, tooling issues, and defense preparation tips.",
   },
   {
-    question: "How do I contribute?",
+    question: "Are all submissions public?",
     answer:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      "No, only approved and published theses are visible in the repository. Drafts and archived records are hidden from the public view.",
   },
   {
-    question: "Are these verified?",
+    question: "How do I find specific research?",
     answer:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-  },
-  {
-    question: "Can we use these as citations?",
-    answer:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      "You can search for titles, author names, or keywords using the search bar. You can also use the sidebar to filter results by research area, department, and year.",
   },
 ];
 

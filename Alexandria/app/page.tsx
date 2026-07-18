@@ -17,7 +17,7 @@ export default function Landing() {
               ALEXANDRIA
             </h1>
             <span className="pb-3 text-sm font-medium text-[var(--color-pronunciation)] sm:text-base whitespace-nowrap">
-              (al-ig-ZAN-dree-uh)
+              Vivlio!
             </span>
           </div>
 
