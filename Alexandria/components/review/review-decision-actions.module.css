@@ -4,6 +4,43 @@
   gap: 10px;
 }
 
+.statusSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  min-height: 28px;
+  padding: 5px 8px;
+  border: 1px solid;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.statusPending {
+  border-color: var(--color-chip-yellow-bd);
+  background: var(--color-chip-yellow-bg);
+  color: var(--color-chip-yellow-text);
+}
+
+.statusApproved {
+  border-color: var(--color-chip-green-bd);
+  background: var(--color-chip-green-bg);
+  color: var(--color-chip-green-text);
+}
+
+.statusFlagged {
+  border-color: var(--color-chip-red-bd);
+  background: var(--color-chip-red-bg);
+  color: var(--color-chip-red-text);
+}
+
+.statusTrashed {
+  border-color: var(--color-chip-gray-bd);
+  background: var(--color-chip-gray-bg);
+  color: var(--color-chip-gray-text);
+}
+
 .sectionLabel {
   font-size: 11px;
   font-weight: 600;
@@ -114,20 +151,19 @@
   width: 100%;
   padding: 9px 16px;
   border-radius: 7px;
-  border: 1px solid var(--color-chip-red-bd);
-  background: var(--color-surface);
-  color: var(--color-chip-red-bd); /* Use the border color (red) for text on a white surface */
+  border: none;
+  background: var(--color-danger);
+  color: #ffffff;
   font-size: 13px;
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 150ms ease;
+  transition: opacity 150ms ease;
 }
 
 .btnTrash:hover:not(:disabled) {
-  background: var(--color-chip-red-bg);
-  color: var(--color-chip-red-text);
+  opacity: 0.88;
 }
 
 .btnTrash:disabled {
@@ -312,6 +348,28 @@
   font-family: inherit;
   cursor: pointer;
   transition: background 120ms ease;
+}
+
+.btnConfirmFlag {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--color-chip-yellow-bd);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  background: var(--color-chip-yellow-bg);
+  color: var(--color-chip-yellow-text);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.btnConfirmFlag:hover {
+  opacity: 0.88;
 }
 
 .btnConfirmTrash:hover {

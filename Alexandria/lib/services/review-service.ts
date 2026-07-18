@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import {
   removeThesisFileFromStorage,
   uploadThesisFileToStorage,
@@ -347,6 +348,14 @@ function hasSchemaCacheReference(error: unknown, reference: string) {
   );
 }
 
+function isMissingReviewRpc(error: unknown, functionName: string) {
+  return Boolean(
+    isSupabaseMutationError(error)
+    && error.code === "PGRST202"
+    && error.message?.includes(functionName),
+  );
+}
+
 function isMissingReviewCommentsTable(error: unknown) {
   return Boolean(
     isSupabaseMutationError(error)
@@ -503,10 +512,12 @@ async function loadUserNames(userIds: string[]) {
     return new Map<string, string>();
   }
 
-  const supabase = await createClient();
+  // Review comments are already RLS-filtered for the current viewer. Resolve only
+  // those visible authors with the server client because members cannot read staff profiles.
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("users")
-    .select("id, profile_name, email")
+    .select("id, profile_name")
     .in("id", uniqueIds);
 
   if (error) {
@@ -516,7 +527,7 @@ async function loadUserNames(userIds: string[]) {
   return new Map(
     ((data ?? []) as UserNameRow[]).map((user) => [
       user.id,
-      user.profile_name || user.email || "Unknown user",
+      user.profile_name || "Unknown user",
     ]),
   );
 }
@@ -810,10 +821,13 @@ export async function listReviewSubmissions(
   params: ReviewSubmissionListParams = {},
 ): Promise<ServiceResult<ReviewSubmissionListItem[]>> {
   try {
-    await requireRole(["admin", "moderator"]);
+    const reviewer = await requireRole(["admin", "moderator"]);
 
     if (params.reviewStatus && !isReviewStatus(params.reviewStatus)) {
       return err(makeError("VALIDATION_FAILED", "A valid review status is required."));
+    }
+    if (params.reviewStatus === "trashed" && reviewer.role !== "admin") {
+      return err(makeError("FORBIDDEN", "Only administrators can view trashed submissions."));
     }
     if (params.department && !isDepartment(params.department)) {
       return err(
@@ -979,6 +993,15 @@ export async function addReviewComment(
     );
 
     if (rpcError || !commentId) {
+      if (isMissingReviewRpc(rpcError, "add_review_comment")) {
+        return err(
+          makeError(
+            "CONFIGURATION_REQUIRED",
+            "Comments are temporarily unavailable while the review system is being updated. Please ask an administrator to complete the update.",
+          ),
+        );
+      }
+
       return err(mutationError(rpcError, "The review comment could not be added."));
     }
 
@@ -1211,6 +1234,96 @@ export async function updateFlaggedSubmission(
   }
 }
 
+export async function saveFlaggedSubmissionCorrection(input: {
+  thesisId: number;
+  values: Partial<SubmitThesisInput>;
+  file?: File | null;
+}): Promise<ServiceResult<ReviewSubmission>> {
+  try {
+    const validationError = validateThesisId(input.thesisId);
+    if (validationError) {
+      return err(validationError);
+    }
+
+    const payloadError = validateUpdatePayload(input.values);
+    if (payloadError) {
+      return err(payloadError);
+    }
+
+    if (input.file) {
+      const fileValidationError = await validateThesisPdf(input.file);
+      if (fileValidationError) {
+        return err(makeError("VALIDATION_FAILED", fileValidationError));
+      }
+    }
+
+    const user = await requireSession();
+    if (user.role !== "member") {
+      return err(makeError("FORBIDDEN", "An active member account is required."));
+    }
+    await requireOwnership(input.thesisId, user.id);
+
+    let storedFile: { filePath: string } | null = null;
+    if (input.file) {
+      try {
+        storedFile = await uploadThesisFileToStorage(input.file, user.id);
+      } catch (uploadError) {
+        return err(
+          makeError(
+            "SUPABASE_ERROR",
+            uploadError instanceof Error
+              ? uploadError.message
+              : "The corrected PDF could not be uploaded.",
+          ),
+        );
+      }
+    }
+
+    const supabase = await createClient();
+    const { error: rpcError } = await supabase.rpc(
+      "save_flagged_submission_correction",
+      {
+        target_thesis_id: input.thesisId,
+        payload: buildUpdatePayload(input.values),
+        target_storage_path: storedFile?.filePath ?? null,
+        target_file_type: storedFile ? THESIS_PDF_MIME_TYPE : null,
+      },
+    );
+
+    if (rpcError) {
+      const cleanupError = storedFile
+        ? await removeThesisFileFromStorage(storedFile.filePath)
+        : null;
+      const operationError = isMissingReviewRpc(
+        rpcError,
+        "save_flagged_submission_correction",
+      )
+        ? makeError(
+            "CONFIGURATION_REQUIRED",
+            "Your correction could not be saved because the review system update is incomplete. Please ask an administrator to complete the update.",
+          )
+        : mutationError(rpcError, "Your correction could not be saved.");
+      return err({
+        ...operationError,
+        ...(cleanupError
+          ? {
+              details: {
+                ...(operationError.details ?? {}),
+                storage_cleanup_error: cleanupError,
+              },
+            }
+          : {}),
+      });
+    }
+
+    return ok(await loadReviewSubmission(input.thesisId));
+  } catch (error) {
+    return err(
+      normalizeServiceError(error, "Your correction could not be saved."),
+    );
+  }
+}
+
 export async function replaceFlaggedSubmissionPdf(input: {
   thesisId: number;
   file: File;
@@ -1258,10 +1371,15 @@ export async function replaceFlaggedSubmissionPdf(input: {
 
     if (rpcError) {
       const cleanupError = await removeThesisFileFromStorage(storedFile.filePath);
-      const operationError = mutationError(
+      const operationError = isMissingReviewRpc(
         rpcError,
-        "The corrected PDF could not be attached.",
-      );
+        "replace_flagged_submission_file",
+      )
+        ? makeError(
+            "CONFIGURATION_REQUIRED",
+            "The corrected PDF could not be linked to your submission because the review system update is incomplete. Please ask an administrator to complete the update.",
+          )
+        : mutationError(rpcError, "The corrected PDF could not be attached.");
       return err({
         ...operationError,
         ...(cleanupError

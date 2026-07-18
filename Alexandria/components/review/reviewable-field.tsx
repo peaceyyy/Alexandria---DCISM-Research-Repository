@@ -89,7 +89,6 @@ export function ReviewableField({
           title={hasComments ? `${comments.length} comment${comments.length !== 1 ? "s" : ""}` : "Add a comment"}
         >
           <MessageSquare size={13} aria-hidden />
-          {hasComments && <span className={styles.commentLabel}>Feedback</span>}
           {hasComments && (
             <span className={styles.commentCount} aria-hidden>
               {comments.length}
@@ -111,7 +110,7 @@ export function ReviewableField({
             Open preview
           </button>
           <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-            <DialogContent className="max-h-[82vh] max-w-3xl border-white/10 bg-[#1a1e23] text-white">
+            <DialogContent className="max-h-[82vh] w-[calc(100vw-2rem)] max-w-5xl border-[var(--color-separator)] bg-[var(--color-surface)] text-[var(--color-text)]">
               <DialogHeader>
                 <DialogTitle>{label}</DialogTitle>
               </DialogHeader>

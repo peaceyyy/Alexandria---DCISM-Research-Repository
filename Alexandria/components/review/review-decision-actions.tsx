@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckCircle2, Flag, RotateCcw, ShieldAlert, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, Flag, RotateCcw, ShieldAlert, Pencil, Trash2, Clock } from "lucide-react";
 import type { ReviewStatus } from "@/lib/services/types";
 import type { UserRole } from "@/lib/services/types";
 import styles from "./review-decision-actions.module.css";
@@ -10,7 +10,7 @@ import styles from "./review-decision-actions.module.css";
 // ─── Allowed transitions (per handoff spec) ───────────────────────────────────
 //
 //   for_review → accepted | flagged | trashed (admin only)
-//   flagged    → for_review (only by member resubmission) | trashed (admin only)
+//   flagged    → for_review (reviewer adds more feedback) | trashed (admin only)
 //   accepted   → for_review (moderator correction when approved by mistake)
 //   trashed    → for_review (admin restore)
 //
@@ -28,8 +28,47 @@ function canTrash(status: ReviewStatus) {
 function canSendBackToReview(status: ReviewStatus) {
   return status === "accepted";
 }
+function canUnflag(status: ReviewStatus) {
+  return status === "flagged";
+}
 
-type ConfirmDecision = Extract<ReviewStatus, "accepted" | "for_review" | "trashed">;
+function getStatusSummary(status: ReviewStatus) {
+  switch (status) {
+    case "for_review":
+      return "Pending";
+    case "accepted":
+      return "Approved";
+    case "flagged":
+      return "Flagged";
+    case "trashed":
+      return "Trashed";
+  }
+}
+
+function getStatusIcon(status: ReviewStatus, size = 14) {
+  switch (status) {
+    case "for_review":
+      return <Clock size={size} aria-hidden />;
+    case "accepted":
+      return <CheckCircle2 size={size} aria-hidden />;
+    case "flagged":
+      return <Flag size={size} aria-hidden />;
+    case "trashed":
+      return <Trash2 size={size} aria-hidden />;
+  }
+}
+
+const STATUS_SUMMARY_CLASS: Record<ReviewStatus, string> = {
+  for_review: styles.statusPending,
+  accepted: styles.statusApproved,
+  flagged: styles.statusFlagged,
+  trashed: styles.statusTrashed,
+};
+
+type ConfirmDecision = Extract<
+  ReviewStatus,
+  "accepted" | "flagged" | "for_review" | "trashed"
+>;
 
 const CONFIRM_COPY: Record<
   ConfirmDecision,
@@ -39,7 +78,7 @@ const CONFIRM_COPY: Record<
     actionLabel: string;
     titleId: string;
     actionClassName: string;
-    icon: "approve" | "review" | "trash";
+    icon: "approve" | "flag" | "review" | "trash";
   }
 > = {
   accepted: {
@@ -49,6 +88,14 @@ const CONFIRM_COPY: Record<
     titleId: "approve-confirm-title",
     actionClassName: styles.btnConfirmAccept,
     icon: "approve",
+  },
+  flagged: {
+    title: "Flag this submission for revision?",
+    body: "The member will be asked to review the feedback, save any needed changes, and resubmit the study for another review.",
+    actionLabel: "Flag for Revision",
+    titleId: "flag-confirm-title",
+    actionClassName: styles.btnConfirmFlag,
+    icon: "flag",
   },
   for_review: {
     title: "Send back to review?",
@@ -60,8 +107,8 @@ const CONFIRM_COPY: Record<
   },
   trashed: {
     title: "Trash this submission?",
-    body: "This will remove the submission from the active review queue. It can be reviewed again if retrieved from the trash.",
-    actionLabel: "Move to Trash",
+    body: "This will remove the submission from active queues and public browsing. Only an administrator can restore it later.",
+    actionLabel: "Continue",
     titleId: "trash-confirm-title",
     actionClassName: styles.btnConfirmTrash,
     icon: "trash",
@@ -83,6 +130,18 @@ interface ReviewDecisionActionsProps {
   onAdminEdit?: () => void;
 }
 
+export function ReviewStatusIndicator({ status }: { status: ReviewStatus }) {
+  return (
+    <div
+      className={`${styles.statusSummary} ${STATUS_SUMMARY_CLASS[status]}`}
+      data-status={status}
+      title={getStatusSummary(status)}
+    >
+      {getStatusIcon(status)}
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ReviewDecisionActions({
@@ -93,33 +152,64 @@ export function ReviewDecisionActions({
   onAdminEdit,
 }: ReviewDecisionActionsProps) {
   const [pendingDecision, setPendingDecision] = useState<ConfirmDecision | null>(null);
+  const [trashConfirmationStep, setTrashConfirmationStep] = useState(1);
 
-  const handleConfirmCancel = () => setPendingDecision(null);
+  const openConfirmation = (decision: ConfirmDecision) => {
+    setTrashConfirmationStep(1);
+    setPendingDecision(decision);
+  };
+  const handleConfirmCancel = () => {
+    setTrashConfirmationStep(1);
+    setPendingDecision(null);
+  };
   const handleConfirmDecision = () => {
     if (!pendingDecision) {
       return;
     }
 
+    if (pendingDecision === "trashed" && trashConfirmationStep === 1) {
+      setTrashConfirmationStep(2);
+      return;
+    }
+
     const nextStatus = pendingDecision;
+    setTrashConfirmationStep(1);
     setPendingDecision(null);
     onDecision(nextStatus);
   };
 
   const confirmCopy = pendingDecision
-    ? pendingDecision === "for_review" && status === "trashed"
+    ? pendingDecision === "trashed" && trashConfirmationStep === 2
       ? {
-          ...CONFIRM_COPY.for_review,
-          title: "Restore this submission to review?",
-          body: "This will return the submission to the pending review queue for a fresh moderator decision.",
-          actionLabel: "Restore to Review",
-          titleId: "restore-confirm-title",
+          ...CONFIRM_COPY.trashed,
+          title: "Confirm move to trash",
+          body: "The submission will now leave all active queues. Only an administrator can restore it to pending review.",
+          actionLabel: "Move to Trash",
         }
-      : CONFIRM_COPY[pendingDecision]
+      : pendingDecision === "for_review" && status === "trashed"
+        ? {
+            ...CONFIRM_COPY.for_review,
+            title: "Restore this submission to review?",
+            body: "This will return the submission to the pending review queue for a fresh moderator decision.",
+            actionLabel: "Restore to Review",
+            titleId: "restore-confirm-title",
+          }
+        : pendingDecision === "for_review" && status === "flagged"
+          ? {
+              ...CONFIRM_COPY.for_review,
+              title: "Return this submission to review?",
+              body: "The submitter will lose edit access while you add more feedback. Existing feedback will remain saved for the next flag.",
+              actionLabel: "Return to Review",
+              titleId: "unflag-confirm-title",
+            }
+          : CONFIRM_COPY[pendingDecision]
     : null;
   const confirmIcon = confirmCopy?.icon === "trash"
     ? <Trash2 size={13} aria-hidden style={{ marginRight: 4 }} />
     : confirmCopy?.icon === "review"
       ? <RotateCcw size={13} aria-hidden style={{ marginRight: 4 }} />
+      : confirmCopy?.icon === "flag"
+        ? <Flag size={13} aria-hidden style={{ marginRight: 4 }} />
       : <CheckCircle2 size={13} aria-hidden style={{ marginRight: 4 }} />;
   const alreadyDecided = status === "trashed";
 
@@ -136,7 +226,7 @@ export function ReviewDecisionActions({
             <button
               type="button"
               className={styles.btnReview}
-              onClick={() => setPendingDecision("for_review")}
+              onClick={() => openConfirmation("for_review")}
               disabled={isSubmitting}
               aria-label="Send submission back to review"
             >
@@ -147,7 +237,7 @@ export function ReviewDecisionActions({
               <button
                 type="button"
                 className={styles.btnTrash}
-                onClick={() => setPendingDecision("trashed")}
+                onClick={() => openConfirmation("trashed")}
                 disabled={isSubmitting}
                 aria-label="Move submission to trash"
               >
@@ -165,12 +255,40 @@ export function ReviewDecisionActions({
               <button
                 type="button"
                 className={styles.btnReview}
-                onClick={() => setPendingDecision("for_review")}
+                onClick={() => openConfirmation("for_review")}
                 disabled={isSubmitting}
                 aria-label="Restore submission to review"
               >
                 <RotateCcw size={14} aria-hidden />
                 Restore to Review
+              </button>
+            )}
+          </div>
+        ) : canUnflag(status) ? (
+          <div className={styles.primaryActions}>
+            <p className={styles.statusNote}>
+              This submission is flagged for member revision.
+            </p>
+            <button
+              type="button"
+              className={styles.btnReview}
+              onClick={() => openConfirmation("for_review")}
+              disabled={isSubmitting}
+              aria-label="Return flagged submission to review"
+            >
+              <RotateCcw size={14} aria-hidden />
+              Return to Review
+            </button>
+            {role === "admin" && (
+              <button
+                type="button"
+                className={styles.btnTrash}
+                onClick={() => openConfirmation("trashed")}
+                disabled={isSubmitting}
+                aria-label="Move submission to trash"
+              >
+                <Trash2 size={14} aria-hidden />
+                Trash
               </button>
             )}
           </div>
@@ -180,7 +298,7 @@ export function ReviewDecisionActions({
             <button
               type="button"
               className={styles.btnAccept}
-              onClick={() => setPendingDecision("accepted")}
+              onClick={() => openConfirmation("accepted")}
               disabled={isSubmitting || !canAccept(status)}
               aria-label="Approve this submission"
             >
@@ -192,7 +310,7 @@ export function ReviewDecisionActions({
             <button
               type="button"
               className={styles.btnFlag}
-              onClick={() => onDecision("flagged")}
+              onClick={() => openConfirmation("flagged")}
               disabled={isSubmitting || !canFlag(status)}
               aria-label="Flag submission for member revision"
             >
@@ -205,7 +323,7 @@ export function ReviewDecisionActions({
               <button
                 type="button"
                 className={styles.btnTrash}
-                onClick={() => setPendingDecision("trashed")}
+                onClick={() => openConfirmation("trashed")}
                 disabled={isSubmitting || !canTrash(status)}
                 aria-label="Move submission to trash"
               >

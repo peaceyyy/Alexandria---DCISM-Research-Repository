@@ -290,6 +290,18 @@ BEGIN
       USING ERRCODE = '22023';
   END IF;
 
+  IF next_status = 'flagged'
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.thesis_review_comments
+      WHERE thesis_id = target_thesis_id
+        AND member_revised_at IS NULL
+    )
+  THEN
+    RAISE EXCEPTION 'Add at least one review comment before flagging a submission for revision'
+      USING ERRCODE = '22023';
+  END IF;
+
   IF current_status = next_status THEN
     RETURN;
   END IF;
@@ -945,6 +957,37 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.save_flagged_submission_correction(
+  target_thesis_id bigint,
+  payload jsonb,
+  target_storage_path text,
+  target_file_type text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  IF (target_storage_path IS NULL) <> (target_file_type IS NULL) THEN
+    RAISE EXCEPTION 'A corrected PDF path and file type must be provided together'
+      USING ERRCODE = '22023';
+  END IF;
+
+  -- Both calls execute in this RPC's transaction. If the PDF replacement
+  -- fails, the metadata update and its audit entry are rolled back as well.
+  PERFORM public.update_flagged_submission(target_thesis_id, payload);
+
+  IF target_storage_path IS NOT NULL THEN
+    PERFORM public.replace_flagged_submission_file(
+      target_thesis_id,
+      target_storage_path,
+      target_file_type
+    );
+  END IF;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.resubmit_flagged_submission(
   target_thesis_id bigint
 )
@@ -1095,6 +1138,13 @@ REVOKE ALL ON FUNCTION public.replace_flagged_submission_file(bigint, text, text
 REVOKE ALL ON FUNCTION public.replace_flagged_submission_file(bigint, text, text)
   FROM anon;
 GRANT EXECUTE ON FUNCTION public.replace_flagged_submission_file(bigint, text, text)
+  TO authenticated;
+
+REVOKE ALL ON FUNCTION public.save_flagged_submission_correction(bigint, jsonb, text, text)
+  FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.save_flagged_submission_correction(bigint, jsonb, text, text)
+  FROM anon;
+GRANT EXECUTE ON FUNCTION public.save_flagged_submission_correction(bigint, jsonb, text, text)
   TO authenticated;
 
 REVOKE ALL ON FUNCTION public.resubmit_flagged_submission(bigint)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LoaderCircle, Save } from "lucide-react";
 import {
   Dialog,
@@ -74,6 +74,10 @@ function toValues(draft: MetadataDraft): Partial<SubmitThesisInput> {
   };
 }
 
+function draftsMatch(left: MetadataDraft, right: MetadataDraft) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 export function AdminMetadataEditorDialog({
   submission,
   open,
@@ -91,19 +95,97 @@ export function AdminMetadataEditorDialog({
   const [draft, setDraft] = useState(() => createDraft(submission));
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingDiscard, setPendingDiscard] = useState<
+    "close" | "history" | null
+  >(null);
+  const hasUnsavedDraftRef = useRef(false);
+  const hasHistoryGuardRef = useRef(false);
+  const initialDraft = useMemo(() => createDraft(submission), [submission]);
+  const hasUnsavedDraft = !draftsMatch(draft, initialDraft);
+  hasUnsavedDraftRef.current = hasUnsavedDraft;
 
   useEffect(() => {
     if (open) {
-      setDraft(createDraft(submission));
+      setDraft(initialDraft);
       setError(null);
     }
-  }, [open, submission]);
+  }, [initialDraft, open]);
+
+  useEffect(() => {
+    if (!open || !hasUnsavedDraft) {
+      if (hasHistoryGuardRef.current) {
+        hasHistoryGuardRef.current = false;
+        window.history.back();
+      }
+      return;
+    }
+
+    window.history.pushState(
+      { ...window.history.state, metadataUnsavedGuard: true },
+      "",
+      window.location.href,
+    );
+    hasHistoryGuardRef.current = true;
+
+    const handlePopState = () => {
+      if (!hasUnsavedDraftRef.current) return;
+
+      setPendingDiscard("history");
+    };
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedDraftRef.current) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasUnsavedDraft, open]);
 
   const update = <Key extends keyof MetadataDraft>(
     key: Key,
     value: MetadataDraft[Key],
   ) => {
     setDraft((current) => ({ ...current, [key]: value }));
+  };
+
+  const requestClose = () => {
+    if (isSubmitting || pendingDiscard) return;
+
+    if (hasUnsavedDraft) {
+      setPendingDiscard("close");
+      return;
+    }
+
+    onOpenChange(false);
+  };
+
+  const handleDiscardCancel = () => {
+    if (pendingDiscard === "history") {
+      window.history.pushState(
+        { ...window.history.state, metadataUnsavedGuard: true },
+        "",
+        window.location.href,
+      );
+    }
+    setPendingDiscard(null);
+  };
+
+  const handleDiscardConfirm = () => {
+    if (!pendingDiscard) return;
+
+    hasUnsavedDraftRef.current = false;
+    setDraft(initialDraft);
+    setPendingDiscard(null);
+    hasHistoryGuardRef.current = false;
+
+    onOpenChange(false);
+    window.history.back();
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -137,8 +219,17 @@ export function AdminMetadataEditorDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-5xl gap-0 overflow-y-auto border-[var(--color-separator-mid)] bg-[var(--color-surface)] p-0 text-[var(--color-text)] shadow-xl">
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          onOpenChange(true);
+          return;
+        }
+        requestClose();
+      }}
+    >
+      <DialogContent className="relative max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-5xl gap-0 overflow-y-auto border-[var(--color-separator-mid)] bg-[var(--color-surface)] p-0 text-[var(--color-text)] shadow-xl">
         <DialogHeader className="gap-2 border-b border-[var(--color-separator)] px-5 py-5 sm:px-7">
           <DialogTitle className="text-lg font-semibold tracking-tight">Correct Study Metadata</DialogTitle>
           <DialogDescription className="max-w-2xl text-sm leading-6 text-[var(--color-text-muted)]">
@@ -260,7 +351,7 @@ export function AdminMetadataEditorDialog({
           <DialogFooter className="-mx-5 -mb-6 border-[var(--color-separator)] bg-[var(--color-surface-alt)] px-5 py-4 sm:-mx-7 sm:px-7">
             <button
               type="button"
-              onClick={() => onOpenChange(false)}
+              onClick={requestClose}
               disabled={isSubmitting}
               className="min-h-10 rounded-md border border-[var(--color-separator-mid)] bg-[var(--color-surface)] px-4 text-sm font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-bg)] disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -276,6 +367,44 @@ export function AdminMetadataEditorDialog({
             </button>
           </DialogFooter>
         </form>
+
+        {pendingDiscard && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/10 p-5 backdrop-blur-sm">
+            <div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="discard-metadata-title"
+              className="w-full max-w-md rounded-xl border border-[var(--color-separator)] bg-[var(--color-surface)] p-6 shadow-2xl"
+            >
+              <h3
+                id="discard-metadata-title"
+                className="text-lg font-bold text-[var(--color-text)]"
+              >
+                Discard unsaved metadata changes?
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-[var(--color-text-muted)]">
+                Your metadata edits and correction reason have not been saved.
+                Leaving now will permanently discard them.
+              </p>
+              <div className="mt-5 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleDiscardCancel}
+                  className="rounded-[7px] border border-[var(--color-separator)] bg-[var(--color-surface)] px-4 py-2 text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-surface-alt)]"
+                >
+                  Keep editing
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDiscardConfirm}
+                  className="rounded-[7px] border border-[var(--color-chip-red-bd)] bg-[var(--color-chip-red-bg)] px-4 py-2 text-sm font-semibold text-[var(--color-chip-red-text)] transition hover:opacity-90"
+                >
+                  Discard changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

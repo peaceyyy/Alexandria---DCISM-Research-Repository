@@ -10,13 +10,19 @@ import {
   ExternalLink,
   FileText,
 } from "lucide-react";
-import { StatusBadge } from "@/components/admin/status-badge";
 import { AdminMetadataEditorDialog } from "@/components/review/admin-metadata-editor-dialog";
 import { ReviewableField } from "@/components/review/reviewable-field";
-import { ReviewDecisionActions } from "@/components/review/review-decision-actions";
+import {
+  ReviewDecisionActions,
+  ReviewStatusIndicator,
+} from "@/components/review/review-decision-actions";
 import { ReviewAuditTimeline } from "@/components/review/review-audit-timeline";
 import { CommentSidePanel } from "@/components/review/comment-side-panel";
-import { formatResearchAreaLabels } from "@/lib/domain/research-areas";
+import { useToast } from "@/components/ui/toast-provider";
+import {
+  getResearchAreaLabel,
+  parseResearchAreaIds,
+} from "@/lib/domain/research-areas";
 import type { ReviewFieldKey } from "@/components/review/types";
 import {
   addReviewComment,
@@ -41,6 +47,39 @@ function formatDate(iso: string): string {
   });
 }
 
+function getDecisionToast(
+  nextStatus: ReviewStatus,
+  previousStatus: ReviewStatus,
+) {
+  switch (nextStatus) {
+    case "accepted":
+      return {
+        title: "Submission approved.",
+        description: "It is now available in the accepted catalog.",
+      };
+    case "flagged":
+      return {
+        title: "Submission flagged for revision.",
+        description: "The submitter can now review feedback and make changes.",
+      };
+    case "trashed":
+      return {
+        title: "Submission moved to trash.",
+        description: "It has been removed from the active review queue.",
+      };
+    case "for_review":
+      return previousStatus === "trashed"
+        ? {
+            title: "Submission restored to review.",
+            description: "It is back in the pending review queue.",
+          }
+        : {
+            title: "Submission sent back to review.",
+            description: "Its approval has been removed.",
+          };
+  }
+}
+
 // Faint rule between field groups — much more Notion-like than a solid line
 function FieldGroupDivider() {
   return (
@@ -57,7 +96,16 @@ function FieldGroupDivider() {
 
 // ─── Pill chip ────────────────────────────────────────────────────────────────
 
-function Chip({ label, accent = false }: { label: string; accent?: boolean }) {
+function Chip({
+  label,
+  variant = "default",
+}: {
+  label: string;
+  variant?: "default" | "researchArea" | "tag";
+}) {
+  const isResearchArea = variant === "researchArea";
+  const isTag = variant === "tag";
+
   return (
     <span
       style={{
@@ -67,16 +115,24 @@ function Chip({ label, accent = false }: { label: string; accent?: boolean }) {
         borderRadius: 9,
         fontSize: 12,
         fontWeight: 500,
-        background: accent
+        background: isResearchArea
           ? "var(--color-chip-cyan-bg)"
+          : isTag
+            ? "rgba(157, 223, 242, 0.07)"
           : "var(--color-surface-alt)",
-        border: accent
+        border: isResearchArea
           ? "1px solid rgba(54,139,254,0.2)"
+          : isTag
+            ? "1px solid rgba(157, 223, 242, 0.16)"
           : "1px solid rgba(255,255,255,0.08)",
-        color: accent ? "var(--color-brand-bright)" : "var(--color-text-muted)",
+        color: isResearchArea
+          ? "var(--color-brand-bright)"
+          : isTag
+            ? "var(--color-chip-cyan-fg)"
+            : "var(--color-text-muted)",
       }}
     >
-      {label}
+      {isTag ? `#${label}` : label}
     </span>
   );
 }
@@ -91,6 +147,7 @@ export function ReviewDetailClient({
   viewerRole: Extract<UserRole, "admin" | "moderator">;
 }) {
   const [submission, setSubmission] = useState(initialSubmission);
+  const { showToast } = useToast();
   const [actionError, setActionError] = useState<string | null>(null);
   const [isActionPending, setIsActionPending] = useState(false);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(true);
@@ -136,6 +193,18 @@ export function ReviewDetailClient({
   const handleDecision = useCallback(
     async (nextStatus: ReviewStatus) => {
       if (
+        nextStatus === "flagged" &&
+        !submission.fieldComments.some(
+          (comment) => comment.memberRevisedAt === null,
+        )
+      ) {
+        setActionError(
+          "Add at least one review comment before flagging this submission for revision.",
+        );
+        return;
+      }
+
+      if (
         nextStatus === "for_review" &&
         submission.reviewStatus !== "accepted" &&
         !(viewerRole === "admin" && submission.reviewStatus === "trashed")
@@ -163,9 +232,10 @@ export function ReviewDetailClient({
       }
 
       setSubmission(result.data);
+      showToast(getDecisionToast(nextStatus, submission.reviewStatus));
       setIsActionPending(false);
     },
-    [submission.id],
+    [showToast, submission.id, submission.reviewStatus, viewerRole],
   );
 
   const handleAdminMetadataSave = useCallback(
@@ -195,9 +265,13 @@ export function ReviewDetailClient({
       }
 
       setSubmission(result.data);
+      showToast({
+        title: "Submission metadata corrected.",
+        description: "The correction was recorded without changing its review status.",
+      });
       return null;
     },
-    [submission.id, submission.reviewStatus, viewerRole],
+    [showToast, submission.id],
   );
 
   // ── Helper: get comments for a specific field ────────────────────────────────
@@ -353,31 +427,17 @@ export function ReviewDetailClient({
                 gap: 24,
               }}
             >
-              <BackLink />
-
-              {/* Current status */}
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 8px",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.15em",
-                    color: "var(--color-text-muted)",
-                  }}
-                >
-                  Current Status
-                </p>
-                <StatusBadge status={submission.reviewStatus} />
-              </div>
-
               <div
                 style={{
-                  height: 1,
-                  background: "var(--color-separator)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
                 }}
-              />
+              >
+                <BackLink />
+                <ReviewStatusIndicator status={submission.reviewStatus} />
+              </div>
 
               {/* Decision actions */}
               <ReviewDecisionActions
@@ -488,7 +548,7 @@ export function ReviewDetailClient({
                 marginBottom: 8,
               }}
             >
-              <div>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <p
                   style={{
                     margin: 0,
@@ -507,6 +567,7 @@ export function ReviewDetailClient({
                   comments={fieldComments("title")}
                   isActive={activeCommentField === "title"}
                   onCommentIconClick={handleCommentIconClick}
+                  className="min-w-0"
                 >
                   <h1
                     style={{
@@ -521,7 +582,6 @@ export function ReviewDetailClient({
                   </h1>
                 </ReviewableField>
               </div>
-              <StatusBadge status={submission.reviewStatus} />
             </div>
 
             {/* Quick meta */}
@@ -684,19 +744,20 @@ export function ReviewDetailClient({
 
             <FieldGroupDivider />
 
-            {/* Research area */}
+            {/* Tags lead because they are the more specific, reviewer-facing metadata. */}
             <ReviewableField
-              fieldKey="research_area"
-              label="Research Area"
-              comments={fieldComments("research_area")}
-              isActive={activeCommentField === "research_area"}
+              fieldKey="tags"
+              label="Tags"
+              comments={fieldComments("tags")}
+              isActive={activeCommentField === "tags"}
               onCommentIconClick={handleCommentIconClick}
             >
-              {submission.researchArea ? (
-                <Chip
-                  label={formatResearchAreaLabels(submission.researchArea)}
-                  accent
-                />
+              {submission.tags.length > 0 ? (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {submission.tags.map((tag) => (
+                    <Chip key={tag} label={tag} variant="tag" />
+                  ))}
+                </div>
               ) : (
                 <p
                   style={{
@@ -712,18 +773,22 @@ export function ReviewDetailClient({
 
             <FieldGroupDivider />
 
-            {/* Tags */}
+            {/* Research areas are broad, controlled classifications—not one combined tag. */}
             <ReviewableField
-              fieldKey="tags"
-              label="Tags"
-              comments={fieldComments("tags")}
-              isActive={activeCommentField === "tags"}
+              fieldKey="research_area"
+              label="Research Area"
+              comments={fieldComments("research_area")}
+              isActive={activeCommentField === "research_area"}
               onCommentIconClick={handleCommentIconClick}
             >
-              {submission.tags.length > 0 ? (
+              {parseResearchAreaIds(submission.researchArea).length > 0 ? (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {submission.tags.map((t) => (
-                    <Chip key={t} label={t} />
+                  {parseResearchAreaIds(submission.researchArea).map((area) => (
+                    <Chip
+                      key={area}
+                      label={getResearchAreaLabel(area)}
+                      variant="researchArea"
+                    />
                   ))}
                 </div>
               ) : (
