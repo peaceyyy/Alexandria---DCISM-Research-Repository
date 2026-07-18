@@ -1,0 +1,39 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.approved {
+  background: var(--color-chip-green-bg);
+  color: var(--color-chip-green-text);
+  border: 1px solid var(--color-chip-green-bd);
+}
+
+.pending {
+  background: var(--color-chip-yellow-bg);
+  color: var(--color-chip-yellow-text);
+  border: 1px solid var(--color-chip-yellow-bd);
+}
+
+.flagged {
+  background: var(--color-chip-red-bg);
+  color: var(--color-chip-red-text);
+  border: 1px solid var(--color-chip-red-bd);
+}
+
+.deactivated {
+  background: var(--color-chip-gray-bg);
+  color: var(--color-chip-gray-text);
+  border: 1px solid var(--color-chip-gray-bd);
+}
+
+.protected {
+  background: var(--color-chip-cyan-bg);
+  color: var(--color-chip-cyan-text);
+  border: 1px solid var(--color-chip-cyan-bd);
+}
