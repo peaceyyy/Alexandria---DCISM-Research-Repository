@@ -123,12 +123,14 @@ export async function getTheses(
 
 /**
  * Future HTTP equivalent: GET /api/theses/:id
- * Returns the full detail payload for a single accepted thesis.
+ * Returns the full detail payload for an accepted thesis, or a non-accepted
+ * thesis when the signed-in viewer is its submitter.
  * Includes authors, tags, file_access, and related_theses.
  * Used by: Thesis Detail page.
  */
 export async function getThesisById(
   id: number,
+  viewerId?: string,
 ): Promise<ServiceResult<ThesisDetail>> {
   try {
     const supabase = createAdminClient();
@@ -139,6 +141,8 @@ export async function getThesisById(
         `
         id,
         title,
+        review_status,
+        submitted_by_user_id,
         year,
         abstract,
         department,
@@ -165,7 +169,6 @@ export async function getThesisById(
       `,
       )
       .eq("id", id)
-      .eq("review_status", "accepted")
       .single();
 
     if (error) {
@@ -176,6 +179,13 @@ export async function getThesisById(
     }
 
     if (!data) {
+      return err(makeError("NOT_FOUND", "Thesis not found."));
+    }
+
+    if (
+      data.review_status !== "accepted"
+      && data.submitted_by_user_id !== viewerId
+    ) {
       return err(makeError("NOT_FOUND", "Thesis not found."));
     }
 

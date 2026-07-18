@@ -90,7 +90,11 @@ export function SubmissionBanner() {
       >
         {/* Icon wrapper */}
         <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-success)]/10">
-          <CheckCircle2 size={16} className="text-[var(--color-success)]" aria-hidden />
+          <CheckCircle2
+            size={16}
+            className="text-[var(--color-success)]"
+            aria-hidden
+          />
         </div>
 
         {/* Messaging */}

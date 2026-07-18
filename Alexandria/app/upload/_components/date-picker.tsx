@@ -95,11 +95,11 @@ export function DatePicker({ value, onChange, max, error }: DatePickerProps) {
           align="end"
           side="bottom"
           sideOffset={8}
-          collisionPadding={16}
+          collisionPadding={{ top: 16, right: 16, bottom: 80, left: 16 }}
           collisionAvoidance={{
             side: "flip",
             align: "shift",
-            fallbackAxisSide: "none",
+            fallbackAxisSide: "top",
           }}
         >
           <Popover.Popup

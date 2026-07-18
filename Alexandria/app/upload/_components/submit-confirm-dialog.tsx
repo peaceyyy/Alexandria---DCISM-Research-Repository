@@ -56,6 +56,22 @@ export function SubmitConfirmDialog({
           </div>
         )}
 
+        {isSubmitting && (
+          <div
+            className="grid gap-2 rounded-lg border border-[var(--color-brand-bright)]/20 bg-[var(--color-brand-bright)]/5 px-3 py-2.5"
+            role="progressbar"
+            aria-label="Submitting thesis PDF"
+            aria-valuetext="Uploading the PDF and submitting the thesis for review"
+          >
+            <div className="h-1 overflow-hidden rounded-full bg-[var(--color-brand-bright)]/15">
+              <div className="h-full w-2/5 animate-pulse rounded-full bg-[var(--color-brand-bright)]" />
+            </div>
+            <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+              Uploading your PDF and creating the submission. Keep this window open.
+            </p>
+          </div>
+        )}
+
         <DialogFooter className="border-t border-[var(--color-separator)] bg-transparent">
           <Button
             variant="ghost"

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -13,6 +13,7 @@ import {
   RotateCcw,
   Save,
   Trash2,
+  X,
 } from "lucide-react";
 import { CommentSidePanel } from "@/components/review/comment-side-panel";
 import { DEPARTMENTS } from "@/lib/domain/departments";
@@ -28,14 +29,14 @@ import type { ReviewFieldKey } from "@/components/review/types";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  replaceFlaggedSubmissionPdf,
   resubmitFlaggedSubmission,
-  updateFlaggedSubmission,
+  saveFlaggedSubmissionCorrection,
 } from "@/lib/services/review-service";
 import type { ReviewSubmission, ThesisAuthorInput } from "@/lib/services/types";
 import { getCorrectionSummary } from "@/lib/review/correction-state";
@@ -139,13 +140,22 @@ export function MemberCorrectionClient({
     useState<ReviewFieldKey | null>(null);
   const [commentAnchorY, setCommentAnchorY] = useState(120);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const [isResubmitting, setIsResubmitting] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<File | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [showResubmitConfirm, setShowResubmitConfirm] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [pendingExit, setPendingExit] = useState<"dashboard" | "history" | null>(null);
+  const hasUnsavedWorkRef = useRef(false);
+  const hasHistoryGuardRef = useRef(false);
+  const allowExitRef = useRef(false);
+  const correctedPdfInputRef = useRef<HTMLInputElement>(null);
+
+  const hasUnsavedWork = hasUnsavedChanges || selectedPdf !== null;
+  hasUnsavedWorkRef.current = hasUnsavedWork;
 
   const correctionSummary = useMemo(
     () => getCorrectionSummary(submission.fieldComments),
@@ -167,6 +177,86 @@ export function MemberCorrectionClient({
     return () => window.clearTimeout(timeoutId);
   }, [notice]);
 
+  useEffect(() => {
+    if (!hasUnsavedWork) {
+      if (hasHistoryGuardRef.current && !allowExitRef.current) {
+        hasHistoryGuardRef.current = false;
+        window.history.back();
+      }
+      return;
+    }
+
+    window.history.pushState(
+      { ...window.history.state, correctionUnsavedGuard: true },
+      "",
+      window.location.href,
+    );
+    hasHistoryGuardRef.current = true;
+
+    const handlePopState = () => {
+      if (!hasUnsavedWorkRef.current) return;
+
+      setPendingExit("history");
+      setShowDiscardConfirm(true);
+    };
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedWorkRef.current) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasUnsavedWork]);
+
+  const requestExit = (destination: "dashboard" | "history") => {
+    if (!hasUnsavedWork) {
+      if (destination === "history") {
+        router.back();
+      } else {
+        router.push("/home?mine=1");
+      }
+      return;
+    }
+
+    setPendingExit(destination);
+    setShowDiscardConfirm(true);
+  };
+
+  const handleDiscardCancel = () => {
+    if (pendingExit === "history") {
+      window.history.pushState(
+        { ...window.history.state, correctionUnsavedGuard: true },
+        "",
+        window.location.href,
+      );
+    }
+    setShowDiscardConfirm(false);
+    setPendingExit(null);
+  };
+
+  const handleDiscardConfirm = () => {
+    if (!pendingExit) return;
+
+    allowExitRef.current = true;
+    hasUnsavedWorkRef.current = false;
+    setHasUnsavedChanges(false);
+    setSelectedPdf(null);
+    setShowDiscardConfirm(false);
+
+    if (pendingExit === "history") {
+      router.back();
+    } else {
+      router.push("/home?mine=1");
+    }
+    setPendingExit(null);
+  };
+
   const updateField = <
     Key extends Exclude<keyof CorrectionForm, "contributors">,
   >(
@@ -174,6 +264,7 @@ export function MemberCorrectionClient({
     value: CorrectionForm[Key],
   ) => {
     setForm((current) => ({ ...current, [key]: value }));
+    hasUnsavedWorkRef.current = true;
     setHasUnsavedChanges(true);
     setNotice(null);
   };
@@ -188,6 +279,7 @@ export function MemberCorrectionClient({
         contributorIndex === index ? { ...contributor, ...patch } : contributor,
       ),
     }));
+    hasUnsavedWorkRef.current = true;
     setHasUnsavedChanges(true);
   };
 
@@ -202,17 +294,26 @@ export function MemberCorrectionClient({
   );
 
   const handleSave = async () => {
+    const selectedPdfAtSave = selectedPdf;
     setIsSaving(true);
     setError(null);
     setNotice(null);
+    setPdfError(null);
 
-    const result = await updateFlaggedSubmission({
+    const result = await saveFlaggedSubmissionCorrection({
       thesisId: submission.id,
       values: toUpdateValues(form),
+      file: selectedPdfAtSave,
     });
 
     if (result.error || !result.data) {
-      setError(result.error?.message ?? "Your correction could not be saved.");
+      const errorMessage =
+        result.error?.message ?? "Your correction could not be saved.";
+      if (selectedPdfAtSave) {
+        setPdfError(errorMessage);
+      } else {
+        setError(errorMessage);
+      }
       setIsSaving(false);
       return;
     }
@@ -220,40 +321,22 @@ export function MemberCorrectionClient({
     setSubmission(result.data);
     setForm(createForm(result.data));
     setHasUnsavedChanges(false);
+    setSelectedPdf(null);
     setNotice(
-      "Changes saved. Feedback on revised fields is now marked revised.",
+      selectedPdfAtSave
+        ? "Changes and corrected PDF saved. You can now resubmit for review."
+        : "Draft saved. Feedback on the fields you updated is now marked revised.",
     );
     setIsSaving(false);
   };
 
-  const handlePdfUpload = async () => {
-    if (!selectedPdf) {
-      setError("Choose a corrected PDF before attaching it.");
-      return;
-    }
-
-    setIsUploadingPdf(true);
-    setError(null);
-    setNotice(null);
-    const result = await replaceFlaggedSubmissionPdf({
-      thesisId: submission.id,
-      file: selectedPdf,
-    });
-
-    if (result.error || !result.data) {
-      setError(
-        result.error?.message ?? "The corrected PDF could not be attached.",
-      );
-      setIsUploadingPdf(false);
-      return;
-    }
-
-    setSubmission(result.data);
+  const clearSelectedPdf = () => {
     setSelectedPdf(null);
-    setNotice(
-      "Corrected PDF attached. PDF feedback now shows the revision evidence.",
-    );
-    setIsUploadingPdf(false);
+    hasUnsavedWorkRef.current = hasUnsavedChanges;
+    if (correctedPdfInputRef.current) {
+      correctedPdfInputRef.current.value = "";
+    }
+    setPdfError(null);
   };
 
   const handleResubmit = async () => {
@@ -275,12 +358,21 @@ export function MemberCorrectionClient({
   };
 
   const isLocked = submission.reviewStatus !== "flagged";
-  const canResubmit = !isLocked && !hasUnsavedChanges;
+  const canResubmit = !isLocked && !hasUnsavedWork;
 
   return (
     <div className={styles.page}>
       <aside className={styles.sidebar}>
-        <Link href="/home?mine=1" className={styles.backLink}>
+        <Link
+          href="/home?mine=1"
+          className={styles.backLink}
+          onClick={(event) => {
+            if (!hasUnsavedWork) return;
+
+            event.preventDefault();
+            requestExit("dashboard");
+          }}
+        >
           <ArrowLeft size={15} aria-hidden />
           My Submissions
         </Link>
@@ -322,7 +414,7 @@ export function MemberCorrectionClient({
             type="button"
             className={styles.saveButton}
             onClick={handleSave}
-            disabled={isLocked || isSaving || isUploadingPdf || isResubmitting}
+            disabled={isLocked || isSaving || isResubmitting}
           >
             {isSaving ? (
               <LoaderCircle className={styles.spinning} size={15} aria-hidden />
@@ -335,12 +427,12 @@ export function MemberCorrectionClient({
             type="button"
             className={styles.resubmitButton}
             onClick={() => setShowResubmitConfirm(true)}
-            disabled={!canResubmit || isSaving || isUploadingPdf || isResubmitting}
+            disabled={!canResubmit || isSaving || isResubmitting}
           >
             <RotateCcw size={15} aria-hidden />
             Resubmit for review
           </button>
-          {hasUnsavedChanges && !isLocked && (
+          {hasUnsavedWork && !isLocked && (
             <p className={styles.unsavedNotice}>You have unsaved changes.</p>
           )}
         </div>
@@ -501,6 +593,7 @@ export function MemberCorrectionClient({
             onUpdate={updateContributor}
             onChange={(contributors) => {
               setForm((current) => ({ ...current, contributors }));
+              hasUnsavedWorkRef.current = true;
               setHasUnsavedChanges(true);
             }}
           />
@@ -516,6 +609,7 @@ export function MemberCorrectionClient({
             onUpdate={updateContributor}
             onChange={(contributors) => {
               setForm((current) => ({ ...current, contributors }));
+              hasUnsavedWorkRef.current = true;
               setHasUnsavedChanges(true);
             }}
           />
@@ -604,35 +698,51 @@ export function MemberCorrectionClient({
                   Open current PDF
                 </a>
               )}
-              <label className={styles.filePicker}>
-                <FileUp size={15} aria-hidden />
-                <span>{selectedPdf?.name ?? "Choose corrected PDF"}</span>
-                <input
-                  type="file"
-                  accept="application/pdf,.pdf"
-                  onChange={(event) =>
-                    setSelectedPdf(event.target.files?.[0] ?? null)
-                  }
-                  disabled={isLocked || isUploadingPdf}
-                />
-              </label>
-              <button
-                type="button"
-                className={styles.attachButton}
-                onClick={handlePdfUpload}
-                disabled={isLocked || !selectedPdf || isUploadingPdf}
-              >
-                {isUploadingPdf ? (
-                  <LoaderCircle
-                    className={styles.spinning}
-                    size={14}
-                    aria-hidden
+              {selectedPdf ? (
+                <div className={styles.selectedPdfRow}>
+                  <span className={styles.selectedPdfName}>
+                    <FileUp size={16} aria-hidden />
+                    <span>{selectedPdf.name}</span>
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.clearPdfIconButton}
+                    onClick={clearSelectedPdf}
+                    disabled={isSaving || isResubmitting}
+                    aria-label={`Remove selected PDF: ${selectedPdf.name}`}
+                    title="Remove selected PDF"
+                  >
+                    <X size={18} aria-hidden />
+                  </button>
+                </div>
+              ) : (
+                <label className={styles.filePicker}>
+                  <FileUp size={15} aria-hidden />
+                  <span>Choose corrected PDF</span>
+                  <input
+                    ref={correctedPdfInputRef}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={(event) => {
+                      setSelectedPdf(event.target.files?.[0] ?? null);
+                      hasUnsavedWorkRef.current =
+                        hasUnsavedChanges || Boolean(event.target.files?.[0]);
+                      setPdfError(null);
+                    }}
+                    disabled={isLocked || isSaving || isResubmitting}
+                    aria-describedby={pdfError ? "corrected-pdf-error" : undefined}
                   />
-                ) : (
-                  <FileUp size={14} aria-hidden />
-                )}
-                Attach corrected PDF
-              </button>
+                </label>
+              )}
+              {pdfError && (
+                <p
+                  id="corrected-pdf-error"
+                  className={styles.pdfErrorMessage}
+                  role="alert"
+                >
+                  {pdfError}
+                </p>
+              )}
             </div>
           </Field>
         </div>
@@ -647,51 +757,79 @@ export function MemberCorrectionClient({
         onClose={() => setActiveCommentField(null)}
       />
 
-      {showResubmitConfirm && (
-        <div className={styles.modalOverlay} role="presentation">
-          <div
-            className={styles.modal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="resubmit-title"
-          >
-            <h2 id="resubmit-title">Resubmit this thesis for review?</h2>
-            <p>
-              After resubmitting, you cannot edit or resolve comments until a
-              moderator flags this study again.
-            </p>
-            <p className={styles.modalWarning}>
-              All moderator feedback fields have a saved revision.
-            </p>
-            <div className={styles.modalActions}>
-              <button
-                type="button"
-                onClick={() => setShowResubmitConfirm(false)}
-                disabled={isResubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.confirmResubmit}
-                onClick={handleResubmit}
-                disabled={isResubmitting}
-              >
-                {isResubmitting ? (
-                  <LoaderCircle
-                    className={styles.spinning}
-                    size={14}
-                    aria-hidden
-                  />
-                ) : (
-                  <RotateCcw size={14} aria-hidden />
-                )}
-                Resubmit for review
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={showResubmitConfirm} onOpenChange={setShowResubmitConfirm}>
+        <DialogContent
+          showCloseButton={false}
+          className="w-[calc(100vw-2rem)] max-w-md border-[var(--color-separator)] bg-[var(--color-surface)] text-[var(--color-text)]"
+        >
+          <DialogHeader>
+            <DialogTitle>Resubmit this thesis for review?</DialogTitle>
+            <DialogDescription>
+              Your saved draft will return to the review queue. You will not be
+              able to edit it again unless a moderator flags it for correction.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="-mx-4 -mb-4 border-[var(--color-separator)] bg-[var(--color-surface-alt)]">
+            <button
+              type="button"
+              onClick={() => setShowResubmitConfirm(false)}
+              disabled={isResubmitting}
+              className={styles.modalCancelButton}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={styles.confirmResubmit}
+              onClick={handleResubmit}
+              disabled={isResubmitting}
+            >
+              {isResubmitting ? (
+                <LoaderCircle className={styles.spinning} size={14} aria-hidden />
+              ) : (
+                <RotateCcw size={14} aria-hidden />
+              )}
+              Resubmit for review
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={showDiscardConfirm}
+        onOpenChange={(open) => {
+          if (!open) handleDiscardCancel();
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="w-[calc(100vw-2rem)] max-w-md border-[var(--color-separator)] bg-[var(--color-surface)] text-[var(--color-text)]"
+        >
+          <DialogHeader>
+            <DialogTitle>Discard unsaved changes?</DialogTitle>
+            <DialogDescription>
+              Your edits and any selected corrected PDF have not been saved.
+              Leaving now will permanently discard them.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="-mx-4 -mb-4 border-[var(--color-separator)] bg-[var(--color-surface-alt)]">
+            <button
+              type="button"
+              className={styles.modalCancelButton}
+              onClick={handleDiscardCancel}
+            >
+              Keep editing
+            </button>
+            <button
+              type="button"
+              className={styles.confirmDiscard}
+              onClick={handleDiscardConfirm}
+            >
+              Discard changes and leave
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -764,7 +902,7 @@ function LongTextEditor({
       </ReviewableField>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-h-[82vh] max-w-3xl border-white/10 bg-[#1a1e23] text-white">
+        <DialogContent className="max-h-[82vh] w-[calc(100vw-2rem)] max-w-5xl border-[var(--color-separator)] bg-[var(--color-surface)] text-[var(--color-text)]">
           <DialogHeader>
             <DialogTitle>{label}</DialogTitle>
           </DialogHeader>
