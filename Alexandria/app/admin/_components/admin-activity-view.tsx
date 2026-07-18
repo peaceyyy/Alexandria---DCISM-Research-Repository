@@ -75,25 +75,27 @@ export function AdminActivityView({
 
       {pagination.total_count > pagination.limit && (
         <nav className="flex items-center justify-between gap-4" aria-label="Activity pages">
-          {hasPreviousPage ? (
-            <Link
-              href={pageHref(pagination.page - 1)}
-              className="rounded-[6px] border border-[var(--color-separator)] px-3 py-2 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-brand-bright)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-bright)]"
-            >
-              Previous
-            </Link>
-          ) : <span />}
           <p className="text-sm text-[var(--color-text-muted)]">
             Page {pagination.page} of {totalPages}
           </p>
-          {hasNextPage ? (
-            <Link
-              href={pageHref(pagination.page + 1)}
-              className="rounded-[6px] border border-[var(--color-separator)] px-3 py-2 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-brand-bright)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-bright)]"
-            >
-              Next
-            </Link>
-          ) : <span />}
+          <div className="flex items-center gap-2">
+            {hasPreviousPage && (
+              <Link
+                href={pageHref(pagination.page - 1)}
+                className="rounded-[6px] border border-[var(--color-separator)] px-3 py-2 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-brand-bright)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-bright)]"
+              >
+                Previous
+              </Link>
+            )}
+            {hasNextPage && (
+              <Link
+                href={pageHref(pagination.page + 1)}
+                className="rounded-[6px] border border-[var(--color-separator)] px-3 py-2 text-sm font-semibold text-[var(--color-text)] transition hover:border-[var(--color-brand-bright)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-bright)]"
+              >
+                Next
+              </Link>
+            )}
+          </div>
         </nav>
       )}
     </div>

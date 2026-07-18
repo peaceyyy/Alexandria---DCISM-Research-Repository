@@ -16,7 +16,7 @@ import type {
   ServiceResult,
 } from "./types";
 
-export const ADMIN_ACTIVITY_PAGE_SIZE = 20;
+const ADMIN_ACTIVITY_PAGE_SIZE = 20;
 const MAX_ACTIVITY_PAGE_SIZE = 100;
 
 type JsonRecord = Record<string, unknown>;

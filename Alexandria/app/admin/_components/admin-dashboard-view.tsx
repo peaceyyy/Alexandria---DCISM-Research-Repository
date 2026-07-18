@@ -1,12 +1,15 @@
 "use client";
 
-import { BookText, Check, Clock, ListFilter, Search } from "lucide-react";
+import { BookText, Check, Clock, ListFilter, RefreshCw, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { DEPARTMENTS, type Department } from "@/lib/domain/departments";
-import { RESEARCH_AREAS, type ResearchAreaId } from "@/lib/domain/research-areas";
+import {
+  RESEARCH_AREAS,
+  type ResearchAreaId,
+} from "@/lib/domain/research-areas";
 import { DASHBOARD_QUEUE_PAGE_SIZE } from "./dashboard-constants";
 import { DataTable, type Column } from "./data-table";
 import { StatCard } from "./stat-card";
@@ -73,7 +76,9 @@ const reviewQueueColumns: Column<ReviewSubmissionListItem>[] = [
     key: "authors",
     header: "Authors",
     render: (row) =>
-      row.authors.length > 0 ? row.authors.slice(0, 2).join(", ") : "Unknown author",
+      row.authors.length > 0
+        ? row.authors.slice(0, 2).join(", ")
+        : "Unknown author",
   },
   {
     key: "submittedAt",
@@ -95,9 +100,10 @@ const reviewQueueColumns: Column<ReviewSubmissionListItem>[] = [
     render: (row) => (
       <Link
         href={`/admin/review/${row.id}`}
+        prefetch={false}
         className="inline-flex items-center justify-center rounded-[7px] border border-[var(--color-brand-bright)]/40 bg-[var(--color-brand-bright)]/10 px-3 py-1.5 text-[12px] font-semibold text-[var(--color-brand-bright)] transition hover:border-[var(--color-brand-bright)]/70 hover:bg-[var(--color-brand-bright)]/15"
       >
-        Open Review
+        Review
       </Link>
     ),
   },
@@ -129,40 +135,43 @@ export function AdminDashboardView({
   viewerRole: Extract<UserRole, "admin" | "moderator">;
 }) {
   const router = useRouter();
+  const [isRefreshing, startRefresh] = useTransition();
   const [searchQuery, setSearchQuery] = useState(query);
   const searchTimeoutRef = useRef<number | null>(null);
   const lastSubmittedQueryRef = useRef(query);
-  const largestDepartmentCount =
-    snapshot.research_by_department[0]?.count ?? 0;
+  const largestDepartmentCount = snapshot.research_by_department[0]?.count ?? 0;
   const visibleStatusFilters =
     viewerRole === "admin"
       ? STATUS_FILTERS
       : STATUS_FILTERS.filter((filter) => filter.value !== "trashed");
 
-  const buildDashboardUrl = useCallback((
-    nextQuery: string,
-    page: number,
-    scope = searchScope,
-    status = selectedStatus,
-    department = selectedDepartment,
-    researchArea = selectedResearchArea,
-  ) => {
-    const params = new URLSearchParams();
-    const normalizedQuery = nextQuery.trim();
-    if (normalizedQuery) params.set("q", normalizedQuery);
-    if (scope !== "title") params.set("scope", scope);
-    if (status !== "all") params.set("status", status);
-    if (department !== "all") {
-      params.set("department", department);
-    }
-    if (researchArea !== "all") {
-      params.set("research_area", researchArea);
-    }
-    if (page > 1) params.set("page", String(page));
+  const buildDashboardUrl = useCallback(
+    (
+      nextQuery: string,
+      page: number,
+      scope = searchScope,
+      status = selectedStatus,
+      department = selectedDepartment,
+      researchArea = selectedResearchArea,
+    ) => {
+      const params = new URLSearchParams();
+      const normalizedQuery = nextQuery.trim();
+      if (normalizedQuery) params.set("q", normalizedQuery);
+      if (scope !== "title") params.set("scope", scope);
+      if (status !== "all") params.set("status", status);
+      if (department !== "all") {
+        params.set("department", department);
+      }
+      if (researchArea !== "all") {
+        params.set("research_area", researchArea);
+      }
+      if (page > 1) params.set("page", String(page));
 
-    const search = params.toString();
-    return search ? `/admin/dashboard?${search}` : "/admin/dashboard";
-  }, [searchScope, selectedDepartment, selectedResearchArea, selectedStatus]);
+      const search = params.toString();
+      return search ? `/admin/dashboard?${search}` : "/admin/dashboard";
+    },
+    [searchScope, selectedDepartment, selectedResearchArea, selectedStatus],
+  );
 
   useEffect(() => {
     if (query === lastSubmittedQueryRef.current) return;
@@ -201,7 +210,13 @@ export function AdminDashboardView({
 
   function handleDepartmentChange(department: DashboardDepartmentFilter) {
     router.replace(
-      buildDashboardUrl(searchQuery, 1, searchScope, selectedStatus, department),
+      buildDashboardUrl(
+        searchQuery,
+        1,
+        searchScope,
+        selectedStatus,
+        department,
+      ),
     );
   }
 
@@ -218,9 +233,13 @@ export function AdminDashboardView({
     );
   }
 
-  const activeSearchScope = SEARCH_SCOPES.find(
-    (scope) => scope.value === searchScope,
-  ) ?? SEARCH_SCOPES[0];
+  function handleRefresh() {
+    startRefresh(() => router.refresh());
+  }
+
+  const activeSearchScope =
+    SEARCH_SCOPES.find((scope) => scope.value === searchScope) ??
+    SEARCH_SCOPES[0];
 
   return (
     <div className="flex flex-col gap-6 p-8">
@@ -262,6 +281,20 @@ export function AdminDashboardView({
               </p>
             )}
             <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                type="button"
+                className="inline-flex size-9 items-center justify-center rounded-[6px] border border-[var(--color-separator)] bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] transition hover:border-[var(--color-brand-bright)]/50 hover:text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-bright)] disabled:cursor-wait disabled:opacity-60"
+                aria-label="Refresh dashboard"
+                title="Refresh dashboard"
+                disabled={isRefreshing}
+                onClick={handleRefresh}
+              >
+                <RefreshCw
+                  size={15}
+                  aria-hidden
+                  className={isRefreshing ? "animate-spin" : undefined}
+                />
+              </button>
               <div className="relative">
                 <Search
                   size={14}
@@ -298,7 +331,11 @@ export function AdminDashboardView({
                       <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)] opacity-70">
                         Search in
                       </p>
-                      <div className="flex flex-col gap-0.5" role="group" aria-label="Search field">
+                      <div
+                        className="flex flex-col gap-0.5"
+                        role="group"
+                        aria-label="Search field"
+                      >
                         {SEARCH_SCOPES.map((scope) => {
                           const isActive = scope.value === searchScope;
                           return (
@@ -311,7 +348,9 @@ export function AdminDashboardView({
                                   : "text-[var(--color-text-muted)] hover:bg-[var(--color-text)]/5"
                               }`}
                               aria-pressed={isActive}
-                              onClick={() => handleSearchScopeChange(scope.value)}
+                              onClick={() =>
+                                handleSearchScopeChange(scope.value)
+                              }
                             >
                               {scope.label}
                               {isActive && <Check size={14} aria-hidden />}
@@ -327,7 +366,8 @@ export function AdminDashboardView({
                             aria-label="Filter by research area"
                             onChange={(event) =>
                               handleResearchAreaChange(
-                                event.target.value as DashboardResearchAreaFilter,
+                                event.target
+                                  .value as DashboardResearchAreaFilter,
                               )
                             }
                             className="h-8 rounded-[5px] border border-[var(--color-separator)] bg-[var(--color-surface-alt)] px-2 text-[12px] font-medium normal-case tracking-normal text-[var(--color-text)] outline-none focus:border-[var(--color-brand-bright)]"
@@ -348,7 +388,11 @@ export function AdminDashboardView({
               <select
                 value={selectedStatus}
                 aria-label="Filter by review status"
-                onChange={(event) => handleStatusChange(event.target.value as DashboardStatusFilter)}
+                onChange={(event) =>
+                  handleStatusChange(
+                    event.target.value as DashboardStatusFilter,
+                  )
+                }
                 className="h-9 rounded-[6px] border border-[var(--color-separator)] bg-[var(--color-surface-alt)] px-2 text-[12px] font-semibold text-[var(--color-text-muted)] outline-none focus:border-[var(--color-brand-bright)]"
               >
                 {visibleStatusFilters.map((filter) => (
@@ -360,7 +404,11 @@ export function AdminDashboardView({
               <select
                 value={selectedDepartment}
                 aria-label="Filter by department"
-                onChange={(event) => handleDepartmentChange(event.target.value as DashboardDepartmentFilter)}
+                onChange={(event) =>
+                  handleDepartmentChange(
+                    event.target.value as DashboardDepartmentFilter,
+                  )
+                }
                 className="h-9 rounded-[6px] border border-[var(--color-separator)] bg-[var(--color-surface-alt)] px-2 text-[12px] font-semibold text-[var(--color-text-muted)] outline-none focus:border-[var(--color-brand-bright)]"
               >
                 <option value="all">All departments</option>
@@ -392,13 +440,16 @@ export function AdminDashboardView({
             </Link>
           </div>
           {snapshot.recent_activity.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)] opacity-70">No audit activity yet.</p>
+            <p className="text-sm text-[var(--color-text-muted)] opacity-70">
+              No audit activity yet.
+            </p>
           ) : (
             <ul className="flex flex-col gap-3" role="list">
               {snapshot.recent_activity.map((item) => (
                 <li key={item.id}>
                   <Link
                     href={`/admin/review/${item.thesisId}`}
+                    prefetch={false}
                     className="block rounded-[6px] p-1.5 -m-1.5 transition hover:bg-[var(--color-text)]/5 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-bright)]"
                     aria-label={`Open ${item.thesisTitle} review activity`}
                   >
@@ -454,8 +505,7 @@ export function AdminDashboardView({
                           width: `${
                             largestDepartmentCount
                               ? Math.round(
-                                  (department.count /
-                                    largestDepartmentCount) *
+                                  (department.count / largestDepartmentCount) *
                                     100,
                                 )
                               : 0

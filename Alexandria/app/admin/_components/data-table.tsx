@@ -106,29 +106,31 @@ export function DataTable<T extends object>({
 
       {/* Pagination */}
       <div className={styles.pagination}>
-        <button
-          type="button"
-          className={styles.pageBtn}
-          onClick={() => changePage(page - 1)}
-          disabled={page === 1}
-          aria-label="Previous page"
-        >
-          <ChevronLeft size={14} aria-hidden />
-          Previous
-        </button>
         <span className={styles.pageInfo}>
           Page {page} of {totalPages}
         </span>
-        <button
-          type="button"
-          className={styles.pageBtn}
-          onClick={() => changePage(page + 1)}
-          disabled={page === totalPages}
-          aria-label="Next page"
-        >
-          Next
-          <ChevronRight size={14} aria-hidden />
-        </button>
+        <div className={styles.pageControls}>
+          <button
+            type="button"
+            className={styles.pageBtn}
+            onClick={() => changePage(page - 1)}
+            disabled={page === 1}
+            aria-label="Previous page"
+          >
+            <ChevronLeft size={14} aria-hidden />
+            Previous
+          </button>
+          <button
+            type="button"
+            className={styles.pageBtn}
+            onClick={() => changePage(page + 1)}
+            disabled={page === totalPages}
+            aria-label="Next page"
+          >
+            Next
+            <ChevronRight size={14} aria-hidden />
+          </button>
+        </div>
       </div>
     </section>
   );

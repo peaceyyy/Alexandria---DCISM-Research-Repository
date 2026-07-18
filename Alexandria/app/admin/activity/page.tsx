@@ -1,9 +1,8 @@
 import { AdminActivityView } from "@/app/admin/_components/admin-activity-view";
 import { AdminDataState } from "@/app/admin/_components/admin-data-state";
-import {
-  ADMIN_ACTIVITY_PAGE_SIZE,
-  listAdminActivity,
-} from "@/lib/services/admin-activity-service";
+import { listAdminActivity } from "@/lib/services/admin-activity-service";
+
+const ADMIN_ACTIVITY_PAGE_SIZE = 20;
 
 function firstValue(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
