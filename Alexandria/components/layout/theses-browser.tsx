@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type React from "react";
 import Image from "next/image";
-import { SlidersHorizontal } from "lucide-react";
+import { PanelLeftOpen } from "lucide-react";
 import FaqRail from "@/components/layout/faq";
 import FilterSidebar from "@/components/layout/filter-sidebar";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReviewStatus, ThesisCard } from "@/lib/services/types";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getResearchAreaLabel } from "@/lib/domain/research-areas";
 
 export type BrowseThesisItem = ThesisCard & {
@@ -66,6 +66,21 @@ export default function ThesesBrowser({
   const [selectedResearchAreas, setSelectedResearchAreas] = useState<string[]>([]);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Hydrate collapse preference from localStorage after mount
+  useEffect(() => {
+    const stored = localStorage.getItem("alex:filter-sidebar-collapsed");
+    if (stored === "1") setIsSidebarCollapsed(true);
+  }, []);
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("alex:filter-sidebar-collapsed", next ? "1" : "0");
+      return next;
+    });
+  };
 
   const filteredItems = items.filter((item) => {
     const yearMatch =
@@ -126,22 +141,25 @@ export default function ThesesBrowser({
   };
 
   return (
-    <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 xl:h-[calc(100vh-4rem)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
-      <FilterSidebar className="hidden xl:block" {...filterSidebarProps} />
+    <div
+      className={`grid min-h-[calc(100vh-4rem)] grid-cols-1 xl:h-[calc(100vh-4rem)] motion-safe:xl:transition-[grid-template-columns] motion-safe:xl:duration-200 ${
+        isSidebarCollapsed
+          ? "xl:grid-cols-[72px_minmax(0,1fr)_320px]"
+          : "xl:grid-cols-[220px_minmax(0,1fr)_320px]"
+      }`}
+    >
+      <FilterSidebar
+        className="hidden xl:flex xl:flex-col"
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapse}
+        {...filterSidebarProps}
+      />
 
       <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mb-5 flex items-center justify-between border-b border-[var(--color-separator)] pb-4 xl:hidden">
+        <div className="mb-5 flex items-center border-b border-[var(--color-separator)] pb-4 xl:hidden">
           <p className="text-xs font-medium text-[var(--color-text-muted)]">
             {filteredItems.length} {filteredItems.length === 1 ? "study" : "studies"}
           </p>
-          <button
-            type="button"
-            onClick={() => setFiltersOpen(true)}
-            className="inline-flex min-h-10 items-center gap-2 border border-[var(--color-border-subtle)] px-3 text-sm font-semibold text-[var(--color-text)] transition-colors hover:border-[#368bfe]/70 hover:bg-[var(--color-text)]/[0.04]"
-          >
-            <SlidersHorizontal size={16} aria-hidden />
-            Filters
-          </button>
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -164,10 +182,15 @@ export default function ThesesBrowser({
                   />
                 </div>
 
-                {/* Authors — single line, never wraps */}
-                <div className="mb-4 flex min-h-5 items-center gap-2">
-                  <div className="min-w-0 flex-1 truncate text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
-                    {item.authors.map((a) => a.display_name).join(" • ")} | {item.year}
+                {/* Keep the year readable even when author names are long. */}
+                <div className="mb-4 flex min-h-10 items-start gap-2">
+                  <div className="min-w-0 flex-1 text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
+                    <p className="truncate">
+                      {item.authors.map((a) => a.display_name).join(" • ")}
+                    </p>
+                    <p className="mt-1 font-semibold text-[var(--color-text)]">
+                      {item.year}
+                    </p>
                   </div>
                   {statusMeta && (
                     <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusMeta.className}`}>
@@ -181,8 +204,8 @@ export default function ThesesBrowser({
                   {item.title}
                 </h2>
 
-                {/* Abstract — flex-grow to fill space, clamps at ~6 lines */}
-                <p className="flex-grow overflow-hidden line-clamp-6 text-sm leading-relaxed text-[var(--color-text-muted)]">
+                {/* Abstract stays within its own shrinkable region before the chip strip. */}
+                <p className="min-h-0 flex-1 overflow-hidden line-clamp-6 text-sm leading-relaxed text-[var(--color-text-muted)]">
                   {item.abstract_preview}
                 </p>
 
@@ -192,7 +215,7 @@ export default function ThesesBrowser({
                   </p>
                 ) : null}
 
-                {/* Tags — always at the bottom, single-row, overflow-hidden */}
+                {/* Tags — always at the bottom in one stable row. */}
                 {(() => {
                   const researchAreas = splitResearchAreas(item.research_area);
                   const visibleTags = item.tags.slice(0, 3);
@@ -200,7 +223,7 @@ export default function ThesesBrowser({
                   const remainingTags = item.tags.length - visibleTags.length;
 
                   return (
-                    <div className="mt-auto pt-4 flex-shrink-0 flex flex-wrap items-center gap-2">
+                    <div className="mt-auto flex flex-shrink-0 flex-nowrap items-center gap-2 overflow-hidden pt-4">
                       {researchAreas[0] && (
                         <span
                           title={getResearchAreaLabel(researchAreas[0])}
@@ -251,8 +274,6 @@ export default function ThesesBrowser({
               >
                 {card}
               </Link>
-            ) : item.reviewStatus && item.reviewStatus !== "accepted" ? (
-              <div key={item.id}>{card}</div>
             ) : (
               <Link key={item.id} href={`/theses/${item.id}`} className="block">
                 {card}
@@ -270,16 +291,26 @@ export default function ThesesBrowser({
         <FaqRail />
       </div>
 
+      {/* Mobile filter drawer — no header, content starts immediately */}
       <Dialog open={filtersOpen} onOpenChange={(open) => setFiltersOpen(open)}>
         <DialogContent
           className="!left-0 !top-0 h-dvh w-[min(22rem,calc(100%-2rem))] !max-w-none !translate-x-0 !translate-y-0 gap-0 overflow-y-auto rounded-none border-r border-[var(--color-separator)] bg-[var(--color-bg)] p-0 text-[var(--color-text)]"
         >
-          <div className="border-b border-[var(--color-separator)] px-5 py-5">
-            <DialogTitle className="font-semibold text-[var(--color-text)]">Filter studies</DialogTitle>
-          </div>
-          <FilterSidebar className="border-0 px-5 py-5" {...filterSidebarProps} />
+          <FilterSidebar className="border-0 px-5 pt-3 pb-5" {...filterSidebarProps} />
         </DialogContent>
       </Dialog>
+
+      {/* Floating filter tab — left-edge drawer pull, below-xl only.
+           Uses same icon + style as the collapsed sidebar toggle. */}
+      <button
+        type="button"
+        onClick={() => setFiltersOpen(true)}
+        className="fixed left-0 top-[72px] z-30 xl:hidden inline-flex h-7 w-7 items-center justify-center rounded-r-full border border-l-0 border-[var(--color-separator-mid)] bg-[var(--color-surface)] text-[var(--color-text-muted)] shadow-[2px_2px_8px_rgba(0,0,0,0.18)] transition-[background,color,transform,border-color] duration-150 hover:scale-105 hover:border-[var(--color-separator-mid)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/50"
+        aria-label="Open filters"
+        title="Open filters"
+      >
+        <PanelLeftOpen size={14} aria-hidden />
+      </button>
     </div>
   );
 }

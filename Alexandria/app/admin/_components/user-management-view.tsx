@@ -62,6 +62,8 @@ export function UserManagementView({
   } | null>(null);
   const [deactivationTarget, setDeactivationTarget] =
     useState<UserAdminRow | null>(null);
+  const [roleChangeTarget, setRoleChangeTarget] =
+    useState<UserAdminRow | null>(null);
   const [reason, setReason] = useState("");
 
   const isMemberList = role === "member";
@@ -101,15 +103,26 @@ export function UserManagementView({
     }
 
     setFeedback(null);
+    setRoleChangeTarget(row);
+  }
+
+  function handleRoleChangeConfirm() {
+    if (!targetRole || !roleChangeTarget) {
+      return;
+    }
+
+    setFeedback(null);
     startTransition(async () => {
-      const result = await changeUserRoleAction(row.id, targetRole);
+      const result = await changeUserRoleAction(roleChangeTarget.id, targetRole);
       if (result.error) {
         setFeedback({ tone: "error", message: result.error.message });
         return;
       }
 
+      const profileName = roleChangeTarget.profile_name;
+      setRoleChangeTarget(null);
       refreshAfterMutation(
-        `${row.profile_name} is now a ${targetRole}.`,
+        `${profileName} is now a ${targetRole}.`,
       );
     });
   }
@@ -327,14 +340,14 @@ export function UserManagementView({
 
       {deactivationTarget ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-labelledby="deactivate-title"
         >
           <form
             onSubmit={handleDeactivateSubmit}
-            className="w-full max-w-md rounded-[10px] border border-[var(--color-separator)] bg-[var(--color-surface-alt)] p-6 shadow-2xl"
+            className="w-full max-w-md rounded-xl border border-[var(--color-separator)] bg-[var(--color-surface)] p-6 shadow-2xl"
           >
             <h2
               id="deactivate-title"
@@ -342,7 +355,7 @@ export function UserManagementView({
             >
               Deactivate {deactivationTarget.profile_name}
             </h2>
-            <p className="mt-2 text-sm text-[var(--color-text-muted)] opacity-70">
+            <p className="mt-2 text-sm text-[var(--color-text-muted)]">
               Their profile and thesis credits will remain. They will be
               denied authenticated access until an administrator reactivates
               the account.
@@ -384,6 +397,55 @@ export function UserManagementView({
               </button>
             </div>
           </form>
+        </div>
+      ) : null}
+
+      {roleChangeTarget && targetRole ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/10 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="role-change-title"
+        >
+          <div className="w-full max-w-md rounded-xl border border-[var(--color-separator)] bg-[var(--color-surface)] p-6 shadow-2xl">
+            <h2
+              id="role-change-title"
+              className="text-lg font-bold text-[var(--color-text)]"
+            >
+              {isMemberList ? "Promote" : "Demote"} {roleChangeTarget.profile_name} to {targetRole}?
+            </h2>
+            <p className="mt-2 text-sm text-[var(--color-text-muted)]">
+              This changes the account&apos;s access immediately. The user can
+              continue using Alexandria with their new role.
+            </p>
+            {feedback?.tone === "error" ? (
+              <p role="alert" className="mt-3 text-sm text-[var(--color-danger)]">
+                {feedback.message}
+              </p>
+            ) : null}
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => setRoleChangeTarget(null)}
+                className="rounded-[7px] border border-[var(--color-separator)] px-4 py-2 text-sm font-semibold text-[var(--color-text)] transition hover:bg-[var(--color-text)]/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={handleRoleChangeConfirm}
+                className="rounded-[7px] bg-[var(--color-brand)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--color-brand-bright)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isPending
+                  ? "Updating..."
+                  : isMemberList
+                    ? "Promote to Moderator"
+                    : "Demote to Member"}
+              </button>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>

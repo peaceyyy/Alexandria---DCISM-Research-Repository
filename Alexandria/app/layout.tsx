@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Khula, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ToastProvider } from "@/components/ui/toast-provider";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -46,7 +47,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

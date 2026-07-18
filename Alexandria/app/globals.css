@@ -112,29 +112,29 @@
 
   /* ─── Chip colors (light-adjusted) ─────────────── */
   /* Cyan chip on light */
-  --color-chip-cyan-bg:   var(--color-brand-cyan);
-  --color-chip-cyan-bd:   var(--color-brand-cyan);
-  --color-chip-cyan-text: #ffffff;
+  --color-chip-cyan-bg:   oklch(0.63 0.12 220 / 12%);
+  --color-chip-cyan-bd:   oklch(0.63 0.12 220 / 30%);
+  --color-chip-cyan-text: oklch(0.40 0.12 220);
 
   /* Red chip on light */
-  --color-chip-red-bg:    var(--color-danger);
-  --color-chip-red-bd:    var(--color-danger);
-  --color-chip-red-text:  #ffffff;
+  --color-chip-red-bg:    oklch(0.65 0.22 27 / 12%);
+  --color-chip-red-bd:    oklch(0.65 0.22 27 / 30%);
+  --color-chip-red-text:  oklch(0.45 0.20 27);
 
   /* Green chip on light */
-  --color-chip-green-bg:  var(--color-success);
-  --color-chip-green-bd:  var(--color-success);
-  --color-chip-green-text:#ffffff;
+  --color-chip-green-bg:  oklch(0.72 0.17 150 / 12%);
+  --color-chip-green-bd:  oklch(0.72 0.17 150 / 30%);
+  --color-chip-green-text:oklch(0.45 0.16 150);
 
   /* Yellow chip on light */
-  --color-chip-yellow-bg: oklch(0.70 0.17 80);     /* solid amber */
-  --color-chip-yellow-bd: oklch(0.70 0.17 80);
-  --color-chip-yellow-text:#ffffff;
+  --color-chip-yellow-bg: oklch(0.88 0.17 90 / 25%);
+  --color-chip-yellow-bd: oklch(0.88 0.17 90 / 50%);
+  --color-chip-yellow-text: oklch(0.45 0.17 80);
 
   /* Gray chip on light */
-  --color-chip-gray-bg:   oklch(0.55 0 0);         /* solid gray */
-  --color-chip-gray-bd:   oklch(0.55 0 0);
-  --color-chip-gray-text: #ffffff;
+  --color-chip-gray-bg:   oklch(0.55 0 0 / 10%);
+  --color-chip-gray-bd:   oklch(0.55 0 0 / 25%);
+  --color-chip-gray-text: oklch(0.40 0 0);
 
   /* ─── Semantic States ───────────────────────────── */
   --color-danger:         oklch(0.45 0.20 27);     /* #d63031 */
