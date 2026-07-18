@@ -251,11 +251,18 @@ export type DashboardUploadRow = {
   created_at: string;
   review_status: Exclude<ReviewStatus, "trashed">;
 };
-export type DashboardActivityRow = {
+export type AdminActivityItem = {
   id: number;
-  thesis_id: number;
-  text: string;
-  occurred_at: string;
+  thesisId: number;
+  thesisTitle: string;
+  actorName: string;
+  event: ReviewAuditEventType;
+  description: string;
+  occurredAt: string;
+};
+export type AdminActivityListParams = {
+  page?: number;
+  limit?: number;
 };
 export type DepartmentResearchCount = {
   department: string;
@@ -270,7 +277,7 @@ export type AdminDashboardSnapshot = {
     pending_docs: number;
   };
   recent_uploads: DashboardUploadRow[];
-  recent_activity: DashboardActivityRow[];
+  recent_activity: AdminActivityItem[];
   research_by_department: DepartmentResearchCount[];
 };
 export type UserAccountStatus = "active" | "deactivated";

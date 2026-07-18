@@ -84,7 +84,7 @@ All service calls resolve to a consistent shape.
 - System role (`admin`, `moderator`, `member`) is stored in `users.role` and enforced by Supabase RLS policies.
 - USC identity (`student`, `alumni`, `professor`) is stored in `users.affiliation` — describes who they are at USC, not what they can do.
 - Any authenticated `member` can submit a thesis for review.
-- Only `admin` and `moderator` users can approve/accept, flag, or trash a submission.
+- Administrators and moderators can approve, flag, and return submissions to review. Only administrators can trash or restore a submission.
 - Members can edit their own submission only after a moderator/admin flags it.
 - Members can attach/register their own thesis PDF or file URL.
 - The database value `accepted` may be displayed as `Approved` in the UI.
@@ -480,18 +480,16 @@ Sets `review_status = 'flagged'`. Optionally records a reason in `thesis_audits`
 
 Moves a thesis to trashed state. Hidden from all public browsing, search, and active review lists unless explicitly included.
 
-- **Auth Required:** Yes (Role: `admin` or `moderator`)
+- **Auth Required:** Yes (Role: `admin`)
 - **Response:** `200 OK`
 
-> **Note:** Trashed submissions are not recoverable through the admin UI for MVP.
+> **Note:** Trash is reversible. Only an administrator can restore a trashed submission to the pending review queue.
 
 ---
 
 ### Deferred: Soft Delete
 
-No MVP frontend should call a soft-delete endpoint. The live schema snapshot does not define `theses.deleted_at`, and MVP removal is represented by `review_status = 'trashed'`.
-
-If a future recovery or audit workflow needs soft delete, add `deleted_at` to the schema first and define a new contract at that time.
+No MVP frontend should hard-delete a thesis. The live schema represents reversible removal with `review_status = 'trashed'`, not a `deleted_at` column.
 
 ---
 
@@ -501,7 +499,8 @@ Current server service used by `/admin/dashboard`.
 
 - **Auth Required:** Yes (active `admin` or `moderator`)
 - **Metrics:** non-trashed research count, active registered-user count, and `for_review` count
-- **Activity:** newest five `thesis_audits` rows by `updated_at`
+- **Activity preview:** newest five `thesis_audits` rows globally by `updated_at DESC, id DESC`, enriched with frontend-safe actor name, thesis title, event, description, timestamp, and review link context
+- **Full activity:** `/admin/activity` uses the guarded `get_admin_activity_page(page, limit)` RPC with server pagination (20 rows requested per page; database maximum 100)
 - **Departments:** non-trashed theses grouped by the stored `department`; future departments appear automatically
 - **Uploads:** newest five non-trashed theses, with the first ordered author display name
 
