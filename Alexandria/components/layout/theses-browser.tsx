@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import type React from "react";
 import Image from "next/image";
-import { PanelLeftOpen } from "lucide-react";
+import { LayoutGrid, List, PanelLeftOpen } from "lucide-react";
 import FaqRail from "@/components/layout/faq";
 import FilterSidebar from "@/components/layout/filter-sidebar";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReviewStatus, ThesisCard } from "@/lib/services/types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { getResearchAreaLabel } from "@/lib/domain/research-areas";
+import type { UserRole } from "@/lib/auth/auth-contract";
 
 export type BrowseThesisItem = ThesisCard & {
   reviewStatus?: ReviewStatus;
@@ -19,6 +20,9 @@ export type BrowseThesisItem = ThesisCard & {
 
 type ThesesBrowserProps = {
   items: BrowseThesisItem[];
+  role: UserRole | null;
+  profileName: string | null;
+  query: string;
   showMySubmissions: boolean;
   isMySubmissions: boolean;
   flaggedSubmissionCount: number;
@@ -44,6 +48,8 @@ const REVIEW_STATUS_META: Record<ReviewStatus, { label: string; className: strin
 };
 
 const FILTER_STORAGE_KEY = "alex:thesis-browser-filters";
+const VIEW_STORAGE_KEY = "alex:thesis-browser-view";
+type BrowseView = "comfortable" | "compact";
 
 function splitResearchAreas(value: string | null) {
   return value
@@ -56,6 +62,9 @@ function splitResearchAreas(value: string | null) {
 
 export default function ThesesBrowser({
   items,
+  role,
+  profileName,
+  query,
   showMySubmissions,
   isMySubmissions,
   flaggedSubmissionCount,
@@ -71,12 +80,26 @@ export default function ThesesBrowser({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [filtersHydrated, setFiltersHydrated] = useState(false);
+  const [viewMode, setViewMode] = useState<BrowseView>("comfortable");
+  const [viewHydrated, setViewHydrated] = useState(false);
 
   // Hydrate collapse preference from localStorage after mount
   useEffect(() => {
     const stored = localStorage.getItem("alex:filter-sidebar-collapsed");
     if (stored === "1") setIsSidebarCollapsed(true);
   }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(VIEW_STORAGE_KEY);
+    if (stored === "comfortable" || stored === "compact") {
+      setViewMode(stored);
+    }
+    setViewHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (viewHydrated) localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
+  }, [viewHydrated, viewMode]);
 
   useEffect(() => {
     try {
@@ -210,11 +233,14 @@ export default function ThesesBrowser({
     mySubmissionsActive: isMySubmissions,
     flaggedSubmissionCount,
     onToggleMySubmissions: toggleMySubmissions,
+    role,
+    profileName,
+    query,
   };
 
   return (
     <div
-      className={`grid min-h-[calc(100vh-4rem)] grid-cols-1 xl:h-[calc(100vh-4rem)] motion-safe:xl:transition-[grid-template-columns] motion-safe:xl:duration-200 ${
+      className={`grid min-h-screen grid-cols-1 xl:h-screen motion-safe:xl:transition-[grid-template-columns] motion-safe:xl:duration-200 ${
         isSidebarCollapsed
           ? "xl:grid-cols-[72px_minmax(0,1fr)_320px]"
           : "xl:grid-cols-[220px_minmax(0,1fr)_320px]"
@@ -228,22 +254,94 @@ export default function ThesesBrowser({
       />
 
       <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mb-5 flex items-center border-b border-[var(--color-separator)] pb-4 xl:hidden">
-          <p className="text-xs font-medium text-[var(--color-text-muted)]">
-            {filteredItems.length} {filteredItems.length === 1 ? "study" : "studies"}
-          </p>
-        </div>
+        <div className="mx-auto w-full max-w-4xl">
+          <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--color-separator)] pb-4">
+            <p className="text-xs font-medium text-[var(--color-text-muted)]">
+              {filteredItems.length} {filteredItems.length === 1 ? "study" : "studies"}
+            </p>
+            <div
+              className="inline-flex rounded-md border border-[var(--color-separator)] bg-[var(--color-text)]/[0.025] p-0.5"
+              role="group"
+              aria-label="Result density"
+            >
+              {(["comfortable", "compact"] as const).map((mode) => {
+                const active = viewMode === mode;
+                const label = mode === "comfortable" ? "Comfortable card view" : "Compact list view";
+                const Icon = mode === "comfortable" ? LayoutGrid : List;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setViewMode(mode)}
+                    aria-pressed={active}
+                    aria-label={label}
+                    title={label}
+                    className={`inline-flex size-7 items-center justify-center rounded text-[var(--color-text-muted)] transition-colors ${
+                      active
+                        ? "bg-[var(--color-text)]/10 text-[var(--color-text)]"
+                        : "hover:text-[var(--color-text)]"
+                    }`}
+                  >
+                    <Icon size={15} strokeWidth={1.8} aria-hidden />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className={viewMode === "comfortable" ? "grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "divide-y divide-[var(--color-separator)] border-y border-[var(--color-separator)]"}>
           {filteredItems.map((item) => {
-            const statusMeta = item.reviewStatus
+            const statusMeta = isMySubmissions && item.reviewStatus
               ? REVIEW_STATUS_META[item.reviewStatus]
               : null;
-            const card = (
-              <article
-                className="group flex h-[480px] flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]"
-              >
-                {/* Thumbnail — fixed height, never shrinks */}
+            const researchAreas = splitResearchAreas(item.research_area);
+            const visibleTags = item.tags.slice(0, viewMode === "compact" ? 2 : 3);
+            const remainingResearchAreas = researchAreas.length - 1;
+            const remainingTags = item.tags.length - visibleTags.length;
+            const tags = (
+              <div className={`flex flex-nowrap items-center gap-2 overflow-hidden ${
+                viewMode === "compact" ? "mt-3" : "mt-auto pt-4"
+              }`}>
+                {researchAreas[0] && (
+                  <span
+                    title={getResearchAreaLabel(researchAreas[0])}
+                    className="flex-shrink-0 max-w-[9rem] truncate rounded-full border border-[var(--color-chip-cyan-bd)] bg-[var(--color-chip-cyan-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-chip-cyan-text)]"
+                  >
+                    {getResearchAreaLabel(researchAreas[0])}
+                  </span>
+                )}
+                {remainingResearchAreas > 0 && (
+                  <span
+                    title={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
+                    aria-label={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
+                    className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-chip-cyan-bd)] bg-[var(--color-chip-cyan-bg)] text-[10px] font-semibold text-[var(--color-chip-cyan-text)]"
+                  >
+                    +{remainingResearchAreas}
+                  </span>
+                )}
+                {visibleTags.map((tag) => (
+                  <span
+                    key={tag}
+                    title={tag}
+                    className="flex-shrink-0 max-w-[6rem] truncate rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-muted)]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+                {remainingTags > 0 && (
+                  <span
+                    title={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
+                    aria-label={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
+                    className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] text-[10px] font-semibold text-[var(--color-text-muted)]"
+                  >
+                    +{remainingTags}
+                  </span>
+                )}
+              </div>
+            );
+
+            const card = viewMode === "comfortable" ? (
+              <article className="group flex h-[480px] flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]">
                 <div className="mb-4 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--color-separator)] bg-[var(--color-text)]/5">
                   <Image
                     src="/placeholder.svg"
@@ -253,16 +351,10 @@ export default function ThesesBrowser({
                     className="h-36 w-full object-cover"
                   />
                 </div>
-
-                {/* Keep the year readable even when author names are long. */}
                 <div className="mb-4 flex min-h-10 items-start gap-2">
                   <div className="min-w-0 flex-1 text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
-                    <p className="truncate">
-                      {item.authors.map((a) => a.display_name).join(" • ")}
-                    </p>
-                    <p className="mt-1 font-semibold text-[var(--color-text)]">
-                      {item.year}
-                    </p>
+                    <p className="truncate">{item.authors.map((author) => author.display_name).join(" • ")}</p>
+                    <p className="mt-1 font-semibold text-[var(--color-text)]">{item.year}</p>
                   </div>
                   {statusMeta && (
                     <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusMeta.className}`}>
@@ -270,70 +362,64 @@ export default function ThesesBrowser({
                     </span>
                   )}
                 </div>
-
-                {/* Title — 2-line max */}
                 <h2 className="mb-3 flex-shrink-0 line-clamp-2 text-[17px] font-extrabold leading-tight text-[var(--color-text)]">
                   {item.title}
                 </h2>
+                <div className="relative min-h-0 flex-1 overflow-hidden">
+                  <p className="line-clamp-4 text-justify text-sm leading-relaxed text-[var(--color-text-muted)]">
+                    {item.abstract_preview}
+                  </p>
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-9 bg-gradient-to-t from-[var(--color-bg)] to-transparent"
+                  />
+                </div>
+                {isMySubmissions && item.reviewStatus === "flagged" && item.flaggedCommentCount ? (
+                  <p className="mt-3 text-[11px] font-medium text-[var(--color-danger)]">
+                    {item.flaggedCommentCount} feedback item{item.flaggedCommentCount === 1 ? "" : "s"} need revision
+                  </p>
+                ) : null}
+                {tags}
+              </article>
+            ) : (
+              <article
+                className="group px-1 py-5 transition-colors hover:bg-[var(--color-text)]/[0.025] sm:px-3 sm:py-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-h-8 items-start gap-2">
+                      <div className="min-w-0 flex-1 text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
+                    <p className="truncate">
+                      {item.authors.map((a) => a.display_name).join(" • ")}
+                    </p>
+                    <p className="mt-1 font-semibold text-[var(--color-text)]">
+                      {item.year}
+                    </p>
+                      </div>
+                      {statusMeta && (
+                        <span className={`flex-shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusMeta.className}`}>
+                          {statusMeta.label}
+                        </span>
+                      )}
+                    </div>
 
-                {/* Abstract stays within its own shrinkable region before the chip strip. */}
-                <p className="min-h-0 flex-1 overflow-hidden text-justify line-clamp-6 text-sm leading-relaxed text-[var(--color-text-muted)]">
-                  {item.abstract_preview}
-                </p>
+                    <h2 className="truncate text-[15px] font-extrabold leading-tight text-[var(--color-text)]">
+                      {item.title}
+                    </h2>
 
-                {item.reviewStatus === "flagged" && item.flaggedCommentCount ? (
+                    <p className="mt-2 truncate text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+                      {item.abstract_preview}
+                    </p>
+
+                    {isMySubmissions && item.reviewStatus === "flagged" && item.flaggedCommentCount ? (
                   <p className="mt-3 text-[11px] font-medium text-[var(--color-danger)]">
                     {item.flaggedCommentCount} feedback item{item.flaggedCommentCount === 1 ? "" : "s"} need revision
                   </p>
                 ) : null}
 
-                {/* Tags — always at the bottom in one stable row. */}
-                {(() => {
-                  const researchAreas = splitResearchAreas(item.research_area);
-                  const visibleTags = item.tags.slice(0, 3);
-                  const remainingResearchAreas = researchAreas.length - 1;
-                  const remainingTags = item.tags.length - visibleTags.length;
-
-                  return (
-                    <div className="mt-auto flex flex-shrink-0 flex-nowrap items-center gap-2 overflow-hidden pt-4">
-                      {researchAreas[0] && (
-                        <span
-                          title={getResearchAreaLabel(researchAreas[0])}
-                          className="flex-shrink-0 max-w-[9rem] truncate rounded-full border border-[var(--color-chip-cyan-bd)] bg-[var(--color-chip-cyan-bg)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-chip-cyan-text)]"
-                        >
-                          {getResearchAreaLabel(researchAreas[0])}
-                        </span>
-                      )}
-                      {remainingResearchAreas > 0 && (
-                        <span
-                          title={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
-                          aria-label={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
-                          className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-chip-cyan-bd)] bg-[var(--color-chip-cyan-bg)] text-[10px] font-semibold text-[var(--color-chip-cyan-text)]"
-                        >
-                          +{remainingResearchAreas}
-                        </span>
-                      )}
-                      {visibleTags.map((tag) => (
-                        <span
-                          key={tag}
-                          title={tag}
-                          className="flex-shrink-0 max-w-[6rem] truncate rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-muted)]"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      {remainingTags > 0 && (
-                        <span
-                          title={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
-                          aria-label={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
-                          className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] text-[10px] font-semibold text-[var(--color-text-muted)]"
-                        >
-                          +{remainingTags}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
+                    {tags}
+                  </div>
+                </div>
               </article>
             );
 
@@ -357,6 +443,7 @@ export default function ThesesBrowser({
             );
           })}
         </div>
+        </div>
 
         <div className="mt-8 border-t border-[var(--color-separator)] pt-2 xl:hidden">
           <FaqRail />
@@ -367,7 +454,7 @@ export default function ThesesBrowser({
         <FaqRail />
       </div>
 
-      {/* Mobile filter drawer — no header, content starts immediately */}
+      {/* Mobile workspace drawer — content starts immediately */}
       <Dialog open={filtersOpen} onOpenChange={(open) => setFiltersOpen(open)}>
         <DialogContent
           className="!left-0 !top-0 h-dvh w-[min(22rem,calc(100%-2rem))] !max-w-none !translate-x-0 !translate-y-0 gap-0 overflow-y-auto rounded-none border-r border-[var(--color-separator)] bg-[var(--color-bg)] p-0 text-[var(--color-text)]"
@@ -376,14 +463,14 @@ export default function ThesesBrowser({
         </DialogContent>
       </Dialog>
 
-      {/* Floating filter tab — left-edge drawer pull, below-xl only.
+      {/* Floating workspace tab — left-edge drawer pull, below-xl only.
            Uses same icon + style as the collapsed sidebar toggle. */}
       <button
         type="button"
         onClick={() => setFiltersOpen(true)}
-        className="fixed left-0 top-[72px] z-30 xl:hidden inline-flex h-7 w-7 items-center justify-center rounded-r-full border border-l-0 border-[var(--color-separator-mid)] bg-[var(--color-surface)] text-[var(--color-text-muted)] shadow-[2px_2px_8px_rgba(0,0,0,0.18)] transition-[background,color,transform,border-color] duration-150 hover:scale-105 hover:border-[var(--color-separator-mid)] hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/50"
-        aria-label="Open filters"
-        title="Open filters"
+        className="fixed left-0 top-4 z-30 xl:hidden inline-flex h-8 w-8 items-center justify-center rounded-r-md border border-l-0 border-[var(--color-separator-mid)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-colors duration-150 hover:border-[var(--color-brand-bright)]/30 hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30"
+        aria-label="Open repository workspace"
+        title="Open repository workspace"
       >
         <PanelLeftOpen size={14} aria-hidden />
       </button>

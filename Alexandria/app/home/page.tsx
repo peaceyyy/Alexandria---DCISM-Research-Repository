@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { AppHeader } from "@/components/layout/app-header";
 import ThesesBrowser, {
   type BrowseThesisItem,
 } from "@/components/layout/theses-browser";
@@ -69,17 +68,15 @@ export default async function HomePage({
 
   return (
     <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] xl:h-screen xl:overflow-hidden">
-      <AppHeader
-        role={role}
-        query={query}
-        isMySubmissions={showOwnSubmissions}
-      />
       <Suspense fallback={null}>
         <SubmissionBanner />
       </Suspense>
       <ThesesBrowser
         items={items}
-        showMySubmissions={Boolean(user)}
+        role={role}
+        profileName={user?.profile_name ?? null}
+        query={query}
+        showMySubmissions={role === "member"}
         isMySubmissions={showOwnSubmissions}
         flaggedSubmissionCount={flaggedSubmissionCount}
       />
