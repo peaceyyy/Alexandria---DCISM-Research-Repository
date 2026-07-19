@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -18,7 +19,6 @@ import {
   X,
 } from "lucide-react";
 import { CommentSidePanel } from "@/components/review/comment-side-panel";
-import { LessonsModal } from "@/app/upload/_components/lessons-modal";
 import { DEPARTMENTS } from "@/lib/domain/departments";
 import {
   parseLessonEntries,
@@ -49,6 +49,18 @@ import {
 import type { ReviewSubmission, ThesisAuthorInput } from "@/lib/services/types";
 import { getCorrectionSummary } from "@/lib/review/correction-state";
 import styles from "./member-correction-client.module.css";
+
+const LessonsModal = dynamic(
+  () => import("@/app/upload/_components/lessons-modal").then((module) => module.LessonsModal),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-[42px] items-center rounded-md border border-[var(--color-separator)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text-muted)]">
+        Loading lessons editor…
+      </div>
+    ),
+  },
+);
 
 type ContributorDraft = ThesisAuthorInput & { id?: number };
 

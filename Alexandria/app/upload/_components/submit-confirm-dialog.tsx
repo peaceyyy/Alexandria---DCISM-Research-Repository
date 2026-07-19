@@ -40,11 +40,11 @@ export function SubmitConfirmDialog({
             </span>
           </div>
           <DialogTitle className="text-base font-semibold text-[var(--color-text)]">
-            Submit your thesis for review?
+            Submit this thesis?
           </DialogTitle>
           <DialogDescription className="text-[var(--color-text-muted)]">
-            Your submission will be sent to the Alexandria team. You will be notified once it has
-            been reviewed — either approved or flagged with feedback.
+            Member submissions enter review. Administrator and moderator records publish directly
+            after the same metadata and PDF checks.
           </DialogDescription>
         </DialogHeader>
 
@@ -61,13 +61,13 @@ export function SubmitConfirmDialog({
             className="grid gap-2 rounded-lg border border-[var(--color-brand-bright)]/20 bg-[var(--color-brand-bright)]/5 px-3 py-2.5"
             role="progressbar"
             aria-label="Submitting thesis PDF"
-            aria-valuetext="Uploading the PDF and submitting the thesis for review"
+            aria-valuetext="Uploading the PDF and creating the thesis record"
           >
             <div className="h-1 overflow-hidden rounded-full bg-[var(--color-brand-bright)]/15">
               <div className="h-full w-2/5 animate-pulse rounded-full bg-[var(--color-brand-bright)]" />
             </div>
             <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
-              Uploading your PDF and creating the submission. Keep this window open.
+              Uploading your PDF and creating the thesis record. Keep this window open.
             </p>
           </div>
         )}

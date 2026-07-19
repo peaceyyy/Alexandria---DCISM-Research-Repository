@@ -15,11 +15,13 @@ export function SubmissionBanner() {
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
-  const [kind, setKind] = useState<"submitted" | "resubmitted" | null>(null);
+  const [kind, setKind] = useState<"submitted" | "resubmitted" | "published" | null>(null);
 
   useEffect(() => {
     const nextKind =
-      params.get("resubmitted") === "1"
+      params.get("published") === "1"
+        ? "published"
+        : params.get("resubmitted") === "1"
         ? "resubmitted"
         : params.get("submitted") === "1"
           ? "submitted"
@@ -29,6 +31,7 @@ export function SubmissionBanner() {
       const nextParams = new URLSearchParams(params.toString());
       nextParams.delete("submitted");
       nextParams.delete("resubmitted");
+      nextParams.delete("published");
 
       setKind(nextKind);
       setVisible(true);
@@ -63,6 +66,7 @@ export function SubmissionBanner() {
   if (!visible) return null;
 
   const isResubmitted = kind === "resubmitted";
+  const isPublished = kind === "published";
 
   return (
     <div
@@ -100,12 +104,18 @@ export function SubmissionBanner() {
         {/* Messaging */}
         <p className="text-[var(--color-text)] opacity-90">
           <span className="font-semibold text-[var(--color-text)]">
-            {isResubmitted ? "Submitted for review." : "Thesis submitted!"}
+            {isPublished
+              ? "Thesis published!"
+              : isResubmitted
+                ? "Submitted for review."
+                : "Thesis submitted!"}
           </span>{" "}
           <span className="text-[var(--color-text-muted)] opacity-80">
-            {isResubmitted
-              ? "Editing is locked until it is flagged again."
-              : "Pending moderator review."}
+            {isPublished
+              ? "This staff record is now visible in the repository."
+              : isResubmitted
+                ? "Editing is locked until it is flagged again."
+                : "Pending moderator review."}
           </span>
         </p>
 

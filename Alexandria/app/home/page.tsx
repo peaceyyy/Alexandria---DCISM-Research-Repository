@@ -76,7 +76,7 @@ export default async function HomePage({
         role={role}
         profileName={user?.profile_name ?? null}
         query={query}
-        showMySubmissions={role === "member"}
+        showMySubmissions={Boolean(role)}
         isMySubmissions={showOwnSubmissions}
         flaggedSubmissionCount={flaggedSubmissionCount}
       />

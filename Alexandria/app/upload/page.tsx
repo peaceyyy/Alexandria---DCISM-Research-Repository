@@ -231,8 +231,12 @@ export default function UploadPage() {
         throw new Error(result.error.message || "Failed to submit thesis");
       }
 
-      // Success → redirect to home with submission banner
-      router.push("/home?submitted=1");
+      // Staff records publish immediately; member records retain the review flow.
+      router.push(
+        result.data?.reviewStatus === "accepted"
+          ? "/home?published=1"
+          : "/home?submitted=1",
+      );
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred";

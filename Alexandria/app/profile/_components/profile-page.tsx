@@ -14,9 +14,11 @@ import type { CurrentUser } from "@/lib/services/types";
 export function ProfilePage({
   user,
   logoutError = false,
+  isStaffWorkspace = false,
 }: {
   user: CurrentUser;
   logoutError?: boolean;
+  isStaffWorkspace?: boolean;
 }) {
   const role = getRoleDisplay(user.role);
   const accessLevels = getAccessLevels(user.role);
@@ -24,10 +26,14 @@ export function ProfilePage({
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
-      <AppHeader role={user.role} />
+      {!isStaffWorkspace ? <AppHeader role={user.role} /> : null}
 
 
-      <main className="mx-auto flex min-h-[calc(100vh-65px)] max-w-6xl items-center px-5 py-12 sm:px-8 lg:py-16">
+      <div
+        className={`mx-auto flex max-w-6xl items-center px-5 py-12 sm:px-8 lg:py-16 ${
+          isStaffWorkspace ? "min-h-svh" : "min-h-[calc(100vh-65px)]"
+        }`}
+      >
         <section
           aria-labelledby="profile-heading"
           className="w-full rounded-[7px] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-[0_24px_70px_rgba(0,0,0,0.22)]"
@@ -42,11 +48,11 @@ export function ProfilePage({
               </h1>
             </div>
             <Link
-              href="/home"
+              href={isStaffWorkspace ? "/admin/dashboard" : "/home"}
               className="inline-flex h-9 items-center gap-2 rounded-full border border-[var(--color-separator-mid)] px-3 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand-bright)]/35 hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30"
             >
               <ArrowLeft size={15} aria-hidden />
-              Back
+              {isStaffWorkspace ? "Dashboard" : "Back"}
             </Link>
           </div>
 
@@ -135,7 +141,7 @@ export function ProfilePage({
             </div>
           </div>
         </section>
-      </main>
+      </div>
     </div>
   );
 }

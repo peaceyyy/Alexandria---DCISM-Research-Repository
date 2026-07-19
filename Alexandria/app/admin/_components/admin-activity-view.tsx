@@ -49,6 +49,7 @@ export function AdminActivityView({
               <li key={item.id} className="py-4 first:pt-0 last:pb-0">
                 <Link
                   href={`/admin/review/${item.thesisId}`}
+                  prefetch={false}
                   className="block rounded-[7px] p-2 -m-2 transition hover:bg-[var(--color-text)]/5 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-bright)]"
                   aria-label={`Open ${item.thesisTitle} review activity`}
                 >
