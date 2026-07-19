@@ -1,114 +1,240 @@
-/* ============================
-   Filter Sidebar Module
-   ============================ */
-
 .sidebar {
   width: 220px;
   flex-shrink: 0;
   overflow: hidden;
+  border-right: 1px solid var(--color-separator);
+  background: var(--color-surface-alt);
   transition: width 0.2s ease;
-  /* No position:relative needed — button stays inside bounds */
 }
 
-.collapsed {
-  width: 72px;
-}
+.collapsed { width: 72px; }
 
-/* ----------------------------------------
-   Header row — title + toggle button in flow.
-   When collapsed: justify-content centers the lone button.
-   When expanded: button is pushed right by margin-left: auto.
-   ---------------------------------------- */
-.header {
+.brandRow {
   display: flex;
+  min-height: 36px;
   align-items: center;
-  min-height: 32px;
-  margin-bottom: 1rem;
-  padding-right: 2px;
+  margin-bottom: 12px;
 }
 
-.collapsed .header {
-  justify-content: center;
-  margin-bottom: 0.5rem;
-  padding-right: 0;
-}
+.collapsed .brandRow { justify-content: center; }
 
-/* Section title fades and collapses */
-.sectionTitle {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  transition: width 0.18s ease, opacity 0.15s ease;
-}
-
-.collapsed .sectionTitle {
-  width: 0;
-  opacity: 0;
-}
-
-/* ----------------------------------------
-   Toggle button — lives inside the sidebar.
-   margin-left: auto pushes it right when expanded.
-   In collapsed state the header is centered so this
-   naturally lands in the middle of the 72px rail.
-   ---------------------------------------- */
-.collapseButton {
-  margin-left: auto;
-  flex-shrink: 0;
+.brand {
   display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.brandName {
+  overflow: hidden;
+  font-family: var(--font-khula), var(--font-sans), sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.collapseButton {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
+  margin-left: auto;
+  border: 1px solid var(--color-separator-mid);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.collapsed .collapseButton { margin-left: 0; }
+.collapseButton:hover { border-color: var(--color-brand-bright); background: color-mix(in oklch, var(--color-text) 5%, transparent); color: var(--color-text); }
+.collapseButton:focus-visible, .disclosure:focus-visible { outline: 2px solid var(--color-brand-bright); outline-offset: 2px; }
+
+.searchForm { margin-bottom: 12px; overflow: hidden; }
+.collapsed .searchForm { display: none; }
+
+.searchLabel {
+  display: flex;
+  height: 36px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-separator-mid);
+  border-radius: 7px;
+  padding: 0 10px;
+  color: var(--color-text-muted);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.searchLabel:focus-within { border-color: var(--color-brand-bright); background: color-mix(in oklch, var(--color-text) 3%, transparent); }
+.searchLabel input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--color-text); font-size: 0.8125rem; }
+.searchLabel input::placeholder { color: var(--color-placeholder); opacity: 0.62; }
+
+.workspaceNav {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-separator);
+}
+
+.workspaceAction {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 8px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.workspaceAction:hover, .workspaceActionActive { background: color-mix(in oklch, var(--color-text) 6%, transparent); color: var(--color-text); }
+.revisionBadge { margin-left: auto; color: var(--color-chip-cyan-text); font-size: 0.6875rem; }
+
+.body { flex: 1; min-height: 0; overflow-y: auto; padding-right: 2px; scrollbar-width: none; }
+.body::-webkit-scrollbar { display: none; }
+.collapsed .body { display: none; }
+.browseLabel { margin: 0 0 10px; color: var(--color-text-muted); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.filterSections { display: grid; gap: 22px; padding-bottom: 16px; }
+.filterHeading { margin-bottom: 8px; color: var(--color-text); font-size: 0.75rem; font-weight: 700; }
+.contextNote { margin: -3px 0 0; color: var(--color-text-muted); font-size: 0.6875rem; }
+
+.academicUnitSelect {
+  width: 100%;
+  appearance: auto;
+  border: 1px solid var(--color-separator);
+  border-radius: 6px;
+  background: color-mix(in oklch, var(--color-text) 2%, transparent);
+  padding: 7px 9px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  outline: none;
+}
+
+.academicUnitSelect:focus-visible { border-color: var(--color-brand); box-shadow: 0 0 0 1px var(--color-brand); }
+.academicUnitSelect:disabled { cursor: not-allowed; opacity: 0.58; }
+
+.filterChip {
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--color-separator-mid);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.filterChip:hover { border-color: var(--color-text-muted); color: var(--color-text); }
+.filterChipSelected { border-color: var(--color-brand); background: var(--color-brand); color: white; }
+.filterChipCyanSelected { border-color: var(--color-brand-cyan); background: var(--color-brand-cyan); color: white; }
+
+.yearInput {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--color-separator);
+  border-radius: 6px;
+  background: transparent;
+  padding: 7px 9px;
+  color: var(--color-text);
+  font-size: 0.75rem;
+  outline: none;
+}
+.yearInput::placeholder { color: var(--color-placeholder); opacity: 0.7; }
+.yearInput:focus-visible { border-color: var(--color-brand); box-shadow: 0 0 0 1px var(--color-brand); }
+
+.disclosure {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--color-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.disclosure svg { transition: transform 0.15s ease; }
+
+.accountArea { margin-top: auto; border-top: 1px solid var(--color-separator); padding-top: 10px; }
+.accountActions { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+.contributeButton {
+  display: inline-flex;
+  min-width: 0;
+  height: 32px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--color-separator-mid);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.contributeButton:hover { border-color: var(--color-brand-bright); background: color-mix(in oklch, var(--color-brand-bright) 8%, transparent); color: var(--color-text); }
+
+.contributeLinkIcon {
+  display: inline-flex;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--color-separator-mid);
-  background: var(--color-surface);
+  border-radius: 7px;
+  background: transparent;
   color: var(--color-text-muted);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease,
-    border-color 0.15s ease;
 }
+.contributeLinkIcon:hover { border-color: var(--color-brand-bright); color: var(--color-text); }
 
-.collapsed .collapseButton {
-  /* In the centered flex row, margin-left: auto has no effect — override */
-  margin-left: 0;
+.accountLink {
+  display: flex;
+  min-width: 0;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid;
+  border-radius: 7px;
+  padding: 3px 8px 3px 4px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: filter 0.15s ease;
 }
+.accountLink { opacity: 0.78; }
+.accountLink:hover { filter: brightness(1.04); opacity: 0.94; }
+.roleMarker { display: grid; min-width: 26px; height: 26px; place-items: center; border-radius: 999px; background: rgb(0 0 0 / 0.14); padding: 0 4px; font-size: 0.625rem; font-weight: 800; }
+.accountName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.9; }
 
-.collapseButton:hover {
-  color: var(--color-text);
-  background: var(--color-surface-alt);
-  border-color: var(--color-separator-mid);
-  transform: scale(1.08);
-}
+.collapsed .workspaceNav { justify-items: center; border-bottom: 0; padding-bottom: 0; }
+.collapsed .workspaceAction { width: 32px; justify-content: center; padding: 0; }
+.collapsed .workspaceLabel, .collapsed .revisionBadge { display: none; }
+.collapsed .accountArea { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 10px; }
+.collapsed .accountActions { flex-direction: column; justify-content: center; gap: 8px; margin-bottom: 0; }
+.collapsed .accountActions button, .collapsed .accountActions a { flex: 0 0 28px; }
+.collapsed .accountLink { width: 34px; min-height: 34px; justify-content: center; padding: 3px; }
+.collapsed .accountName { display: none; }
 
-.collapseButton:focus-visible {
-  outline: 2px solid color-mix(in oklch, var(--color-brand-bright) 50%, transparent);
-  outline-offset: 2px;
-}
-
-/* ----------------------------------------
-   Filter body — clipped content area.
-   ---------------------------------------- */
-.body {
-  overflow: hidden;
-  transition: opacity 0.15s ease;
-}
-
-.collapsed .body {
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-/* Accessibility: reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .sidebar,
-  .collapseButton,
-  .sectionTitle,
-  .body {
-    transition: none;
-  }
+  .sidebar, .collapseButton, .workspaceAction, .filterChip, .contributeButton, .accountLink { transition: none; }
 }

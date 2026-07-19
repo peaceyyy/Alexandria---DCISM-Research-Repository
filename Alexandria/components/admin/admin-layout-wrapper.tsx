@@ -10,9 +10,11 @@ import type { UserRole } from "@/lib/auth/auth-contract";
 export function AdminLayoutWrapper({
   children,
   role,
+  email,
 }: {
   children: React.ReactNode;
   role: UserRole;
+  email: string;
 }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -76,9 +78,6 @@ export function AdminLayoutWrapper({
 
   return (
     <div className="flex min-h-svh bg-[var(--color-bg)] relative">
-      <div className="fixed right-4 top-4 z-40">
-        <ThemeToggle />
-      </div>
       <a
         href="#admin-main-content"
         className="sr-only fixed left-4 top-4 z-[60] rounded-[6px] bg-[var(--color-brand)] px-3 py-2 text-sm font-semibold text-white focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-white"
@@ -87,6 +86,7 @@ export function AdminLayoutWrapper({
       </a>
       <AdminSidebar
         role={role}
+        email={email}
         isCollapsed={isCollapsed}
         isMobileOpen={isMobileOpen}
         isNarrowViewport={isNarrowViewport}

@@ -40,7 +40,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-separator-mid)] bg-[var(--color-text)]/5 text-[var(--color-text)] transition-colors hover:bg-[var(--color-text)]/10"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-separator-mid)] bg-[var(--color-text)]/5 text-[var(--color-text)] transition-colors hover:bg-[var(--color-text)]/10"
     >
       {theme === "dark" ? (
         <Sun aria-hidden size={16} className="text-amber-400" />

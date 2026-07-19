@@ -21,7 +21,7 @@ export default async function AdminLayout({
   }
 
   return (
-    <AdminLayoutWrapper role={user.role}>
+    <AdminLayoutWrapper role={user.role} email={user.email}>
       {children}
     </AdminLayoutWrapper>
   );

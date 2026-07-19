@@ -14,7 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./admin-sidebar.module.css";
-
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { logoutAction } from "@/lib/auth/actions";
 import type { UserRole } from "@/lib/auth/auth-contract";
 
@@ -42,6 +42,7 @@ const NAV_LINKS: NavLink[] = [
 
 export function AdminSidebar({
   role,
+  email,
   isCollapsed,
   isMobileOpen,
   isNarrowViewport,
@@ -50,6 +51,7 @@ export function AdminSidebar({
   onNavigate,
 }: {
   role: UserRole;
+  email: string;
   isCollapsed: boolean;
   isMobileOpen: boolean;
   isNarrowViewport: boolean;
@@ -136,8 +138,9 @@ export function AdminSidebar({
         </ul>
       </nav>
 
-      {/* Browse Repository — lets admins/mods see the public site */}
-      <div className={styles.viewSite}>
+      {/* ── Footer: icon row + email (AI Studio pattern) ── */}
+      <div className={styles.footer}>
+        {/* Browse Repository */}
         <Link
           href="/home"
           className={styles.viewSiteLink}
@@ -148,21 +151,27 @@ export function AdminSidebar({
           <Book size={14} aria-hidden />
           <span className={styles.viewSiteText}>Browse Repository</span>
         </Link>
-      </div>
 
-      {/* Logout */}
-      <div className={styles.footer}>
-        <form action={logoutAction}>
-          <button
-            type="submit"
-            className={styles.logoutBtn}
-            aria-label="Log out"
-            title={isCollapsed ? "Log Out" : undefined}
-          >
-            <LogOut size={16} aria-hidden />
-            <span className={styles.logoutText}>Log Out</span>
-          </button>
-        </form>
+        {/* Icon row: ThemeToggle + Logout */}
+        <div className={styles.footerIconRow}>
+          <ThemeToggle />
+          <form action={logoutAction} className={styles.logoutForm}>
+            <button
+              type="submit"
+              className={styles.logoutBtn}
+              aria-label="Log out"
+              title="Log Out"
+            >
+              <LogOut size={15} aria-hidden />
+              <span className={styles.logoutText}>Log Out</span>
+            </button>
+          </form>
+        </div>
+
+        {/* Email row — always at very bottom, mirrors AI Studio */}
+        <div className={styles.emailRow}>
+          <span className={styles.emailText}>{email}</span>
+        </div>
       </div>
     </aside>
   );

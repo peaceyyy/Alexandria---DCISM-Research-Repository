@@ -117,7 +117,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 7px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
   color: var(--color-text-muted);
@@ -162,7 +162,8 @@
 .collapsed .brandText,
 .collapsed .navText,
 .collapsed .viewSiteText,
-.collapsed .logoutText {
+.collapsed .logoutText,
+.collapsed .emailText {
   width: 0;
   opacity: 0;
   overflow: hidden;
@@ -180,61 +181,136 @@
   padding-inline: 0;
 }
 
-.collapsed .viewSite,
 .collapsed .footer {
   padding-inline: 10px;
 }
 
-/* Browse Repository */
-.viewSite {
-  padding: 8px 12px;
+/* Collapsed: hide email row entirely, keep icon row centred */
+.collapsed .emailRow {
+  display: none;
 }
 
+.collapsed .footerIconRow {
+  justify-content: center;
+}
+
+/* In collapsed mode, ThemeToggle + Logout both become 32px icon squares */
+.collapsed .logoutForm {
+  flex: 0;
+}
+
+.collapsed .logoutBtn {
+  flex: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 10px;
+  gap: 0;
+  overflow: hidden;
+}
+
+.collapsed .viewSiteLink {
+  justify-content: center;
+  padding-inline: 0;
+  border-radius: 10px;
+}
+
+/* Browse Repository */
 .viewSiteLink {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-radius: 7px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 500;
-  color: #969696;
+  color: var(--color-text-muted);
   text-decoration: none;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-separator-mid);
   transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  margin-bottom: 10px;
 }
 
 .viewSiteLink:hover {
-  color: #d8dadc;
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text);
+  border-color: var(--color-separator-mid);
+  background: var(--color-text)/5;
+  background: color-mix(in oklch, var(--color-text) 5%, transparent);
 }
 
-/* Footer / Logout */
+/* Footer */
 .footer {
-  padding: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--color-separator);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/*
+  Icon row: ThemeToggle (fixed 32px) + Logout fills remaining space.
+  Mirrors the filter sidebar accountActions pattern.
+*/
+.footerIconRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.logoutForm {
+  flex: 1;
+  min-width: 0;
+  display: flex;
 }
 
 .logoutBtn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 7px;
-  font-size: 14px;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 500;
-  color: #969696;
+  color: var(--color-text-muted);
   background: transparent;
-  border: none;
+  border: 1px solid var(--color-separator-mid);
   cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .logoutBtn:hover {
-  color: #ff6b6b;
-  background: rgba(255, 107, 107, 0.08);
+  color: var(--color-danger);
+  background: color-mix(in oklch, var(--color-danger) 8%, transparent);
+  border-color: color-mix(in oklch, var(--color-danger) 30%, transparent);
+}
+
+/*
+  Email row — sits at the very bottom of the footer.
+  Mirrors AI Studio’s email label.
+*/
+.emailRow {
+  display: flex;
+  align-items: center;
+  padding: 4px 4px 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.emailText {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  min-width: 0;
+  flex: 1;
 }
 
 @media (max-width: 1023px) {
@@ -263,7 +339,8 @@
   .sidebar.collapsed .brandText,
   .sidebar.collapsed .navText,
   .sidebar.collapsed .viewSiteText,
-  .sidebar.collapsed .logoutText {
+  .sidebar.collapsed .logoutText,
+  .sidebar.collapsed .emailText {
     width: auto;
     opacity: 1;
     overflow: visible;
@@ -280,7 +357,6 @@
     padding-inline: 12px;
   }
 
-  .sidebar.collapsed .viewSite,
   .sidebar.collapsed .footer {
     padding-inline: 12px;
   }

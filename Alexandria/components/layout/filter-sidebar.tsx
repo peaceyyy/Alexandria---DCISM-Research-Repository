@@ -1,9 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { DEPARTMENTS } from "@/lib/domain/departments";
+import {
+  ACADEMIC_UNITS,
+  type AcademicUnitId,
+  type Department,
+} from "@/lib/domain/departments";
 import { RESEARCH_AREAS } from "@/lib/domain/research-areas";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  ChevronDown,
+  FileText,
+  LayoutDashboard,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  Upload,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import type { UserRole } from "@/lib/auth/auth-contract";
+import { getPostAuthDestination } from "@/lib/auth/auth-routing";
+import { getRoleDisplay } from "@/lib/auth/role-display";
+import { AuthInterceptModal } from "@/app/(auth)/_components/auth-intercept-modal";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import styles from "./filter-sidebar.module.css";
 
 type FilterSidebarProps = {
@@ -22,10 +42,28 @@ type FilterSidebarProps = {
   mySubmissionsActive: boolean;
   flaggedSubmissionCount: number;
   onToggleMySubmissions: () => void;
+  role?: UserRole | null;
+  profileName?: string | null;
+  query?: string;
   /** Only relevant on xl+ screens; ignored inside the mobile Dialog drawer */
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
 };
+
+const PROGRAM_LABELS: Record<Department, string> = {
+  CS: "Computer Science",
+  IT: "Information Technology",
+  IS: "Information Systems",
+};
+
+const chipClass = (selected: boolean, accent = "brand") =>
+  cn(
+    styles.filterChip,
+    selected &&
+      (accent === "cyan"
+        ? styles.filterChipCyanSelected
+        : styles.filterChipSelected),
+  );
 
 export default function FilterSidebar({
   className,
@@ -43,40 +81,68 @@ export default function FilterSidebar({
   mySubmissionsActive,
   flaggedSubmissionCount,
   onToggleMySubmissions,
+  role = null,
+  profileName = null,
+  query = "",
   isCollapsed = false,
   onToggleCollapse,
 }: FilterSidebarProps) {
+  const [researchAreasOpen, setResearchAreasOpen] = useState(false);
+  const [academicUnitId, setAcademicUnitId] = useState<AcademicUnitId>("dcism");
+  const display = getRoleDisplay(role);
+  const isPrivileged = role === "admin" || role === "moderator";
+  const accountName = profileName?.trim() || display.label;
+  const academicUnit =
+    ACADEMIC_UNITS.find((unit) => unit.id === academicUnitId) ??
+    ACADEMIC_UNITS[0];
+  const academicUnitLocked = ACADEMIC_UNITS.length === 1;
+
+  const handleAcademicUnitChange = (nextUnitId: AcademicUnitId) => {
+    const nextUnit = ACADEMIC_UNITS.find((unit) => unit.id === nextUnitId);
+    if (!nextUnit) return;
+
+    setAcademicUnitId(nextUnitId);
+    selectedDepartments
+      .filter((program) => !nextUnit.programs.includes(program as Department))
+      .forEach(onToggleDepartment);
+  };
+
   return (
     <aside
       id="filter-sidebar"
       className={cn(
         styles.sidebar,
         isCollapsed && styles.collapsed,
-        "px-3 py-4",
+        "flex h-full flex-col px-3 py-4",
         className,
       )}
-      aria-label="Filter studies"
+      aria-label="Repository navigation and filters"
     >
-      {/* Header row: "Filter" title + toggle button (always in flex flow, never floats) */}
-      <div className={styles.header}>
-        <span
-          className={styles.sectionTitle}
-          aria-hidden={isCollapsed ? true : undefined}
-        >
-          Filter
-        </span>
+      <div className={styles.brandRow}>
+        {!isCollapsed && (
+          <Link
+            href="/home"
+            className={styles.brand}
+            aria-label="Alexandria repository home"
+          >
+            <Image
+              src="/brand/alexandria-mark.svg"
+              width={28}
+              height={28}
+              alt=""
+              className="theme-invert"
+            />
+            <span className={styles.brandName}>ALEXANDRIA</span>
+          </Link>
+        )}
         {onToggleCollapse && (
           <button
             type="button"
             className={styles.collapseButton}
-            aria-label={
-              isCollapsed ? "Expand filter panel" : "Collapse filter panel"
-            }
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!isCollapsed}
             aria-controls="filter-sidebar"
-            title={
-              isCollapsed ? "Expand filter panel" : "Collapse filter panel"
-            }
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             onClick={onToggleCollapse}
           >
             {isCollapsed ? (
@@ -88,83 +154,60 @@ export default function FilterSidebar({
         )}
       </div>
 
-      {/* All filter content — hidden when collapsed */}
-      <div className={styles.body} aria-hidden={isCollapsed ? true : undefined}>
+      <form action="/home" method="get" className={styles.searchForm}>
+        {mySubmissionsActive && <input type="hidden" name="mine" value="1" />}
+        <label className={styles.searchLabel}>
+          <span className="sr-only">Search Alexandria</span>
+          <Search size={15} aria-hidden />
+          <input
+            type="search"
+            name="q"
+            defaultValue={query}
+            placeholder="Search research…"
+          />
+        </label>
+      </form>
+
+      <nav className={styles.workspaceNav} aria-label="Repository workspace">
         {showMySubmissions && (
-          <section
-            className="mb-5 border-y border-[var(--color-separator)] py-3"
-            aria-label="My submissions"
-          >
-            <label className="flex min-h-8 cursor-pointer items-center gap-2 text-xs font-semibold text-[var(--color-text)]">
-              <input
-                type="checkbox"
-                checked={mySubmissionsActive}
-                onChange={onToggleMySubmissions}
-                aria-label="My submissions"
-                tabIndex={isCollapsed ? -1 : undefined}
-              />
-              <span>My submissions</span>
-            </label>
-            {flaggedSubmissionCount > 0 && (
-              <p className="mt-1 pl-5 text-[11px] text-[var(--color-chip-cyan-text)]">
-                {flaggedSubmissionCount} need revision
-              </p>
+          <button
+            type="button"
+            className={cn(
+              styles.workspaceAction,
+              mySubmissionsActive && styles.workspaceActionActive,
             )}
-          </section>
+            onClick={onToggleMySubmissions}
+            aria-pressed={mySubmissionsActive}
+            aria-label="My submissions"
+            title="My submissions"
+          >
+            <FileText size={15} aria-hidden />
+            <span className={styles.workspaceLabel}>My submissions</span>
+            {flaggedSubmissionCount > 0 && (
+              <span className={styles.revisionBadge}>
+                {flaggedSubmissionCount}
+              </span>
+            )}
+          </button>
         )}
+        {isPrivileged && (
+          <Link
+            href={getPostAuthDestination(role ?? undefined)}
+            className={styles.workspaceAction}
+            aria-label="Open dashboard"
+            title="Dashboard"
+          >
+            <LayoutDashboard size={15} aria-hidden />
+            <span className={styles.workspaceLabel}>Dashboard</span>
+          </Link>
+        )}
+      </nav>
 
-        <section className="space-y-6 text-xs text-[var(--color-text)]">
+      <div className={styles.body} aria-hidden={isCollapsed ? true : undefined}>
+        <p className={styles.browseLabel}>Filters</p>
+        <section className={styles.filterSections}>
           <div>
-            <div className="mb-3 font-semibold">Year</div>
-            <div className="flex gap-2">
-              <input
-                value={fromYear}
-                onChange={(e) => setFromYear(e.target.value)}
-                className="w-full rounded border border-[var(--color-separator)] bg-transparent px-2 py-1.5 outline-none text-[var(--color-text)] placeholder:text-[var(--color-placeholder)] focus-visible:border-[var(--color-brand)] focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] transition-all"
-                placeholder="From"
-                tabIndex={isCollapsed ? -1 : undefined}
-              />
-              <input
-                value={toYear}
-                onChange={(e) => setToYear(e.target.value)}
-                className="w-full rounded border border-[var(--color-separator)] bg-transparent px-2 py-1.5 outline-none text-[var(--color-text)] placeholder:text-[var(--color-placeholder)] focus-visible:border-[var(--color-brand)] focus-visible:ring-1 focus-visible:ring-[var(--color-brand)] transition-all"
-                placeholder="To"
-                tabIndex={isCollapsed ? -1 : undefined}
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-3 font-semibold">Research Area</div>
-            <div className="flex flex-wrap gap-2">
-              {RESEARCH_AREAS.map((area) => {
-                const isSelected = selectedResearchAreas.includes(area.id);
-                return (
-                  <label
-                    key={area.id}
-                    className={cn(
-                      "cursor-pointer select-none rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all",
-                      isSelected
-                        ? "border-[var(--color-brand-cyan)] bg-[var(--color-brand-cyan)] text-white shadow-sm"
-                        : "border-[var(--color-separator-mid)] bg-transparent text-[var(--color-text-muted)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text)]",
-                    )}
-                  >
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={isSelected}
-                      onChange={() => onToggleResearchArea(area.id)}
-                      tabIndex={isCollapsed ? -1 : undefined}
-                    />
-                    {area.label}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-3 font-semibold">Study Type</div>
+            <div className={styles.filterHeading}>Study type</div>
             <div className="flex flex-wrap gap-2">
               {[
                 ["thesis", "Thesis"],
@@ -172,15 +215,7 @@ export default function FilterSidebar({
               ].map(([value, label]) => {
                 const isSelected = selectedStudyTypes.includes(value);
                 return (
-                  <label
-                    key={value}
-                    className={cn(
-                      "cursor-pointer select-none rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all",
-                      isSelected
-                        ? "border-[var(--color-brand)] bg-[var(--color-brand)] text-white shadow-sm"
-                        : "border-[var(--color-separator-mid)] bg-transparent text-[var(--color-text-muted)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text)]",
-                    )}
-                  >
+                  <label key={value} className={chipClass(isSelected)}>
                     <input
                       type="checkbox"
                       className="sr-only"
@@ -196,20 +231,40 @@ export default function FilterSidebar({
           </div>
 
           <div>
-            <div className="mb-3 font-semibold">Department</div>
-            <div className="flex flex-wrap gap-2">
-              {DEPARTMENTS.map((department) => {
+            <label className={styles.filterHeading} htmlFor="academic-unit">
+              School
+            </label>
+            <select
+              id="academic-unit"
+              value={academicUnit.id}
+              disabled={academicUnitLocked}
+              onChange={(event) =>
+                handleAcademicUnitChange(event.target.value as AcademicUnitId)
+              }
+              className={styles.academicUnitSelect}
+              aria-describedby="academic-unit-help"
+              tabIndex={isCollapsed ? -1 : undefined}
+            >
+              {ACADEMIC_UNITS.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.label}
+                </option>
+              ))}
+            </select>
+            <p id="academic-unit-help" className={styles.contextNote}>
+              {academicUnitLocked
+                ? "This MVP only covers the DCISM department for now."
+                : "You can filter by department and sub-department"}
+            </p>
+          </div>
+
+          <div>
+            <div className={styles.filterHeading}>Program</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {academicUnit.programs.map((department) => {
                 const isSelected = selectedDepartments.includes(department);
                 return (
-                  <label
-                    key={department}
-                    className={cn(
-                      "cursor-pointer select-none rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all",
-                      isSelected
-                        ? "border-[var(--color-brand)] bg-[var(--color-brand)] text-white shadow-sm"
-                        : "border-[var(--color-separator-mid)] bg-transparent text-[var(--color-text-muted)] hover:border-[var(--color-text-muted)] hover:text-[var(--color-text)]",
-                    )}
-                  >
+                  <label key={department} className={chipClass(isSelected)}>
                     <input
                       type="checkbox"
                       className="sr-only"
@@ -217,14 +272,117 @@ export default function FilterSidebar({
                       onChange={() => onToggleDepartment(department)}
                       tabIndex={isCollapsed ? -1 : undefined}
                     />
-                    {department}
+                    {PROGRAM_LABELS[department]}
                   </label>
                 );
               })}
             </div>
           </div>
+
+          <div>
+            <div className={styles.filterHeading}>Year</div>
+            <div className="flex gap-2">
+              <input
+                value={fromYear}
+                onChange={(event) => setFromYear(event.target.value)}
+                className={styles.yearInput}
+                placeholder="From"
+                inputMode="numeric"
+                tabIndex={isCollapsed ? -1 : undefined}
+              />
+              <input
+                value={toYear}
+                onChange={(event) => setToYear(event.target.value)}
+                className={styles.yearInput}
+                placeholder="To"
+                inputMode="numeric"
+                tabIndex={isCollapsed ? -1 : undefined}
+              />
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              className={styles.disclosure}
+              onClick={() => setResearchAreasOpen((open) => !open)}
+              aria-expanded={researchAreasOpen}
+              tabIndex={isCollapsed ? -1 : undefined}
+            >
+              <span>
+                Research area
+                {selectedResearchAreas.length > 0 &&
+                  ` (${selectedResearchAreas.length})`}
+              </span>
+              <ChevronDown
+                size={14}
+                aria-hidden
+                className={cn(researchAreasOpen && "rotate-180")}
+              />
+            </button>
+            {researchAreasOpen && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {RESEARCH_AREAS.map((area) => {
+                  const isSelected = selectedResearchAreas.includes(area.id);
+                  return (
+                    <label
+                      key={area.id}
+                      className={chipClass(isSelected, "cyan")}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={isSelected}
+                        onChange={() => onToggleResearchArea(area.id)}
+                        tabIndex={isCollapsed ? -1 : undefined}
+                      />
+                      {area.label}
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
       </div>
+
+      <footer className={styles.accountArea}>
+        <div className={styles.accountActions}>
+          <ThemeToggle />
+          {!role ? (
+            <AuthInterceptModal
+              iconOnly={isCollapsed}
+              triggerClassName={styles.contributeButton}
+            />
+          ) : !isPrivileged ? (
+            <Link
+              href="/upload"
+              className={
+                isCollapsed
+                  ? styles.contributeLinkIcon
+                  : styles.contributeButton
+              }
+              aria-label="Contribute a thesis"
+              title="Contribute"
+            >
+              <Upload size={14} aria-hidden />
+              {!isCollapsed && <span>Contribute</span>}
+            </Link>
+          ) : null}
+        </div>
+
+        <Link
+          href={role ? "/profile" : "/login"}
+          className={cn(styles.accountLink, display.className)}
+          aria-label={role ? `Open profile for ${accountName}` : "Sign in"}
+          title={accountName}
+        >
+          <span className={styles.roleMarker} aria-hidden>
+            {display.abbreviation}
+          </span>
+          <span className={styles.accountName}>{accountName}</span>
+        </Link>
+      </footer>
     </aside>
   );
 }

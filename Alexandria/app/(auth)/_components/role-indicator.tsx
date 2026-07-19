@@ -1,28 +1,62 @@
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import type { UserRole } from "@/lib/auth/auth-contract";
 import { getPostAuthDestination } from "@/lib/auth/auth-routing";
 import { getRoleDisplay } from "@/lib/auth/role-display";
 
-export function RoleIndicator({ role }: { role?: UserRole | null }) {
+export function RoleIndicator({
+  role,
+  className,
+  iconOnly = false,
+  stretch = false,
+}: {
+  role?: UserRole | null;
+  className?: string;
+  iconOnly?: boolean;
+  stretch?: boolean;
+}) {
   const display = getRoleDisplay(role);
   const isPrivileged = role === "admin" || role === "moderator";
 
+  /* Icon-only: just the abbreviation circle, centred, no label or dashboard link. */
+  if (iconOnly) {
+    return (
+      <Link
+        href={role ? "/profile" : "/login"}
+        aria-label={`Current access role: ${display.label}`}
+        title={display.label}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-full border ${display.className} transition-colors hover:brightness-125`}
+      >
+        <span
+          aria-hidden="true"
+          className="grid h-6 w-6 place-items-center rounded-full bg-black/20 text-[10px] font-black"
+        >
+          {display.abbreviation}
+        </span>
+      </Link>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-2">
+    <div className={cn("flex items-center gap-2", stretch && "w-full", className)}>
       {/* Role pill → links to profile */}
       <Link
         href={role ? "/profile" : "/login"}
         aria-label={`Current access role: ${display.label}`}
         title={`Current access role: ${display.label}`}
-        className={`inline-flex min-h-9 items-center gap-2 rounded-full border px-2.5 pr-3 text-xs font-semibold transition-colors hover:brightness-125 ${display.className}`}
+        className={cn(
+          "inline-flex min-h-8 items-center gap-2 rounded-full border px-2.5 pr-3 text-xs font-semibold transition-colors hover:brightness-125",
+          display.className,
+          stretch && "flex-1 min-w-0",
+        )}
       >
         <span
           aria-hidden="true"
-          className="grid h-6 min-w-6 place-items-center rounded-full bg-black/20 px-1 text-[10px] font-black"
+          className="grid h-6 min-w-6 place-items-center rounded-full bg-black/20 px-1 text-[10px] font-black flex-shrink-0"
         >
           {display.abbreviation}
         </span>
-        <span>{display.label}</span>
+        <span className="truncate">{display.label}</span>
       </Link>
 
       {/* Dashboard shortcut — only for admin and moderator */}
