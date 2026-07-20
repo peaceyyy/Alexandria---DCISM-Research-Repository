@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AppHeader } from "@/components/layout/app-header";
 import { logoutAction } from "@/lib/auth/actions";
 import {
   formatMemberSince,
@@ -10,6 +9,7 @@ import {
 } from "@/lib/auth/profile-display";
 import { getRoleDisplay } from "@/lib/auth/role-display";
 import type { CurrentUser } from "@/lib/services/types";
+import { ContextHeader, ContextSidebar } from "@/components/layout/context-sidebar";
 
 export function ProfilePage({
   user,
@@ -25,13 +25,20 @@ export function ProfilePage({
   const initial = user.profile_name.trim().charAt(0).toUpperCase() || "A";
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
-      {!isStaffWorkspace ? <AppHeader role={user.role} /> : null}
-
-
+    <div className={`min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] ${
+      isStaffWorkspace ? "" : "xl:grid xl:grid-cols-[240px_minmax(0,1fr)]"
+    }`}>
+      {!isStaffWorkspace ? <ContextHeader role={user.role} active="profile" /> : null}
+      {!isStaffWorkspace ? (
+        <ContextSidebar
+          role={user.role}
+          profileName={user.profile_name}
+          active="profile"
+        />
+      ) : null}
       <div
         className={`mx-auto flex max-w-6xl items-center px-5 py-12 sm:px-8 lg:py-16 ${
-          isStaffWorkspace ? "min-h-svh" : "min-h-[calc(100vh-65px)]"
+          isStaffWorkspace ? "min-h-svh" : "min-h-[calc(100vh-56px)] xl:min-h-svh"
         }`}
       >
         <section

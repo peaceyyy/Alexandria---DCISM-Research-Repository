@@ -629,18 +629,24 @@ Consequences:
 - Role capability checks are enforced both in the UI rendering and server-side layouts.
 - Replaces the generic post-auth repository redirect stub.
 
-### Decision 042: Standardize Header Architecture
+### Decision 042: Standardize Application Navigation Shells
 
 Status: Accepted
 
-Context: The header layout and design were previously fragmented across pages (e.g. `/`, `/home`, `/profile`), resulting in inconsistent padding, search bar styles, and redundant code. The design also called for a flush-left, GitHub-style search bar.
+Context: The header layout and design were previously fragmented across pages (e.g. `/`, `/home`, `/profile`), resulting in inconsistent padding, search bar styles, and redundant code. The repository browse page has since moved to a sidebar-led workspace, so a single global header is no longer the correct interaction model for every application route.
 
-Decision: Use a standardized header component system: `MinimalHeader` for non-app landing pages (e.g. `/`, `/login`), and `AppHeader` for all core application pages (e.g. `/home`, `/profile`, `/admin/*`).
+Decision: Standardize by task context rather than forcing identical chrome on every route:
+
+- Use `MinimalHeader` for landing and authentication surfaces.
+- Use the repository sidebar with search and filters only for `/home`.
+- Use `ContextSidebar` for public contextual pages such as thesis detail and member profile. It retains brand, return/browse navigation, account controls, staff dashboard access, and theme controls, but intentionally omits filters and search.
+- Use focused task headers for upload and correction workflows.
+- Keep the separate role-aware admin sidebar for `/admin/*`.
 
 Consequences:
-- Inline `<header>` elements must not be used on individual pages.
-- `AppHeader` takes a `role` prop to conditionally render role-specific navigation indicators (e.g., "Dashboard ->").
-- The global GitHub-style flush-left search bar design is defined centrally in `AppHeader`. Any layout tweaks or visual enhancements automatically apply globally across the repository interface.
+- Consistency means preserving orientation and account access, not repeating irrelevant controls such as repository filters on a thesis-reading page.
+- Search and filters belong to the browse workspace; contextual and task pages should offer a clear route back to it instead.
+- Role-aware dashboard access remains available in the contextual sidebar for staff users.
 
 ## 2026-07-01
 

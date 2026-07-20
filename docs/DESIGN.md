@@ -232,7 +232,7 @@ Cards should feel like rows in a research index, not marketing cards. Avoid larg
 
 ### Selected Paper Page
 
-Use the same shell as the main page. The selected state should replace the list area with one focused content panel, while preserving filters and FAQ context. Include a compact Back affordance near the top of the content area.
+Use the same application shell as the main page, but switch the left rail from repository browsing controls to contextual reading navigation. The selected state should replace the list area with one focused content panel while preserving the right-side knowledge-transfer rail. Include a compact Back affordance to the browse results. Do not show repository filters or search while the reader is viewing one thesis.
 
 ## Interaction States
 

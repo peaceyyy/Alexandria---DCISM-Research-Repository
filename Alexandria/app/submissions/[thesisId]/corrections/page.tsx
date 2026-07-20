@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { AppHeader } from "@/components/layout/app-header";
 import { getCurrentUser } from "@/lib/services/auth-service";
 import { getOwnSubmissionForCorrection } from "@/lib/services/review-service";
 import { MemberCorrectionClient } from "./member-correction-client";
+import { TaskHeader } from "@/components/layout/task-header";
 
 function parseThesisId(value: string) {
   const thesisId = Number(value);
@@ -54,7 +54,7 @@ export default async function MemberCorrectionPage({
 
   return (
     <main className="min-h-screen bg-[var(--color-surface)] text-[var(--color-text)]">
-      <AppHeader role={user.role} />
+      <TaskHeader backHref="/home?mine=1" backLabel="My submissions" />
       <MemberCorrectionClient initialSubmission={submission} />
     </main>
   );

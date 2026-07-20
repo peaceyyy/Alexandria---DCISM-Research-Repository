@@ -1,4 +1,3 @@
-import { AppHeader } from "@/components/layout/app-header";
 import { getCurrentUser } from "@/lib/services/auth-service";
 import { getThesisById } from "@/lib/services/thesis-service";
 import Link from "next/link";
@@ -6,6 +5,7 @@ import DetailsSidebar from "@/components/layout/details-sidebar";
 import { RecommendationsPreview } from "@/components/layout/recommendations-preview";
 import { ExternalLink, ArrowLeft } from "lucide-react";
 import { getResearchAreaLabel } from "@/lib/domain/research-areas";
+import { ContextHeader, ContextSidebar } from "@/components/layout/context-sidebar";
 
 function splitList(value: string | null) {
   return value
@@ -62,8 +62,20 @@ export default async function ThesisDetails({
 
   return (
     <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] xl:h-screen xl:overflow-hidden">
-      <AppHeader role={role} />
-      <div className="grid grid-cols-1 xl:h-[calc(100vh-4rem)] xl:grid-cols-[minmax(0,1fr)_320px]">
+      <ContextHeader
+        role={role}
+        active="detail"
+        returnHref={isMySubmissionView ? "/home?mine=1" : "/home"}
+        returnLabel="Back to results"
+      />
+      <div className="grid grid-cols-1 xl:h-screen xl:grid-cols-[240px_minmax(0,1fr)_320px]">
+        <ContextSidebar
+          role={role}
+          profileName={userResult.data?.profile_name}
+          active="detail"
+          returnHref={isMySubmissionView ? "/home?mine=1" : "/home"}
+          returnLabel="Back to results"
+        />
 
         <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:border-r xl:border-white/15 xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* this section contains the back button, title, authors, abstract, keywords/tags, pdf viewer */}
