@@ -99,7 +99,7 @@ export function DatePicker({ value, onChange, max, error }: DatePickerProps) {
           collisionAvoidance={{
             side: "flip",
             align: "shift",
-            fallbackAxisSide: "top",
+            fallbackAxisSide: "start",
           }}
         >
           <Popover.Popup

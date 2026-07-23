@@ -121,6 +121,8 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
       conference: thesis.conference,
       recommendations: thesis.recommendations,
       lessons_learned: thesis.lessons_learned,
+      reviewStatus: thesis.review_status,
+      submittedByUserId: user.id,
       authors: thesis.thesis_authors.map((a: any) => ({
         id: a.id,
         user_id: a.user_id,

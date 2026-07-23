@@ -73,7 +73,8 @@ const formSchema = z.object({
   }
 });
 
-type FormValues = z.infer<typeof formSchema>;
+type FormInput = z.input<typeof formSchema>;
+type FormValues = z.output<typeof formSchema>;
 
 export function SubmissionPopupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,7 +88,7 @@ export function SubmissionPopupPage() {
     handleSubmit,
     setValue,
     formState: { errors },
-  } = useForm<FormValues>({
+  } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
