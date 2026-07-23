@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { Camera } from "lucide-react";
 import { logoutAction } from "@/lib/auth/actions";
 import {
   formatMemberSince,
@@ -41,14 +41,14 @@ export function ProfilePage({
       >
         <section
           aria-labelledby="profile-heading"
-          className="w-full rounded-[7px] border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-[0_24px_70px_rgba(0,0,0,0.22)]"
+          className="w-full rounded-[7px] border border-[var(--color-separator)] bg-[var(--color-surface)]"
         >
-          <div className="flex items-center justify-between border-b border-[var(--color-border-subtle)] px-6 py-5 sm:px-8">
+          <div className="flex items-center justify-between border-b border-[var(--color-separator)] px-6 py-5 sm:px-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-text-muted)]">
                 Account
               </p>
-              <h1 id="profile-heading" className="mt-1 text-xl font-semibold">
+              <h1 id="profile-heading" className="mt-1 text-xl font-semibold tracking-tight">
                 Profile
               </h1>
             </div>
@@ -67,53 +67,61 @@ export function ProfilePage({
             </div>
           ) : null}
 
-          <div className="grid gap-10 p-6 sm:p-8 md:grid-cols-[220px_minmax(0,1fr)] md:items-center lg:gap-14 lg:p-12">
+          <div className="grid gap-10 p-6 sm:p-8 md:grid-cols-[220px_minmax(0,1fr)] md:items-start lg:gap-14 lg:p-12">
             <div className="mx-auto flex flex-col items-center">
-              <div className="grid h-44 w-44 place-items-center rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-surface-alt)] shadow-[inset_0_0_0_8px_var(--color-border-subtle)] sm:h-48 sm:w-48">
+              <div className="group relative grid h-28 w-28 place-items-center rounded-full border border-[var(--color-separator-mid)] bg-[var(--color-surface-alt)] sm:h-32 sm:w-32">
                 <span
                   aria-hidden="true"
-                  className="text-6xl font-light tracking-[-0.06em] text-[var(--color-text)]"
+                  className="text-4xl font-light tracking-[-0.06em] text-[var(--color-text)] sm:text-5xl"
                 >
                   {initial}
                 </span>
+                
+                {/* Upload Affordance */}
+                <div 
+                  className="absolute inset-0 flex cursor-not-allowed items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity group-hover:opacity-100" 
+                  title="Avatar upload unavailable"
+                >
+                  <Camera className="h-6 w-6 text-white/80" />
+                </div>
               </div>
               <span
-                className={`mt-5 inline-flex min-h-8 items-center rounded-full border px-3 text-xs font-bold uppercase tracking-[0.12em] ${role.className}`}
+                className={`mt-5 inline-flex min-h-8 items-center rounded-full border px-3 text-[11px] font-bold uppercase tracking-[0.12em] ${role.className}`}
               >
                 {role.label}
               </span>
             </div>
 
             <div className="min-w-0">
-              <div className="border-b border-[var(--color-border-subtle)] pb-6">
-                <p className="text-sm text-[var(--color-text-muted)]">Signed in as</p>
+              <div className="border-b border-[var(--color-separator)] pb-6">
+                <p className="text-[13px] font-medium text-[var(--color-text-muted)]">Signed in as</p>
                 <h2 className="mt-1 truncate text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
                   {user.profile_name}
                 </h2>
               </div>
 
-              <dl className="grid gap-x-8 gap-y-4 border-b border-[var(--color-border-subtle)] py-6 text-sm sm:grid-cols-[140px_minmax(0,1fr)]">
-                <dt className="text-[var(--color-text-muted)]">Email</dt>
-                <dd className="break-all text-[var(--color-text)] sm:text-right">
+              <dl className="grid gap-x-8 gap-y-6 border-b border-[var(--color-separator)] py-8 text-[14px] sm:grid-cols-[140px_minmax(0,1fr)]">
+                <dt className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-text-muted)] sm:mt-0.5">Email</dt>
+                <dd className="break-all font-medium text-[var(--color-text)]">
                   {user.email}
                 </dd>
 
-                <dt className="text-[var(--color-text-muted)]">Affiliation</dt>
-                <dd className="text-[var(--color-text)] sm:text-right">
+                <dt className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-text-muted)] sm:mt-0.5">Affiliation</dt>
+                <dd className="font-medium text-[var(--color-text)]">
                   {getAffiliationLabel(user.affiliation)}
                 </dd>
 
-                <dt className="text-[var(--color-text-muted)]">Member since</dt>
-                <dd className="text-[var(--color-text)] sm:text-right">
+                <dt className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-text-muted)] sm:mt-0.5">Member since</dt>
+                <dd className="font-medium text-[var(--color-text)]">
                   {formatMemberSince(user.created_at)}
                 </dd>
 
-                <dt className="text-[var(--color-text-muted)]">Access</dt>
-                <dd className="flex flex-wrap gap-2 sm:justify-end">
+                <dt className="text-[12px] font-semibold uppercase tracking-[0.05em] text-[var(--color-text-muted)] sm:mt-1">Access</dt>
+                <dd className="flex flex-wrap gap-2">
                   {accessLevels.map((level) => (
                     <span
                       key={level}
-                      className="rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-text)]/5 px-2.5 py-1 text-xs font-medium text-[var(--color-text)]"
+                      className="rounded-md border border-[var(--color-separator-mid)] bg-[var(--color-surface-alt)] px-2.5 py-1 text-[12px] font-medium text-[var(--color-text-muted)]"
                     >
                       {level}
                     </span>
@@ -121,20 +129,20 @@ export function ProfilePage({
                 </dd>
               </dl>
 
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <button
                   type="button"
                   disabled
                   title="Password changes are not available yet"
-                  className="inline-flex min-h-11 cursor-not-allowed items-center justify-center rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-text)]/5 px-6 text-sm font-semibold text-[var(--color-text-muted)]"
+                  className="inline-flex min-h-[40px] cursor-not-allowed items-center justify-center rounded-md border border-[var(--color-separator)] bg-[var(--color-surface-alt)] px-6 text-[14px] font-medium text-[var(--color-text)] opacity-60"
                 >
-                  Change Password
+                  Change Password <span className="ml-2 text-[12px] font-normal text-[var(--color-text-muted)]">(Unavailable)</span>
                 </button>
 
                 <form action={logoutAction}>
                   <button
                     type="submit"
-                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-[#d73a3a] px-8 text-sm font-semibold text-white transition-colors hover:bg-[#e64646] sm:w-auto"
+                    className="inline-flex min-h-[40px] w-full items-center justify-center rounded-md border border-[var(--color-danger)]/40 bg-transparent px-8 text-[14px] font-medium text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger)]/10 sm:w-auto"
                   >
                     Log Out
                   </button>

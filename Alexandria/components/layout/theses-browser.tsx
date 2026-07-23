@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import type React from "react";
 import Image from "next/image";
-import { LayoutGrid, List, PanelLeftOpen } from "lucide-react";
+import { FileText, LayoutGrid, List, PanelLeftOpen } from "lucide-react";
 import FaqRail from "@/components/layout/faq";
 import FilterSidebar from "@/components/layout/filter-sidebar";
 import Link from "next/link";
@@ -238,12 +238,62 @@ export default function ThesesBrowser({
 
       <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="mx-auto w-full max-w-4xl">
-          <div className="mb-5 flex items-center justify-between gap-4 border-b border-[var(--color-separator)] pb-4">
-            <p className="text-xs font-medium text-[var(--color-text-muted)]">
-              {filteredItems.length} {filteredItems.length === 1 ? "study" : "studies"}
-            </p>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+              {/* Left: Scope Segmented Control */}
+              {showMySubmissions ? (
+                <div
+                  className="inline-flex overflow-hidden rounded-md border border-[var(--color-separator)] bg-[var(--color-text)]/[0.02] p-0.5"
+                  role="group"
+                  aria-label="Repository scope"
+                >
+                  <button
+                    type="button"
+                    onClick={() => isMySubmissions && toggleMySubmissions()}
+                    aria-pressed={!isMySubmissions}
+                    className={`inline-flex items-center gap-2 rounded px-3 py-1 text-[13px] font-semibold transition-colors ${
+                      !isMySubmissions
+                        ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] border border-[var(--color-separator)]"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent"
+                    }`}
+                  >
+                    All Research
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => !isMySubmissions && toggleMySubmissions()}
+                    aria-pressed={isMySubmissions}
+                    className={`inline-flex items-center gap-2 rounded px-3 py-1 text-[13px] font-semibold transition-colors ${
+                      isMySubmissions
+                        ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] border border-[var(--color-separator)]"
+                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent"
+                    }`}
+                  >
+                    <FileText size={14} aria-hidden />
+                    My Submissions
+                    {flaggedSubmissionCount > 0 && (
+                      <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-danger)] px-1 text-[9px] font-bold text-white">
+                        {flaggedSubmissionCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <h1 className="text-[15px] font-bold tracking-tight text-[var(--color-text)]">
+                  All Research
+                </h1>
+              )}
+
+              {/* Count (Inline on desktop) */}
+              <div className="hidden h-4 w-px bg-[var(--color-separator)] sm:block" aria-hidden />
+              <p className="text-[13px] font-medium text-[var(--color-text-muted)]">
+                {filteredItems.length} {filteredItems.length === 1 ? "study" : "studies"}
+              </p>
+            </div>
+
+            {/* Right: View Toggles */}
             <div
-              className="inline-flex rounded-md border border-[var(--color-separator)] bg-[var(--color-text)]/[0.025] p-0.5"
+              className="inline-flex flex-shrink-0 rounded-md border border-[var(--color-separator)] bg-[var(--color-text)]/[0.02] p-0.5 self-start sm:self-auto"
               role="group"
               aria-label="Result density"
             >
@@ -261,13 +311,13 @@ export default function ThesesBrowser({
                     aria-pressed={active}
                     aria-label={label}
                     title={label}
-                    className={`rounded text-[var(--color-text-muted)] ${
+                    className={`rounded text-[var(--color-text-muted)] h-7 w-7 ${
                       active
                         ? "bg-[var(--color-text)]/10 text-[var(--color-text)]"
                         : "hover:text-[var(--color-text)]"
                     }`}
                   >
-                    <Icon size={15} strokeWidth={1.8} aria-hidden />
+                    <Icon size={14} strokeWidth={2} aria-hidden />
                   </Button>
                 );
               })}

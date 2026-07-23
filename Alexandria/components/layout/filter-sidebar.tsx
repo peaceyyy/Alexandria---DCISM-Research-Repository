@@ -163,30 +163,6 @@ export default function FilterSidebar({
         </label>
       </form>
 
-      <nav className={styles.workspaceNav} aria-label="Repository workspace">
-        {showMySubmissions && (
-          <button
-            type="button"
-            className={cn(
-              styles.workspaceAction,
-              mySubmissionsActive && styles.workspaceActionActive,
-            )}
-            onClick={onToggleMySubmissions}
-            aria-pressed={mySubmissionsActive}
-            aria-label="My submissions"
-            title="My submissions"
-          >
-            <FileText size={15} aria-hidden />
-            <span className={styles.workspaceLabel}>My submissions</span>
-            {flaggedSubmissionCount > 0 && (
-              <span className={styles.revisionBadge}>
-                {flaggedSubmissionCount}
-              </span>
-            )}
-          </button>
-        )}
-      </nav>
-
       <div className={styles.body} aria-hidden={isCollapsed ? true : undefined}>
         <p className={styles.browseLabel}>Filters</p>
         <section className={styles.filterSections}>
