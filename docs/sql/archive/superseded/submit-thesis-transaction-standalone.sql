@@ -1,5 +1,5 @@
 -- Standalone reference for the secured submission RPC.
--- The deployable definition is also included in admin_dashboard_backend.sql so
+-- The deployable definition is also included in changes/admin-dashboard-backend.sql so
 -- the inspected MVP migration can be applied atomically.
 
 DROP FUNCTION IF EXISTS public.submit_thesis_transaction(jsonb);

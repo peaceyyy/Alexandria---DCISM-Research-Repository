@@ -13,7 +13,7 @@
 --   - Existing RLS policies remain unchanged by this migration.
 --
 -- Apply only after human and database-owner review. Then run
--- admin_activity_context_postflight.sql against the same Supabase project.
+-- checks/postflight/admin-activity-context.sql against the same Supabase project.
 
 BEGIN;
 

@@ -60,7 +60,6 @@ CREATE TABLE public.thesis_audits (
   changed_by_user_id uuid NOT NULL,
   change_description text,
   event text CHECK (event IS NULL OR (event = ANY (ARRAY['submitted'::text, 'comment_added'::text, 'comment_addressed'::text, 'status_changed'::text, 'metadata_edited'::text, 'pdf_replaced'::text, 'resubmitted'::text]))),
-  change_details jsonb,
   CONSTRAINT thesis_audits_pkey PRIMARY KEY (id),
   CONSTRAINT thesis_audits_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id),
   CONSTRAINT thesis_audits_changed_by_user_id_fkey FOREIGN KEY (changed_by_user_id) REFERENCES public.users(id)

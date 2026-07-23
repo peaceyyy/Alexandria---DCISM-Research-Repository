@@ -1,5 +1,5 @@
 -- Hotfix: avoid PostgreSQL CURRENT_ROLE keyword ambiguity in role updates.
--- Safe to run after docs/sql/admin_dashboard_backend.sql.
+-- Historical note: this was safe to run after changes/admin-dashboard-backend.sql.
 
 BEGIN;
 

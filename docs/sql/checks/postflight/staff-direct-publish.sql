@@ -1,4 +1,4 @@
--- Read-only verification for staff_direct_publish_backend.sql.
+-- Historical read-only verification for archive/superseded/staff-direct-publish-backend.sql.
 -- Run after the modifying script commits successfully.
 
 SELECT jsonb_pretty(

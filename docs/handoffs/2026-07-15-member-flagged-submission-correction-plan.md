@@ -156,7 +156,7 @@ The summary is informational only; it is not a transition guard.
 
 ### Phase 1: Freeze contracts and database behavior
 
-1. Update `docs/sql/review_feedback_backend.sql` with the revision-evidence
+1. Update `docs/sql/changes/review-feedback-backend.sql` with the revision-evidence
    column, compatible indexes, and comments documenting the new semantics.
 2. Update `update_flagged_submission` to calculate true changed field keys in
    its transaction, then stamp only matching pre-existing review comments.

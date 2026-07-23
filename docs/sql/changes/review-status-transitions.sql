@@ -1,4 +1,4 @@
-  -- Run only after review_status_transition_preflight.sql has been reviewed.
+-- Run only after checks/preflight/review-status-transitions.sql has been reviewed.
   -- Applies admin-only reversible trash behavior. A flagged submission returns to
   -- pending review only through the member-only resubmit_flagged_submission RPC.
 
