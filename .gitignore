@@ -1,3 +1,7 @@
 /.vscode
 node_modules/
 .next/
+.agents/
+.agent/
+.demo
+*.env
