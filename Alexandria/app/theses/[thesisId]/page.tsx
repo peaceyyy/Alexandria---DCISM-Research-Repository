@@ -5,7 +5,7 @@ import DetailsSidebar from "@/components/layout/details-sidebar";
 import { RecommendationsPreview } from "@/components/layout/recommendations-preview";
 import { ExternalLink, ArrowLeft } from "lucide-react";
 import { ResearchAreaChip } from "@/components/ui/research-area-chip";
-import { ContextSidebar } from "@/components/layout/context-sidebar";
+import { WorkspaceSidebar } from "@/components/layout/workspace-sidebar";
 
 function splitList(value: string | null) {
   return value
@@ -16,12 +16,20 @@ function splitList(value: string | null) {
     : [];
 }
 
+function getSafeReturnHref(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) return null;
+
+  const parsed = new URL(candidate, "https://alexandria.local");
+  return parsed.pathname === "/home" ? `${parsed.pathname}${parsed.search}` : null;
+}
+
 export default async function ThesisDetails({
   params,
   searchParams,
 }: {
   params: Promise<{ thesisId: string }>;
-  searchParams: Promise<{ mine?: string | string[] }>;
+  searchParams: Promise<{ mine?: string | string[]; returnTo?: string | string[] }>;
 }) {
   const { thesisId } = await params;
   const query = await searchParams;
@@ -50,8 +58,9 @@ export default async function ThesisDetails({
 
   const thesis = thesisResult.data;
   const researchAreas = splitList(thesis.research_area);
-  const isMySubmissionView =
-    (Array.isArray(query.mine) ? query.mine[0] : query.mine) === "1";
+  const legacyMineView = (Array.isArray(query.mine) ? query.mine[0] : query.mine) === "1";
+  const returnHref = getSafeReturnHref(query.returnTo) ?? (legacyMineView ? "/home?mine=1" : "/home");
+  const isMySubmissionView = new URL(returnHref, "https://alexandria.local").searchParams.get("mine") === "1";
   const isOwnSubmission = thesis.submittedByUserId === userResult.data?.id;
   const ownerStatus =
     isMySubmissionView &&
@@ -63,19 +72,13 @@ export default async function ThesisDetails({
   return (
     <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] xl:h-screen xl:overflow-hidden">
       <div className="grid grid-cols-1 xl:h-screen xl:grid-cols-[auto_minmax(0,1fr)_320px] motion-safe:xl:transition-[grid-template-columns] motion-safe:xl:duration-200">
-        <ContextSidebar
-          role={role}
-          profileName={userResult.data?.profile_name}
-          active="detail"
-          returnHref={isMySubmissionView ? "/home?mine=1" : "/home"}
-          returnLabel="Back to results"
-        />
+        <WorkspaceSidebar role={role} profileName={userResult.data?.profile_name} />
 
         <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:border-r xl:border-white/15 xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* this section contains the back button, title, authors, abstract, keywords/tags, pdf viewer */}
 
           <Link
-            href={isMySubmissionView ? "/home?mine=1" : "/home"}
+            href={returnHref}
             className="mb-6 inline-flex h-9 items-center gap-2 rounded-full border border-[var(--color-separator-mid)] px-3 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand-bright)]/35 hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30"
           >
             <ArrowLeft size={15} aria-hidden />

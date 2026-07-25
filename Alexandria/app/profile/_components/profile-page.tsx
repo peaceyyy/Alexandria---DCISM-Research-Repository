@@ -7,7 +7,7 @@ import {
 } from "@/lib/auth/profile-display";
 import { getRoleDisplay } from "@/lib/auth/role-display";
 import type { CurrentUser } from "@/lib/services/types";
-import { ContextSidebar } from "@/components/layout/context-sidebar";
+import { WorkspaceSidebar } from "@/components/layout/workspace-sidebar";
 import { BackLink } from "@/components/ui/back-link";
 
 export function ProfilePage({
@@ -28,11 +28,7 @@ export function ProfilePage({
       isStaffWorkspace ? "" : "xl:grid xl:grid-cols-[auto_minmax(0,1fr)] motion-safe:xl:transition-[grid-template-columns] motion-safe:xl:duration-200"
     }`}>
       {!isStaffWorkspace ? (
-        <ContextSidebar
-          role={user.role}
-          profileName={user.profile_name}
-          active="profile"
-        />
+        <WorkspaceSidebar role={user.role} profileName={user.profile_name} />
       ) : null}
       <div
         className={`mx-auto flex max-w-6xl items-center px-5 py-12 sm:px-8 lg:py-16 ${

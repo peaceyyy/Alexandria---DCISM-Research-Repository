@@ -8,6 +8,8 @@ import { getTheses } from "@/lib/services/thesis-service";
 import type { MySubmissionListItem } from "@/lib/services/types";
 import { SubmissionBanner } from "./_components/submission-banner";
 
+import { publicThesisSearchSchema } from "@/lib/services/search-parsers";
+
 function firstValue(value?: string | string[]) {
   return Array.isArray(value) ? value[0] : value;
 }
@@ -37,25 +39,32 @@ function mapOwnSubmission(item: MySubmissionListItem): BrowseThesisItem {
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    mine?: string | string[];
-    q?: string | string[];
-  }>;
+  searchParams: Promise<Record<string, string | string[]>>;
 }) {
   const params = await searchParams;
-  const query = firstValue(params.q)?.trim() ?? "";
+  const parsed = publicThesisSearchSchema.parse(params);
+  
   const userResult = await getCurrentUser();
   const user = userResult.data;
-  const requestedOwnSubmissions = firstValue(params.mine) === "1";
+  const requestedOwnSubmissions = parsed.mine === "1";
   const showOwnSubmissions = requestedOwnSubmissions && Boolean(user);
 
   const [publicThesesResult, ownSubmissionsResult, flaggedSubmissionsResult] =
     await Promise.all([
       showOwnSubmissions
         ? Promise.resolve(null)
-        : getTheses({ limit: 100, q: query || undefined }),
+        : getTheses({
+            limit: 100,
+            q: parsed.q,
+            year_from: parsed.from,
+            year_to: parsed.to,
+            department: parsed.department,
+            research_area: parsed.area,
+            study_type: parsed.type,
+            tag: parsed.tag,
+          }),
       showOwnSubmissions
-        ? listOwnSubmissions({ q: query || undefined })
+        ? listOwnSubmissions({ q: parsed.q, status: parsed.status ?? "all" })
         : Promise.resolve(null),
       user ? listOwnSubmissions({ status: "flagged" }) : Promise.resolve(null),
     ]);
@@ -65,6 +74,7 @@ export default async function HomePage({
     ? (ownSubmissionsResult?.data ?? []).map(mapOwnSubmission)
     : publicThesesResult?.data ?? [];
   const flaggedSubmissionCount = flaggedSubmissionsResult?.data?.length ?? 0;
+  const query = firstValue(parsed.q);
 
   return (
     <main className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] xl:h-screen xl:overflow-hidden">
@@ -75,8 +85,6 @@ export default async function HomePage({
         items={items}
         role={role}
         profileName={user?.profile_name ?? null}
-        query={query}
-        showMySubmissions={Boolean(role)}
         isMySubmissions={showOwnSubmissions}
         flaggedSubmissionCount={flaggedSubmissionCount}
       />
