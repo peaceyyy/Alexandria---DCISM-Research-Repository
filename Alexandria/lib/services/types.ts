@@ -337,9 +337,12 @@ export type RegisterFilePayload = {
 };
 export type ThesisListParams = {
   q?: string;
-  year?: number;
-  department?: string;
-  research_area?: string;
+  year_from?: number;
+  year_to?: number;
+  department?: string[];
+  research_area?: string[];
+  study_type?: string[];
+  tag?: string[];
   page?: number; // default 1
   limit?: number; // default 20
 };

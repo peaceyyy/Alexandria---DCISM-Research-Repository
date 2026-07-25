@@ -58,14 +58,35 @@ export async function getTheses(
   try {
     const page = Math.max(1, params?.page ?? 1);
     const limit = Math.max(1, params?.limit ?? 20);
-    const offset = (page - 1) * limit;
 
     const supabase = createAdminClient();
 
-    let query = supabase
+    const { data: searchResults, error: searchError } = await supabase.rpc("search_public_theses", {
+      search_query: params?.q || null,
+      year_from: params?.year_from || null,
+      year_to: params?.year_to || null,
+      departments: params?.department && params.department.length > 0 ? params.department : null,
+      research_areas: params?.research_area && params.research_area.length > 0 ? params.research_area : null,
+      study_types: params?.study_type && params.study_type.length > 0 ? params.study_type : null,
+      tags: params?.tag && params.tag.length > 0 ? params.tag : null,
+      page_number: page,
+      page_size: limit,
+    });
+
+    if (searchError) {
+      return err(makeError("SUPABASE_ERROR", searchError.message));
+    }
+
+    if (!searchResults || searchResults.length === 0) {
+      return ok([], { total_count: 0, page, limit });
+    }
+
+    const thesisIds = searchResults.map((r: any) => r.thesis_id);
+    const totalCount = Number(searchResults[0].total_count);
+
+    const { data, error } = await supabase
       .from("theses")
-      .select(
-        `
+      .select(`
         id,
         title,
         year,
@@ -83,42 +104,39 @@ export async function getTheses(
         thesis_tags (
           tag
         )
-      `,
-        { count: "exact" },
-      )
-      .eq("review_status", "accepted")
-      .order("year", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (params?.year) {
-      query = query.eq("year", params.year);
-    }
-
-    if (params?.department) {
-      query = query.eq("department", params.department);
-    }
-
-    if (params?.research_area) {
-      query = query.eq("research_area", params.research_area);
-    }
-
-    if (params?.q) {
-      query = query.or(
-        `title.ilike.%${params.q}%,abstract.ilike.%${params.q}%`,
-      );
-    }
-
-    const { data, error, count } = await query;
+      `)
+      .in("id", thesisIds);
 
     if (error) {
       return err(makeError("SUPABASE_ERROR", error.message));
     }
 
-    const cards: ThesisCard[] = (data ?? []).map(mapToThesisCard);
+    const cardsMap = new Map((data ?? []).map(row => [row.id, mapToThesisCard(row)]));
+    const cards: ThesisCard[] = thesisIds.map((id: any) => cardsMap.get(id)).filter(Boolean) as ThesisCard[];
 
-    return ok(cards, { total_count: count ?? 0, page, limit });
+    return ok(cards, { total_count: totalCount, page, limit });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to load theses.";
+    return err(makeError("SUPABASE_ERROR", message));
+  }
+}
+
+export async function getTagSuggestions(partialTag: string, limit: number = 10): Promise<ServiceResult<string[]>> {
+  try {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase.rpc("get_tag_suggestions", {
+      partial_tag: partialTag,
+      max_results: limit,
+    });
+
+    if (error) {
+      return err(makeError("SUPABASE_ERROR", error.message));
+    }
+
+    const tags = (data ?? []).map((r: any) => r.tag);
+    return ok(tags);
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to load tag suggestions.";
     return err(makeError("SUPABASE_ERROR", message));
   }
 }
