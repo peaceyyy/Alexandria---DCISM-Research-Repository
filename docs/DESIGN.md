@@ -126,8 +126,8 @@ The mockups are built at `1440x1024`. The main app shell has three columns:
 
 | Area | Figma Position | Size | Purpose |
 | --- | --- | --- | --- |
-| Header | x 22, y 32 | 1391x65 | Logo, search, theme toggle, GitHub link. |
-| Left sidebar | x 16-22, y 151+ | about 200px wide | Home/popular nav and filters. |
+| Header | x 22, y 32 | 1391x65 | Logo, theme toggle, GitHub link. |
+| Left sidebar | x 16-22, y 151+ | about 200px wide | Public navigation and account utilities. |
 | Content list | x 272, y 175 | 809x750 | Search results or selected paper content. |
 | Right rail | x 1103, y 181 | 310x372 | FAQ and submit prompt. |
 
@@ -141,11 +141,13 @@ Implementation should use CSS grid for the desktop shell:
 }
 ```
 
+> The sidebar may collapse to `72px` when the user toggles it. The right FAQ rail is fixed at `310px`. The collapsed sidebar width is `72px`.
+
 On tablet and mobile:
 
 - Collapse the right FAQ rail below content.
-- Turn the left filters into a drawer or collapsible panel.
-- Keep search prominent below or inside the header.
+- Turn public navigation into a drawer on narrow screens.
+- Keep search and its filter controls together above repository results; use a dedicated mobile filter sheet instead of mixing filters into navigation.
 - Preserve the dark background and thin separators.
 
 ### Spacing and Sizing
@@ -200,27 +202,41 @@ Effects are minimal:
 - Theme toggle: compact pill using sun/moon icons.
 - GitHub link: 49x48 hit area with 25px icon.
 
-### Sidebar Filters
+### Public Sidebar
 
-- Use a thin left navigation/filters rail with subtle separators.
-- Home and Popular use icon plus 15px label.
-- Filter groups: Year, Categories, Advisor, Department, Tags.
-- Checkboxes/options are 72x15 in Figma; in production, increase hit target height to at least 32px while preserving the compact visual rhythm.
-- Year range inputs use small dark boxes with white 1px outline.
+- Use a thin public-navigation rail with subtle separators.
+- Browse research is always present; My submissions is available only after sign-in.
+- Keep future library features inside one quiet, non-interactive Coming later disclosure rather than disabled navigation links.
+- Reuse this rail on repository, public thesis-detail, and profile routes. The staff Admin sidebar is a separate workspace.
+
+### Repository Search and Filters
+
+- Keep the query field and every repository facet in one control zone above results.
+- Put Research area, Program, Study type, Year, and Tags in compact disclosure controls. Research area, Program, and Study type use multi-select checkboxes; Tags use free-form entry with removable, subdued keyword chips. Do not suggest or pre-populate tags from existing records.
+- Show applied-filter counts on facet controls with Clear all. Keep selected tags and their removal controls inside the Tags popover or mobile filter sheet; do not add a second chip row above results.
+- In My Submissions, keep repository facets absent. Pair title search with one exclusive Status disclosure: All, Under review, Needs revision, and Published. Trashed is an administrative removal state, not a member-facing filter.
+- On mobile, expose a Filters control with the applied-filter count and open facets in a bottom sheet; navigation remains in its own drawer.
 
 ### Content Cards
 
-Repeated research cards are approximately `807x171`.
+Repeated research cards are approximately `807x171` in the Figma baseline (compact/list view).
 
-Structure:
+The browse page supports two density modes:
 
-- Metadata line at top: authors and year.
-- Title: 20px Inter Extra Bold, max two lines before truncation.
-- Abstract preview: compact summary text, 3-4 lines.
-- Tags: small rounded chips at the bottom.
-- Separator line at the bottom/right edge.
+**Comfortable (grid) view** — intended for visual discovery. Cards are wider and taller, featuring:
+- A **thesis thumbnail** at the top (16:9 ratio, ~144px tall). Thumbnails are generated from the first page of the submitted PDF. Until a thesis has a generated thumbnail, a branded placeholder is shown. The thumbnail area uses `rounded-lg` with a thin separator border.
+- Metadata row: authors (truncated) and year, `11px` uppercase.
+- Title: `17–20px` Inter ExtraBold, 2-line clamp.
+- Abstract: `14px`, 3–4 line clamp, `leading-relaxed`.
+- Tags row at the bottom.
 
-Cards should feel like rows in a research index, not marketing cards. Avoid large radius, large shadows, or oversized imagery.
+**Compact (list) view** — mirrors the original Figma row spec, no thumbnail. Dense information rows with:
+- Authors + year inline.
+- Title: 1–2 line clamp.
+- Abstract: 2-line clamp minimum (never `truncate` / single-line).
+- Tags row.
+
+Cards should feel like entries in a serious research index. In comfortable mode, the thumbnail serves discoverability; do not add extra decorative shadows or borders beyond the structural separator. In compact mode, preserve the flat, grid-like rhythm from Figma.
 
 ### FAQ Rail
 
