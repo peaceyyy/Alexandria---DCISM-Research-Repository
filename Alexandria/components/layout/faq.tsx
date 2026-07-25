@@ -36,7 +36,7 @@ const faqItems = [
   {
     question: "How do I find specific research?",
     answer:
-      "You can search for titles, author names, or keywords using the search bar. You can also use the sidebar to filter results by research area, department, and year.",
+      "Use the search bar, then refine the results with research area, program, study type, year, and tag filters directly beneath it.",
   },
 ];
 

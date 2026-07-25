@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type React from "react";
 import Image from "next/image";
-import { FileText, LayoutGrid, List, PanelLeftOpen } from "lucide-react";
+import { LayoutGrid, List, Search, SlidersHorizontal } from "lucide-react";
 import FaqRail from "@/components/layout/faq";
-import FilterSidebar from "@/components/layout/filter-sidebar";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReviewStatus, ThesisCard } from "@/lib/services/types";
@@ -14,6 +12,10 @@ import { Button } from "@/components/ui/button";
 import { WorkflowStatus } from "@/components/ui/workflow-status";
 import { ResearchAreaChip } from "@/components/ui/research-area-chip";
 import type { UserRole } from "@/lib/auth/auth-contract";
+import { RepositorySearchBar } from "@/components/layout/repository-search-bar";
+import { FilterBar } from "@/components/layout/filter-bar";
+import { getSubmissionStatusLabel, getSubmissionStatusValue, SubmissionStatusFilter } from "@/components/layout/submission-status-filter";
+import { WorkspaceSidebar } from "@/components/layout/workspace-sidebar";
 
 export type BrowseThesisItem = ThesisCard & {
   reviewStatus?: ReviewStatus;
@@ -24,13 +26,10 @@ type ThesesBrowserProps = {
   items: BrowseThesisItem[];
   role: UserRole | null;
   profileName: string | null;
-  query: string;
-  showMySubmissions: boolean;
   isMySubmissions: boolean;
   flaggedSubmissionCount: number;
 };
 
-const FILTER_STORAGE_KEY = "alex:thesis-browser-filters";
 const VIEW_STORAGE_KEY = "alex:thesis-browser-view";
 type BrowseView = "comfortable" | "compact";
 
@@ -47,30 +46,15 @@ export default function ThesesBrowser({
   items,
   role,
   profileName,
-  query,
-  showMySubmissions,
   isMySubmissions,
   flaggedSubmissionCount,
 }: ThesesBrowserProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [fromYear, setFromYear] = useState("");
-  const [toYear, setToYear] = useState("");
-  const [selectedResearchAreas, setSelectedResearchAreas] = useState<string[]>([]);
-  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
-  const [selectedStudyTypes, setSelectedStudyTypes] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [filtersHydrated, setFiltersHydrated] = useState(false);
   const [viewMode, setViewMode] = useState<BrowseView>("comfortable");
   const [viewHydrated, setViewHydrated] = useState(false);
-
-  // Hydrate collapse preference from localStorage after mount
-  useEffect(() => {
-    const stored = localStorage.getItem("alex:filter-sidebar-collapsed");
-    if (stored === "1") setIsSidebarCollapsed(true);
-  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem(VIEW_STORAGE_KEY);
@@ -84,395 +68,324 @@ export default function ThesesBrowser({
     if (viewHydrated) localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
   }, [viewHydrated, viewMode]);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(FILTER_STORAGE_KEY);
-      if (!stored) return;
-
-      const parsed: unknown = JSON.parse(stored);
-      if (!parsed || typeof parsed !== "object") return;
-
-      const filters = parsed as {
-        fromYear?: unknown;
-        toYear?: unknown;
-        researchAreas?: unknown;
-        departments?: unknown;
-        studyTypes?: unknown;
-      };
-      if (typeof filters.fromYear === "string") setFromYear(filters.fromYear);
-      if (typeof filters.toYear === "string") setToYear(filters.toYear);
-      if (Array.isArray(filters.researchAreas)) {
-        setSelectedResearchAreas(filters.researchAreas.filter(
-          (value): value is string => typeof value === "string",
-        ));
-      }
-      if (Array.isArray(filters.departments)) {
-        setSelectedDepartments(filters.departments.filter(
-          (value): value is string => typeof value === "string",
-        ));
-      }
-      if (Array.isArray(filters.studyTypes)) {
-        setSelectedStudyTypes(filters.studyTypes.filter(
-          (value): value is string => value === "thesis" || value === "capstone",
-        ));
-      }
-    } catch {
-      localStorage.removeItem(FILTER_STORAGE_KEY);
-    } finally {
-      setFiltersHydrated(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!filtersHydrated) return;
-
-    localStorage.setItem(
-      FILTER_STORAGE_KEY,
-      JSON.stringify({
-        fromYear,
-        toYear,
-        researchAreas: selectedResearchAreas,
-        departments: selectedDepartments,
-        studyTypes: selectedStudyTypes,
-      }),
-    );
-  }, [
-    filtersHydrated,
-    fromYear,
-    selectedDepartments,
-    selectedResearchAreas,
-    selectedStudyTypes,
-    toYear,
-  ]);
-
-  const toggleSidebarCollapse = () => {
-    setIsSidebarCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem("alex:filter-sidebar-collapsed", next ? "1" : "0");
-      return next;
-    });
-  };
-
-  const filteredItems = items.filter((item) => {
-    const yearMatch =
-      (!fromYear || item.year >= Number(fromYear)) &&
-      (!toYear || item.year <= Number(toYear));
-
-    const researchAreaMatch =
-      selectedResearchAreas.length === 0 ||
-      selectedResearchAreas.some((area) =>
-        splitResearchAreas(item.research_area).includes(area)
-      );
-
-    const departmentMatch =
-      selectedDepartments.length === 0 ||
-      selectedDepartments.includes(item.department);
-
-    const studyTypeMatch =
-      selectedStudyTypes.length === 0 ||
-      (item.study_type !== undefined && selectedStudyTypes.includes(item.study_type));
-
-    return yearMatch && researchAreaMatch && departmentMatch && studyTypeMatch;
-  });
-
-  const toggleValue = (
-    value: string,
-    setValues: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    setValues((current) =>
-      current.includes(value)
-        ? current.filter((entry) => entry !== value)
-        : [...current, value]
-    );
-  };
-
-  const toggleMySubmissions = () => {
-    const nextParams = new URLSearchParams(searchParams.toString());
+  const clearAllFilters = () => {
+    const nextParams = new URLSearchParams();
     if (isMySubmissions) {
-      nextParams.delete("mine");
-    } else {
       nextParams.set("mine", "1");
+      if (searchParams.get("status")) nextParams.set("status", searchParams.get("status")!);
     }
-
+    if (searchParams.get("q")) nextParams.set("q", searchParams.get("q")!);
     const query = nextParams.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
-  const filterSidebarProps = {
-    fromYear,
-    toYear,
-    setFromYear,
-    setToYear,
-    selectedResearchAreas,
-    selectedDepartments,
-    selectedStudyTypes,
-    onToggleResearchArea: (value: string) =>
-      toggleValue(value, setSelectedResearchAreas),
-    onToggleDepartment: (value: string) =>
-      toggleValue(value, setSelectedDepartments),
-    onToggleStudyType: (value: string) =>
-      toggleValue(value, setSelectedStudyTypes),
-    showMySubmissions,
-    mySubmissionsActive: isMySubmissions,
-    flaggedSubmissionCount,
-    onToggleMySubmissions: toggleMySubmissions,
-    role,
-    profileName,
-    query,
+  const clearSearch = () => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("q");
+    nextParams.delete("page");
+    const query = nextParams.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
   };
 
+  const clearSubmissionStatus = () => {
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("status");
+    nextParams.delete("page");
+    const query = nextParams.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+
+  const activeFilterCount = ["department", "area", "type", "tag"]
+    .reduce((count, key) => count + searchParams.getAll(key).length, 0) +
+    Number(Boolean(searchParams.get("from"))) +
+    Number(Boolean(searchParams.get("to")));
+
+  const queryText = searchParams.get("q")?.trim() ?? "";
+  const hasFilters = activeFilterCount > 0;
+  const submissionStatus = getSubmissionStatusValue(isMySubmissions ? searchParams.get("status") : null);
+  const hasSubmissionStatusFilter = isMySubmissions && submissionStatus !== "all";
+  const submissionStatusLabel = getSubmissionStatusLabel(submissionStatus);
+
+  const currentQuery = searchParams.toString();
+  const currentBrowseHref = `${pathname}${currentQuery ? `?${currentQuery}` : ""}`;
+
   return (
-    <div
-      className={`grid min-h-screen grid-cols-1 xl:h-screen motion-safe:xl:transition-[grid-template-columns] motion-safe:xl:duration-200 ${
-        isSidebarCollapsed
-          ? "xl:grid-cols-[72px_minmax(0,1fr)_320px]"
-          : "xl:grid-cols-[220px_minmax(0,1fr)_320px]"
-      }`}
-    >
-      <FilterSidebar
-        className="hidden xl:flex xl:flex-col"
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={toggleSidebarCollapse}
-        {...filterSidebarProps}
-      />
+    <div className="grid min-h-screen grid-cols-1 xl:h-screen xl:grid-cols-[auto_minmax(0,1fr)_310px] motion-safe:xl:transition-[grid-template-columns] motion-safe:xl:duration-200">
+      <WorkspaceSidebar role={role} profileName={profileName} flaggedSubmissionCount={flaggedSubmissionCount} />
 
-      <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <section className="px-4 pt-10 pb-8 sm:px-6 sm:pt-14 xl:overflow-y-auto xl:px-8 xl:pt-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="mx-auto w-full max-w-4xl">
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              {/* Left: Scope Segmented Control */}
-              {showMySubmissions ? (
-                <div
-                  className="inline-flex overflow-hidden rounded-md border border-[var(--color-separator)] bg-[var(--color-text)]/[0.02] p-0.5"
-                  role="group"
-                  aria-label="Repository scope"
-                >
-                  <button
-                    type="button"
-                    onClick={() => isMySubmissions && toggleMySubmissions()}
-                    aria-pressed={!isMySubmissions}
-                    className={`inline-flex items-center gap-2 rounded px-3 py-1 text-[13px] font-semibold transition-colors ${
-                      !isMySubmissions
-                        ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] border border-[var(--color-separator)]"
-                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent"
-                    }`}
-                  >
-                    All Research
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => !isMySubmissions && toggleMySubmissions()}
-                    aria-pressed={isMySubmissions}
-                    className={`inline-flex items-center gap-2 rounded px-3 py-1 text-[13px] font-semibold transition-colors ${
-                      isMySubmissions
-                        ? "bg-[var(--color-surface)] text-[var(--color-text)] shadow-[0_1px_2px_rgba(0,0,0,0.04)] border border-[var(--color-separator)]"
-                        : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-transparent"
-                    }`}
-                  >
-                    <FileText size={14} aria-hidden />
-                    My Submissions
-                    {flaggedSubmissionCount > 0 && (
-                      <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-danger)] px-1 text-[9px] font-bold text-white">
-                        {flaggedSubmissionCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
-              ) : (
-                <h1 className="text-[15px] font-bold tracking-tight text-[var(--color-text)]">
-                  All Research
-                </h1>
-              )}
 
-              {/* Count (Inline on desktop) */}
-              <div className="hidden h-4 w-px bg-[var(--color-separator)] sm:block" aria-hidden />
-              <p className="text-[13px] font-medium text-[var(--color-text-muted)]">
-                {filteredItems.length} {filteredItems.length === 1 ? "study" : "studies"}
-              </p>
+          {/* ── Control zone ────────────────────────────────── */}
+          <div className="pb-4">
+            {/* Search bar */}
+            <div className="mb-3">
+              <RepositorySearchBar placeholder={isMySubmissions ? "Search your submissions…" : undefined} />
             </div>
+            {isMySubmissions && (
+              <div>
+                <SubmissionStatusFilter />
+              </div>
+            )}
+            {!isMySubmissions && <div className="hidden sm:block">
+              <FilterBar />
+            </div>}
+            {!isMySubmissions && <div className="sm:hidden">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(true)}
+                className="relative inline-flex min-h-9 items-center gap-2 rounded-md border border-[var(--color-separator)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40"
+              >
+                <SlidersHorizontal size={14} aria-hidden />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-brand)] px-1 text-[9px] font-bold text-white shadow-sm ring-2 ring-[var(--color-surface)]">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </div>}
 
-            {/* Right: View Toggles */}
-            <div
-              className="inline-flex flex-shrink-0 rounded-md border border-[var(--color-separator)] bg-[var(--color-text)]/[0.02] p-0.5 self-start sm:self-auto"
-              role="group"
-              aria-label="Result density"
-            >
-              {(["comfortable", "compact"] as const).map((mode) => {
-                const active = viewMode === mode;
-                const label = mode === "comfortable" ? "Comfortable card view" : "Compact list view";
-                const Icon = mode === "comfortable" ? LayoutGrid : List;
-                return (
-                  <Button
-                    key={mode}
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => setViewMode(mode)}
-                    aria-pressed={active}
-                    aria-label={label}
-                    title={label}
-                    className={`rounded text-[var(--color-text-muted)] h-7 w-7 ${
-                      active
-                        ? "bg-[var(--color-text)]/10 text-[var(--color-text)]"
-                        : "hover:text-[var(--color-text)]"
-                    }`}
-                  >
-                    <Icon size={14} strokeWidth={2} aria-hidden />
-                  </Button>
-                );
-              })}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-[15px] font-bold tracking-tight text-[var(--color-text)]">
+                  {isMySubmissions ? "My Submissions" : "All Research"}
+                </h1>
+
+                {queryText && (
+                  <p className="max-w-[min(18rem,60vw)] truncate text-[13px] text-[var(--color-text-muted)]" title={`Results for “${queryText}”`}>
+                    Results for <span className="font-medium text-[var(--color-text)]">“{queryText}”</span>
+                  </p>
+                )}
+
+                <div className="hidden h-4 w-px bg-[var(--color-separator)] sm:block" aria-hidden />
+                <p className="text-[13px] font-medium text-[var(--color-text-muted)]" aria-live="polite">
+                  {items.length} {items.length === 1 ? "study" : "studies"}
+                </p>
+              </div>
+
+              {/* Right: View Toggles */}
+              <div
+                className="inline-flex flex-shrink-0 rounded-md border border-[var(--color-separator)] bg-[var(--color-text)]/[0.02] p-0.5 self-start sm:self-auto"
+                role="group"
+                aria-label="Result density"
+              >
+                {(["comfortable", "compact"] as const).map((mode) => {
+                  const active = viewMode === mode;
+                  const label = mode === "comfortable" ? "Comfortable card view" : "Compact list view";
+                  const Icon = mode === "comfortable" ? LayoutGrid : List;
+                  return (
+                    <Button
+                      key={mode}
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setViewMode(mode)}
+                      aria-pressed={active}
+                      aria-label={label}
+                      title={label}
+                      className={`rounded text-[var(--color-text-muted)] h-7 w-7 ${
+                        active
+                          ? "bg-[var(--color-text)]/10 text-[var(--color-text)]"
+                          : "hover:text-[var(--color-text)]"
+                      }`}
+                    >
+                      <Icon size={14} strokeWidth={2} aria-hidden />
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-        <div className={viewMode === "comfortable" ? "grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3" : "divide-y divide-[var(--color-separator)] border-y border-[var(--color-separator)]"}>
-          {filteredItems.map((item) => {
-            const workflowStatus = isMySubmissions && item.reviewStatus
-              ? item.reviewStatus
-              : null;
-            const researchAreas = splitResearchAreas(item.research_area);
-            const visibleTags = item.tags.slice(0, viewMode === "compact" ? 2 : 3);
-            const remainingResearchAreas = researchAreas.length - 1;
-            const remainingTags = item.tags.length - visibleTags.length;
-            const tags = (
-              <div className={`flex flex-nowrap items-center gap-2 overflow-hidden ${
-                viewMode === "compact" ? "mt-3" : "mt-auto pt-4"
-              }`}>
-                {researchAreas[0] && (
-                  <ResearchAreaChip
-                    area={researchAreas[0]}
-                    size="compact"
-                    className="flex-shrink-0 truncate"
-                  />
-                )}
-                {remainingResearchAreas > 0 && (
-                  <span
-                    title={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
-                    aria-label={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
-                    className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] text-[10px] font-semibold text-[var(--color-text-muted)]"
-                  >
-                    +{remainingResearchAreas}
-                  </span>
-                )}
-                {visibleTags.map((tag) => (
-                  <span
-                    key={tag}
-                    title={tag}
-                    className="flex-shrink-0 max-w-[6rem] truncate rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-muted)]"
-                  >
-                    {tag}
-                  </span>
-                ))}
-                {remainingTags > 0 && (
-                  <span
-                    title={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
-                    aria-label={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
-                    className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] text-[10px] font-semibold text-[var(--color-text-muted)]"
-                  >
-                    +{remainingTags}
-                  </span>
-                )}
-              </div>
-            );
+          {/* Separator between control zone and content */}
+          <div className="mb-5 border-t border-[var(--color-separator)]" aria-hidden />
 
-            const card = viewMode === "comfortable" ? (
-              <article className="group flex h-[480px] flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]">
-                <div className="mb-4 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--color-separator)] bg-[var(--color-text)]/5">
-                  <Image
-                    src="/placeholder.svg"
-                    alt="Article preview"
-                    width={640}
-                    height={360}
-                    className="h-36 w-full object-cover"
-                  />
-                </div>
-                <div className="mb-4 flex min-h-10 items-start gap-2">
-                  <div className="min-w-0 flex-1 text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
-                    <p className="truncate">{item.authors.map((author) => author.display_name).join(" • ")}</p>
-                    <p className="mt-1 font-semibold text-[var(--color-text)]">{item.year}</p>
-                  </div>
-                  {workflowStatus && (
-                    <WorkflowStatus status={workflowStatus} size="compact" emphasis="quiet" />
+          {items.length === 0 ? (
+            <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-[var(--color-separator)] bg-[var(--color-surface)]/50 p-6 text-center">
+              <Search size={40} className="mb-4 text-[var(--color-text-muted)]/50" />
+              <h3 className="mb-1 text-base font-semibold text-[var(--color-text)]">
+                {queryText
+                  ? isMySubmissions && hasSubmissionStatusFilter ? "No submissions match this search and status" : isMySubmissions ? "No submissions match this search" : "No studies match this search"
+                  : hasSubmissionStatusFilter ? `No submissions are ${submissionStatusLabel.toLocaleLowerCase()}`
+                  : hasFilters ? "No studies match these filters"
+                  : isMySubmissions ? "No submissions yet" : "No published studies yet"}
+              </h3>
+              <p className="max-w-sm text-sm text-[var(--color-text-muted)]">
+                {queryText
+                  ? hasSubmissionStatusFilter ? `Nothing matched “${queryText}” with the ${submissionStatusLabel.toLocaleLowerCase()} status.` : `Nothing matched “${queryText}”.`
+                  : hasSubmissionStatusFilter ? "Try a different status or clear the status filter."
+                  : hasFilters ? "Try changing or clearing one of your filters."
+                  : isMySubmissions ? "Your submitted research will appear here."
+                  : "Published research will appear here once it is available."}
+              </p>
+              {(queryText || hasFilters || hasSubmissionStatusFilter) && (
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  {queryText && (
+                    <Button variant="outline" size="sm" onClick={clearSearch}>
+                      Clear search
+                    </Button>
+                  )}
+                  {hasFilters && (
+                    <Button variant="outline" size="sm" onClick={clearAllFilters}>
+                      Clear filters
+                    </Button>
+                  )}
+                  {hasSubmissionStatusFilter && (
+                    <Button variant="outline" size="sm" onClick={clearSubmissionStatus}>
+                      Clear status
+                    </Button>
                   )}
                 </div>
-                <h2 className="mb-3 flex-shrink-0 line-clamp-2 text-[17px] font-extrabold leading-tight text-[var(--color-text)]">
-                  {item.title}
-                </h2>
-                <div className="relative min-h-0 flex-1 overflow-hidden">
-                  <p className="line-clamp-4 text-justify text-sm leading-relaxed text-[var(--color-text-muted)]">
-                    {item.abstract_preview}
-                  </p>
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-9 bg-gradient-to-t from-[var(--color-bg)] to-transparent"
-                  />
+              )}
+            </div>
+          ) : (
+            <div className={viewMode === "comfortable" ? "grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3" : "divide-y divide-[var(--color-separator)] border-y border-[var(--color-separator)]"}>
+            {items.map((item) => {
+              const workflowStatus = isMySubmissions && item.reviewStatus
+                ? item.reviewStatus
+                : null;
+              const researchAreas = splitResearchAreas(item.research_area);
+              const visibleTags = item.tags.slice(0, viewMode === "compact" ? 2 : 3);
+              const remainingResearchAreas = researchAreas.length - 1;
+              const remainingTags = item.tags.length - visibleTags.length;
+              const tags = (
+                <div className={`flex flex-nowrap items-center gap-2 overflow-hidden ${
+                  viewMode === "compact" ? "mt-3" : "mt-auto pt-4"
+                }`}>
+                  {researchAreas[0] && (
+                    <ResearchAreaChip
+                      area={researchAreas[0]}
+                      size="compact"
+                      className="flex-shrink-0 truncate"
+                    />
+                  )}
+                  {remainingResearchAreas > 0 && (
+                    <span
+                      title={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
+                      aria-label={`${remainingResearchAreas} more research area${remainingResearchAreas === 1 ? "" : "s"}`}
+                      className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] text-[10px] font-semibold text-[var(--color-text-muted)]"
+                    >
+                      +{remainingResearchAreas}
+                    </span>
+                  )}
+                  {visibleTags.map((tag) => (
+                    <span
+                      key={tag}
+                      title={tag}
+                      className="flex-shrink-0 max-w-[6rem] truncate rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] px-2 py-0.5 text-[11px] font-medium text-[var(--color-text-muted)]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  {remainingTags > 0 && (
+                    <span
+                      title={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
+                      aria-label={`${remainingTags} more tag${remainingTags === 1 ? "" : "s"}`}
+                      className="flex-shrink-0 inline-flex size-5 items-center justify-center rounded-full border border-[var(--color-separator)] bg-[var(--color-text)]/[0.04] text-[10px] font-semibold text-[var(--color-text-muted)]"
+                    >
+                      +{remainingTags}
+                    </span>
+                  )}
                 </div>
-                {isMySubmissions && item.reviewStatus === "flagged" && item.flaggedCommentCount ? (
-                  <p className="mt-3 text-[11px] font-medium text-[var(--color-danger)]">
-                    {item.flaggedCommentCount} feedback item{item.flaggedCommentCount === 1 ? "" : "s"} need revision
-                  </p>
-                ) : null}
-                {tags}
-              </article>
-            ) : (
-              <article
-                className="group px-1 py-5 transition-colors hover:bg-[var(--color-text)]/[0.025] sm:px-3 sm:py-4"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex min-h-8 items-start gap-2">
+              );
+
+              const card = viewMode === "comfortable" ? (
+                <article className="group flex flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]">
+                  {/* Thumbnail */}
+                  <div className="flex-shrink-0 overflow-hidden border-b border-[var(--color-separator)] bg-[var(--color-text)]/5">
+                    <Image
+                      src="/placeholder.svg"
+                      alt="Thesis preview thumbnail"
+                      width={640}
+                      height={360}
+                      className="aspect-video w-full object-cover"
+                    />
+                  </div>
+                  {/* Content */}
+                  <div className="flex flex-col gap-2 px-4 py-4">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1 text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
-                    <p className="truncate">
-                      {item.authors.map((a) => a.display_name).join(" • ")}
-                    </p>
-                    <p className="mt-1 font-semibold text-[var(--color-text)]">
-                      {item.year}
-                    </p>
+                        <p className="truncate">{item.authors.map((author) => author.display_name).join(" • ")}</p>
+                        <p className="mt-0.5 font-semibold text-[var(--color-text)]">{item.year}</p>
                       </div>
                       {workflowStatus && (
                         <WorkflowStatus status={workflowStatus} size="compact" emphasis="quiet" />
                       )}
                     </div>
-
-                    <h2 className="truncate text-[15px] font-extrabold leading-tight text-[var(--color-text)]">
+                    <h2 className="line-clamp-2 text-[17px] font-extrabold leading-snug text-[var(--color-text)]">
                       {item.title}
                     </h2>
-
-                    <p className="mt-2 truncate text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+                    <p className="line-clamp-3 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
                       {item.abstract_preview}
                     </p>
-
                     {isMySubmissions && item.reviewStatus === "flagged" && item.flaggedCommentCount ? (
-                  <p className="mt-3 text-[11px] font-medium text-[var(--color-danger)]">
-                    {item.flaggedCommentCount} feedback item{item.flaggedCommentCount === 1 ? "" : "s"} need revision
-                  </p>
-                ) : null}
-
+                      <p className="text-[11px] font-medium text-[var(--color-danger)]">
+                        {item.flaggedCommentCount} feedback item{item.flaggedCommentCount === 1 ? "" : "s"} need revision
+                      </p>
+                    ) : null}
                     {tags}
                   </div>
-                </div>
-              </article>
-            );
+                </article>
+              ) : (
+                <article className="group px-3 py-4 transition-colors hover:bg-[var(--color-text)]/[0.025]">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1 text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
+                          <p className="truncate">
+                            {item.authors.map((a) => a.display_name).join(" • ")}
+                          </p>
+                          <p className="mt-0.5 font-semibold text-[var(--color-text)]">
+                            {item.year}
+                          </p>
+                        </div>
+                        {workflowStatus && (
+                          <WorkflowStatus status={workflowStatus} size="compact" emphasis="quiet" />
+                        )}
+                      </div>
 
-            return item.reviewStatus === "flagged" ? (
-              <Link
-                key={item.id}
-                href={`/submissions/${item.id}/corrections`}
-                className="block"
-                aria-label={`Correct flagged submission: ${item.title}`}
-              >
-                {card}
-              </Link>
-            ) : (
-              <Link
-                key={item.id}
-                href={isMySubmissions ? `/theses/${item.id}?mine=1` : `/theses/${item.id}`}
-                className="block"
-              >
-                {card}
-              </Link>
-            );
-          })}
-        </div>
+                      <h2 className="mt-1.5 line-clamp-2 text-[15px] font-extrabold leading-snug text-[var(--color-text)]">
+                        {item.title}
+                      </h2>
+
+                      <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-[var(--color-text-muted)]">
+                        {item.abstract_preview}
+                      </p>
+
+                      {isMySubmissions && item.reviewStatus === "flagged" && item.flaggedCommentCount ? (
+                        <p className="mt-2 text-[11px] font-medium text-[var(--color-danger)]">
+                          {item.flaggedCommentCount} feedback item{item.flaggedCommentCount === 1 ? "" : "s"} need revision
+                        </p>
+                      ) : null}
+
+                      {tags}
+                    </div>
+                  </div>
+                </article>
+              );
+
+              return item.reviewStatus === "flagged" ? (
+                <Link
+                  key={item.id}
+                  href={`/submissions/${item.id}/corrections`}
+                  className="block"
+                  aria-label={`Correct flagged submission: ${item.title}`}
+                >
+                  {card}
+                </Link>
+              ) : (
+                <Link
+                  key={item.id}
+                  href={`/theses/${item.id}?returnTo=${encodeURIComponent(currentBrowseHref)}`}
+                  className="block"
+                >
+                  {card}
+                </Link>
+              );
+            })}
+          </div>
+        )}
         </div>
 
         <div className="mt-8 border-t border-[var(--color-separator)] pt-2 xl:hidden">
@@ -480,30 +393,23 @@ export default function ThesesBrowser({
         </div>
       </section>
 
-      <div className="hidden xl:block">
+      <div className="hidden xl:block xl:pt-16 xl:pr-6 xl:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <FaqRail />
       </div>
 
-      {/* Mobile workspace drawer — content starts immediately */}
-      <Dialog open={filtersOpen} onOpenChange={(open) => setFiltersOpen(open)}>
+      <Dialog open={filtersOpen && !isMySubmissions} onOpenChange={setFiltersOpen}>
         <DialogContent
-          className="!left-0 !top-0 h-dvh w-[min(22rem,calc(100%-2rem))] !max-w-none !translate-x-0 !translate-y-0 gap-0 overflow-y-auto rounded-none border-r border-[var(--color-separator)] bg-[var(--color-bg)] p-0 text-[var(--color-text)]"
+          className="!left-1/2 !top-auto !bottom-0 w-full max-w-none !translate-x-1/2 !translate-y-0 gap-0 rounded-t-xl border border-[var(--color-separator)] bg-[var(--color-bg)] p-5 text-[var(--color-text)] sm:hidden"
         >
-          <FilterSidebar className="border-0 px-5 pt-3 pb-5" {...filterSidebarProps} />
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold">Filters</h2>
+            {activeFilterCount > 0 && (
+              <button type="button" onClick={() => { clearAllFilters(); setFiltersOpen(false); }} className="text-xs font-semibold text-[var(--color-brand)]">Clear all</button>
+            )}
+          </div>
+          <FilterBar className="items-start" />
         </DialogContent>
       </Dialog>
-
-      {/* Floating workspace tab — left-edge drawer pull, below-xl only.
-           Uses same icon + style as the collapsed sidebar toggle. */}
-      <button
-        type="button"
-        onClick={() => setFiltersOpen(true)}
-        className="fixed left-0 top-4 z-30 xl:hidden inline-flex h-8 w-8 items-center justify-center rounded-r-md border border-l-0 border-[var(--color-separator-mid)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-colors duration-150 hover:border-[var(--color-brand-bright)]/30 hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30"
-        aria-label="Open repository workspace"
-        title="Open repository workspace"
-      >
-        <PanelLeftOpen size={14} aria-hidden />
-      </button>
     </div>
   );
 }
