@@ -1,7 +1,9 @@
 .sidebar {
+  position: relative;
+  z-index: 20;
   width: 240px;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
   border-right: 1px solid var(--color-separator);
   background: var(--color-surface-alt);
   transition: width 0.2s ease;
@@ -10,10 +12,11 @@
 .collapsed { width: 72px; }
 
 .brandRow {
+  position: relative;
   display: flex;
-  min-height: 36px;
+  min-height: 40px;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
 }
 
 .collapsed .brandRow { justify-content: center; }
@@ -32,8 +35,13 @@
   white-space: nowrap;
 }
 
+.collapsed .brandName { display: none; }
+
 .collapseButton {
   display: inline-flex;
+  position: absolute;
+  top: 50%;
+  right: -28px;
   width: 32px;
   height: 32px;
   flex-shrink: 0;
@@ -45,10 +53,11 @@
   background: transparent;
   color: var(--color-text-muted);
   cursor: pointer;
+  transform: translateY(-50%);
+  z-index: 1;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.collapsed .collapseButton { margin-left: 0; }
 .collapseButton:hover { border-color: var(--color-brand-bright); background: color-mix(in oklch, var(--color-text) 5%, transparent); color: var(--color-text); }
 .collapseButton:focus-visible, .disclosure:focus-visible { outline: 2px solid var(--color-brand-bright); outline-offset: 2px; }
 
@@ -168,7 +177,14 @@
 }
 .disclosure svg { transition: transform 0.15s ease; }
 
-.accountArea { margin-top: auto; border-top: 1px solid var(--color-separator); padding-top: 10px; }
+/* bottomBlock groups utilityRow + accountArea so they stay flush at the bottom */
+.bottomBlock {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.accountArea { border-top: 1px solid var(--color-separator); padding-top: 10px; }
 .accountActions { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 
 /* ── Staff footer action stack ── */
@@ -207,17 +223,18 @@
   outline-offset: 2px;
 }
 
-/* Row 2: Utility pair — Theme + contextual nav */
+/* Bottom utility bar — use the full rail width for its three utilities. */
 .utilityRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
+  padding: 0 0 10px;
 }
 
 .utilityTile {
   display: inline-flex;
-  height: 36px;
   width: 100%;
+  height: 40px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--color-separator-mid);
@@ -238,24 +255,67 @@
   outline-offset: 2px;
 }
 
-.contributeButton {
+.ctaRow {
+  padding: 0 0 16px;
+}
+
+.ctaButton {
   display: inline-flex;
-  min-width: 0;
-  height: 32px;
-  flex: 1;
+  width: 100%;
+  height: 36px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  border: 1px solid var(--color-separator-mid);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
+  gap: 8px;
+  border: 1px solid color-mix(in oklch, var(--color-brand) 28%, var(--color-separator-mid));
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--color-brand) 8%, transparent);
+  color: var(--color-text);
+  font-size: 0.8125rem;
   font-weight: 650;
   text-decoration: none;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
-.contributeButton:hover { border-color: var(--color-brand-bright); background: color-mix(in oklch, var(--color-brand-bright) 8%, transparent); color: var(--color-text); }
+
+.ctaButton:hover {
+  border-color: color-mix(in oklch, var(--color-brand) 42%, var(--color-separator-mid));
+  background: color-mix(in oklch, var(--color-brand) 12%, transparent);
+  color: var(--color-text);
+}
+
+.ctaButton svg { color: var(--color-brand); }
+
+:global(:root[data-theme="light"]) .ctaButton {
+  border-color: color-mix(in oklch, var(--color-brand) 38%, var(--color-separator-mid));
+  background: color-mix(in oklch, var(--color-brand) 12%, transparent);
+}
+
+:global(:root[data-theme="light"]) .ctaButton:hover {
+  border-color: color-mix(in oklch, var(--color-brand) 56%, var(--color-separator-mid));
+  background: color-mix(in oklch, var(--color-brand) 18%, transparent);
+}
+
+.ctaButton:focus-visible,
+.ctaButtonIcon:focus-visible {
+  outline: 2px solid var(--color-brand-bright);
+  outline-offset: 2px;
+}
+
+.ctaButtonIcon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-separator-mid);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.ctaButtonIcon:hover {
+  background: color-mix(in oklch, var(--color-text) 6%, transparent);
+  color: var(--color-text);
+}
 
 .contributeLinkIcon {
   display: inline-flex;
@@ -330,13 +390,15 @@
 .collapsed .workspaceNav { justify-items: center; border-bottom: 0; padding-bottom: 0; }
 .collapsed .workspaceAction { width: 32px; justify-content: center; padding: 0; }
 .collapsed .workspaceLabel, .collapsed .revisionBadge { display: none; }
+.collapsed .bottomBlock { align-items: center; }
 .collapsed .accountArea { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 10px; }
 .collapsed .accountActions { flex-direction: column; justify-content: center; gap: 8px; margin-bottom: 0; }
 .collapsed .accountActions button, .collapsed .accountActions a { flex: 0 0 28px; }
 .collapsed .staffFooterActions { align-items: center; }
-.collapsed .contributeStrip { width: 36px; height: 36px; padding: 0; justify-self: center; }
-.collapsed .contributeStrip span { display: none; }
-.collapsed .utilityRow { grid-template-columns: 1fr; width: 36px; justify-self: center; }
+.collapsed .ctaRow { padding: 0 0 16px; display: flex; justify-content: center; }
+.collapsed .utilityRow { grid-template-columns: 36px; width: 36px; justify-content: center; padding: 10px 0; }
+/* utilityTile spans are always hidden — tiles are icon-only in all states */
+.utilityRow span { display: none; }
 .collapsed .accountPill { flex-direction: column; }
 .collapsed .accountLink { width: 34px; min-height: 34px; justify-content: center; padding: 3px; }
 .collapsed .accountName { display: none; }

@@ -3,17 +3,21 @@
 import { createClient } from "../supabase/server";
 import {
   removeThesisFileFromStorage,
+  removeTeaserThumbnailFromStaging,
+  uploadTeaserThumbnailToStaging,
   uploadThesisFileToStorage,
 } from "../upload/storage-helper";
-import type { StoredThesisFile } from "../upload/storage-helper";
+import type { StoredTeaserThumbnail, StoredThesisFile } from "../upload/storage-helper";
 import {
   THESIS_PDF_MIME_TYPE,
+  validateTeaserThumbnail,
   validateThesisPdf,
 } from "../upload/file-validation";
 import { isDepartment } from "../domain/departments";
 import { isSerializedResearchAreaIds } from "../domain/research-areas";
 import { err, makeError, ok } from "./result";
 import { requireSession, requireOwnership } from "./_guards";
+import { finalizeReviewAcceptance } from "./review-service";
 import type {
   SubmitThesisInput,
   SubmitThesisPayload,
@@ -82,6 +86,7 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
         research_area,
         publication_date,
         publication_link,
+        deployment_link,
         conference,
         recommendations,
         lessons_learned,
@@ -118,6 +123,7 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
       research_area: thesis.research_area,
       publication_date: thesis.publication_date,
       publication_link: thesis.publication_link,
+      deployment_link: thesis.deployment_link,
       conference: thesis.conference,
       recommendations: thesis.recommendations,
       lessons_learned: thesis.lessons_learned,
@@ -141,6 +147,7 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
         download_requires_auth: true,
       },
       related_theses: [], // Empty for own submissions list
+      teaser_thumbnail: null,
     }));
 
     return ok(thesisDetails);
@@ -167,6 +174,7 @@ export async function submitThesis(
 
     const serializedPayload = submissionPacket.get("payload");
     const file = submissionPacket.get("file");
+    const teaser = submissionPacket.get("teaser");
 
     if (typeof serializedPayload !== "string") {
       return err(makeError("VALIDATION_FAILED", "Submission metadata is required"));
@@ -207,6 +215,15 @@ export async function submitThesis(
 
     if (!input.study_type || !["thesis", "capstone"].includes(input.study_type)) {
       return err(makeError("VALIDATION_FAILED", "Study type must be either 'thesis' or 'capstone'"));
+    }
+
+    if (teaser !== null && !(teaser instanceof File)) {
+      return err(makeError("VALIDATION_FAILED", "The teaser thumbnail is invalid."));
+    }
+
+    if (teaser instanceof File) {
+      const teaserValidationError = await validateTeaserThumbnail(teaser);
+      if (teaserValidationError) return err(makeError("VALIDATION_FAILED", teaserValidationError));
     }
 
     if (!isDepartment(input.department)) {
@@ -251,11 +268,23 @@ export async function submitThesis(
       return err(makeError("SUPABASE_ERROR", message));
     }
 
+    let storedTeaser: StoredTeaserThumbnail | null = null;
+    if (teaser instanceof File) {
+      try {
+        storedTeaser = await uploadTeaserThumbnailToStaging(teaser, user.id);
+      } catch (uploadError) {
+        const cleanupError = await removeThesisFileFromStorage(storedFile.filePath);
+        const message = uploadError instanceof Error ? uploadError.message : "Failed to upload the teaser thumbnail";
+        return err(makeError("SUPABASE_ERROR", message, cleanupError ? { storage_cleanup_error: cleanupError } : undefined));
+      }
+    }
+
     const payload: SubmitThesisPayload = {
       ...input,
       year: publicationYear,
       storage_path: storedFile.filePath,
       file_type: THESIS_PDF_MIME_TYPE,
+      teaser_thumbnail_storage_path: storedTeaser?.filePath,
     };
 
     const isStaffPublisher = user.role === "admin" || user.role === "moderator";
@@ -263,7 +292,7 @@ export async function submitThesis(
     // The related database inserts remain atomic inside the RPC. Members retain
     // the existing review path; staff use the dedicated direct-publish wrapper.
     const { data: thesisId, error: rpcError } = await supabase.rpc(
-      isStaffPublisher
+      isStaffPublisher && !storedTeaser
         ? "publish_staff_thesis_transaction"
         : "submit_thesis_transaction",
       {
@@ -273,13 +302,25 @@ export async function submitThesis(
 
     if (rpcError || !thesisId) {
       const cleanupError = await removeThesisFileFromStorage(storedFile.filePath);
+      const teaserCleanupError = storedTeaser
+        ? await removeTeaserThumbnailFromStaging(storedTeaser.filePath)
+        : null;
       return err(
         makeError(
           "SUPABASE_ERROR",
           "The thesis submission could not be completed.",
-          cleanupError ? { storage_cleanup_error: cleanupError } : undefined,
+          cleanupError || teaserCleanupError
+            ? { storage_cleanup_error: cleanupError, teaser_storage_cleanup_error: teaserCleanupError }
+            : undefined,
         ),
       );
+    }
+
+    if (isStaffPublisher && storedTeaser) {
+      const acceptanceResult = await finalizeReviewAcceptance(Number(thesisId));
+      if (acceptanceResult.error) {
+        return err(acceptanceResult.error);
+      }
     }
 
     return ok({

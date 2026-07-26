@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const faqItems = [
   {
@@ -40,49 +42,62 @@ const faqItems = [
   },
 ];
 
-export default function FaqRail() {
+type FaqModalProps = {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+export default function FaqModal({ isOpen, onOpenChange }: FaqModalProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <aside className="px-4 py-5 lg:px-6">
-      <div className="rounded-lg border border-[var(--color-separator-mid)] p-4">
-        <h3 className="mb-4 text-sm font-semibold text-[var(--color-text)]">
-          Frequently Asked Questions (FAQ)
-        </h3>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px] border border-[var(--color-separator-mid)] bg-[var(--color-bg)]">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-xl font-bold">Frequently Asked Questions</DialogTitle>
+          <DialogDescription className="text-sm text-[var(--color-text-muted)]">
+            Everything you need to know about the Alexandria repository.
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="space-y-3 text-sm text-[var(--color-text)]">
           {faqItems.map((item, index) => {
-            const isOpen = openIndex === index;
+            const isItemOpen = openIndex === index;
 
             return (
               <div key={item.question} className="border-b border-[var(--color-separator)] pb-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    setOpenIndex(isOpen ? null : index)
-                  }
-                  className="flex w-full items-center justify-between text-left"
+                  onClick={() => setOpenIndex(isItemOpen ? null : index)}
+                  className="flex w-full items-center justify-between text-left transition-colors hover:text-[var(--color-text)] opacity-90 hover:opacity-100"
                 >
-                  <span>{item.question}</span>
-                  <span>{isOpen ? "−" : "⌄"}</span>
+                  <span className="font-semibold">{item.question}</span>
+                  <ChevronDown
+                    size={16}
+                    strokeWidth={2}
+                    aria-hidden
+                    className={`shrink-0 text-[var(--color-text-muted)] transition-transform duration-200 ${
+                      isItemOpen ? "rotate-180" : ""
+                    }`}
+                  />
                 </button>
 
                 <div
-                    className={`grid transition-all duration-300 ease-out ${
-                        isOpen ? "grid-rows-[1fr] opacity-100 mt-2" : "grid-rows-[0fr] opacity-0 mt-0"
-                    }`}
-                    >
-                    <div className="overflow-hidden">
-                        <p className="text-sm leading-6 text-[var(--color-text-muted)]">
-                        {item.answer}
-                        </p>
-                    </div>
+                  className={`grid transition-all duration-300 ease-out ${
+                    isItemOpen ? "grid-rows-[1fr] opacity-100 mt-2" : "grid-rows-[0fr] opacity-0 mt-0"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <p className="text-sm leading-relaxed text-[var(--color-text-muted)] pb-2">
+                      {item.answer}
+                    </p>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
-    </aside>
+      </DialogContent>
+    </Dialog>
   );
 }

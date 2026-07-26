@@ -22,7 +22,9 @@ export type ReviewFieldKey =
   | "abstract"
   | "recommendations"
   | "lessons_learned"
-  | "pdf_general";
+  | "pdf_general"
+  | "deployment_link"
+  | "teaser_thumbnail";
 export type ReviewAuditEventType =
   | "submitted"
   | "comment_added"
@@ -70,6 +72,7 @@ export type DbThesis = {
   publication_link: string | null;
   conference: string | null;
   study_type: StudyType;
+  deployment_link: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
   submitted_by_user_id: string | null; // uuid — nullable for legacy/imported rows
@@ -105,6 +108,16 @@ export type DbThesisAudit = {
   change_description: string | null;
   change_details: Record<string, unknown> | null;
   updated_at: string;
+};
+export type DbThesisMedia = {
+  id: number;
+  thesis_id: number;
+  asset_kind: "teaser_thumbnail";
+  staging_storage_path: string;
+  published_storage_path: string | null;
+  mime_type: "image/jpeg" | "image/png" | "image/webp";
+  byte_size: number;
+  uploaded_by_user_id: string;
 };
 export type DbThesisReviewComment = {
   id: number;
@@ -144,6 +157,7 @@ export type ThesisDetail = ThesisCard & {
   department: string;
   publication_date: string | null;
   publication_link: string | null;
+  deployment_link: string | null;
   conference: string | null;
   recommendations: string | null;
   lessons_learned: string | null;
@@ -156,6 +170,7 @@ export type ThesisDetail = ThesisCard & {
     download_requires_auth: boolean;
   };
   related_theses: ThesisCard[]; // frontend-computed from tag overlap
+  teaser_thumbnail: { public_url: string; alt: string } | null;
 };
 /** Dropdowns for year/department/research_area filters on the Browse page. */
 export type FilterOptions = {
@@ -213,6 +228,7 @@ export type ReviewSubmission = {
   studyType: StudyType;
   publicationDate: string;
   publicationLink: string | null;
+  deploymentLink: string | null;
   conference: string | null;
   researchArea: string | null;
   tags: string[];
@@ -226,6 +242,11 @@ export type ReviewSubmission = {
     fileName: string;
     fileSize: string | null;
     pdfUrl: string;
+  } | null;
+  teaserThumbnail: {
+    fileName: string;
+    previewUrl: string;
+    isPublished: boolean;
   } | null;
   fieldComments: ReviewComment[];
   auditEvents: ReviewAuditEvent[];
@@ -319,10 +340,12 @@ export type SubmitThesisPayload = {
   file_type: "application/pdf";
   publication_date: string;
   publication_link?: string;
+  deployment_link?: string;
   conference?: string;
   recommendations?: string;
   lessons_learned?: string;
   study_type: StudyType;
+  teaser_thumbnail_storage_path?: string;
 };
 export type SubmitThesisInput = Omit<
   SubmitThesisPayload,
@@ -387,4 +410,8 @@ export type AdminUpdateSubmissionMetadataInput = {
 export type UpdateFlaggedSubmissionInput = {
   thesisId: number;
   values: Partial<SubmitThesisInput>;
+};
+export type ReplaceTeaserThumbnailInput = {
+  thesisId: number;
+  file: File | null;
 };

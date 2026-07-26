@@ -14,8 +14,8 @@
   DECLARE
     current_status text;
   BEGIN
-    IF NOT public.current_user_is_active(ARRAY['admin', 'moderator']) THEN
-      RAISE EXCEPTION 'An active administrator or moderator account is required'
+    IF NOT public.current_user_is_active(ARRAY['admin']) THEN
+      RAISE EXCEPTION 'An active administrator account is required'
         USING ERRCODE = '42501';
     END IF;
 

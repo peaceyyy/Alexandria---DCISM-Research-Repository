@@ -12,7 +12,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Upload,
+  HelpCircle,
+  Users,
 } from "lucide-react";
+import FaqModal from "./faq-modal";
+import MaintainersModal from "./maintainers-modal";
 import type { UserRole } from "@/lib/auth/auth-contract";
 import { getPostAuthDestination } from "@/lib/auth/auth-routing";
 import { logoutAction } from "@/lib/auth/actions";
@@ -54,8 +58,11 @@ function SidebarContent({
   const isPrivileged = role === "admin" || role === "moderator";
   const browseActive = pathname === "/home";
   const submissionsActive = pathname === "/home" && searchParams.get("mine") === "1";
+  const [faqOpen, setFaqOpen] = useState(false);
+  const [maintainersOpen, setMaintainersOpen] = useState(false);
 
   return (
+    <>
     <aside
       id="public-workspace-sidebar"
       className={cn(
@@ -67,11 +74,9 @@ function SidebarContent({
       aria-label="Alexandria navigation"
     >
       <div className={styles.brandRow}>
-        {!isCollapsed && (
-          <Link href="/home" className={styles.brand} aria-label="Alexandria repository home" onClick={onNavigate}>
-            <AlexandriaBrandLockup wordmarkClassName={styles.brandName} />
-          </Link>
-        )}
+        <Link href="/home" className={styles.brand} aria-label="Alexandria repository home" onClick={onNavigate}>
+          <AlexandriaBrandLockup wordmarkClassName={styles.brandName} />
+        </Link>
         {onToggleCollapse && (
           <button
             type="button"
@@ -84,6 +89,23 @@ function SidebarContent({
           >
             {isCollapsed ? <PanelLeftOpen size={14} aria-hidden /> : <PanelLeftClose size={14} aria-hidden />}
           </button>
+        )}
+      </div>
+
+      <div className={styles.ctaRow}>
+        {!role ? (
+          <AuthInterceptModal iconOnly={isCollapsed} triggerClassName={isCollapsed ? styles.ctaButtonIcon : styles.ctaButton} />
+        ) : (
+          <Link
+            href="/upload"
+            className={isCollapsed ? styles.ctaButtonIcon : styles.ctaButton}
+            aria-label="Contribute a thesis"
+            title="Contribute"
+            onClick={onNavigate}
+          >
+            <Upload size={14} aria-hidden />
+            {!isCollapsed && <span>Contribute</span>}
+          </Link>
         )}
       </div>
 
@@ -123,60 +145,62 @@ function SidebarContent({
         </div>
       )}
 
-      <footer className={styles.accountArea}>
-        {isPrivileged ? (
-          <div className={styles.staffFooterActions}>
-            <Link href="/upload" className={styles.contributeStrip} aria-label="Contribute a thesis" title="Contribute" onClick={onNavigate}>
-              <Upload size={16} aria-hidden />
-              <span>Contribute</span>
-            </Link>
-            <div className={styles.utilityRow}>
-              <ThemeToggle presentation="strip" />
-              <Link href={getPostAuthDestination(role)} className={styles.utilityTile} aria-label="Open dashboard" title="Dashboard" onClick={onNavigate}>
-                <LayoutDashboard size={16} aria-hidden />
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className={styles.accountActions}>
-            <ThemeToggle />
-            {!role ? (
-              <AuthInterceptModal iconOnly={isCollapsed} triggerClassName={styles.contributeButton} />
-            ) : (
-              <Link
-                href="/upload"
-                className={isCollapsed ? styles.contributeLinkIcon : styles.contributeButton}
-                aria-label="Contribute a thesis"
-                title="Contribute"
-                onClick={onNavigate}
-              >
-                <Upload size={14} aria-hidden />
-                {!isCollapsed && <span>Contribute</span>}
-              </Link>
-            )}
-          </div>
-        )}
+      <div className={styles.bottomBlock}>
+        <div className={styles.utilityRow}>
+          <button
+            type="button"
+            className={styles.utilityTile}
+            aria-label="Alexandria maintainers"
+            title="Maintainers"
+            onClick={() => {
+              setMaintainersOpen(true);
+              onNavigate?.();
+            }}
+          >
+            <Users size={15} aria-hidden />
+          </button>
 
-        {role ? (
-          <div className={cn(styles.accountPill, display.className)}>
-            <Link href="/profile" draggable={false} className={styles.accountLink} aria-label={`Open profile for ${accountName}`} title={accountName} onClick={onNavigate}>
+          <button
+            type="button"
+            className={styles.utilityTile}
+            aria-label="Frequently asked questions"
+            title="FAQ"
+            onClick={() => {
+              setFaqOpen(true);
+              onNavigate?.();
+            }}
+          >
+            <HelpCircle size={15} aria-hidden />
+          </button>
+
+          <ThemeToggle presentation="strip" className={styles.utilityTile} />
+        </div>
+
+        <footer className={styles.accountArea}>
+          {role ? (
+            <div className={cn(styles.accountPill, display.className)}>
+              <Link href="/profile" draggable={false} className={styles.accountLink} aria-label={`Open profile for ${accountName}`} title={accountName} onClick={onNavigate}>
+                <span className={styles.roleMarker} aria-hidden>{display.abbreviation}</span>
+                <span className={styles.accountName}>{accountName}</span>
+              </Link>
+              <form action={logoutAction} className={styles.logoutForm}>
+                <button type="submit" className={styles.logoutBtn} aria-label="Log out" title="Log out">
+                  <LogOut size={14} aria-hidden />
+                </button>
+              </form>
+            </div>
+          ) : (
+            <Link href="/login" draggable={false} className={cn(styles.accountPill, styles.accountLink, display.className)} aria-label="Sign in" title="Sign in" onClick={onNavigate}>
               <span className={styles.roleMarker} aria-hidden>{display.abbreviation}</span>
               <span className={styles.accountName}>{accountName}</span>
             </Link>
-            <form action={logoutAction} className={styles.logoutForm}>
-              <button type="submit" className={styles.logoutBtn} aria-label="Log out" title="Log out">
-                <LogOut size={14} aria-hidden />
-              </button>
-            </form>
-          </div>
-        ) : (
-          <Link href="/login" draggable={false} className={cn(styles.accountPill, styles.accountLink, display.className)} aria-label="Sign in" title="Sign in" onClick={onNavigate}>
-            <span className={styles.roleMarker} aria-hidden>{display.abbreviation}</span>
-            <span className={styles.accountName}>{accountName}</span>
-          </Link>
-        )}
-      </footer>
+          )}
+        </footer>
+      </div>
     </aside>
+    <FaqModal isOpen={faqOpen} onOpenChange={setFaqOpen} />
+    <MaintainersModal isOpen={maintainersOpen} onOpenChange={setMaintainersOpen} />
+    </>
   );
 }
 
@@ -209,7 +233,7 @@ export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
       <button
         type="button"
         onClick={() => setDrawerOpen(true)}
-        className="fixed left-0 top-4 z-30 inline-flex h-9 w-9 items-center justify-center rounded-r-md border border-l-0 border-[var(--color-separator-mid)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand-bright)]/30 hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 xl:hidden"
+        className="fixed left-0 top-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-r-md border border-l-0 border-[var(--color-separator-mid)] bg-[var(--color-surface)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand-bright)]/30 hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 xl:hidden"
         aria-label="Open navigation"
         title="Open navigation"
       >

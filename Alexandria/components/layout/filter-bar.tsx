@@ -159,7 +159,12 @@ export function FilterBar({ className }: FilterBarProps) {
         </button>
       )}
       <span aria-live="polite" className="sr-only">{isPending ? "Updating results…" : ""}</span>
-      {isPending && <Loader2 className="size-4 animate-spin text-[var(--color-text-muted)]" aria-hidden />}
+      {isPending && (
+        <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)]" aria-hidden>
+          <Loader2 className="size-[14px] animate-spin" />
+          Updating…
+        </span>
+      )}
     </div>
   );
 }

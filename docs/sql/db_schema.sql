@@ -18,6 +18,8 @@ CREATE TABLE public.theses (
   submitted_by_user_id uuid,
   conference text,
   study_type text NOT NULL DEFAULT 'thesis'::text CHECK (study_type = ANY (ARRAY['thesis'::text, 'capstone'::text])),
+  deployment_link text,
+  CONSTRAINT theses_deployment_link_capstone_check CHECK (deployment_link IS NULL OR study_type = 'capstone'::text),
   CONSTRAINT theses_pkey PRIMARY KEY (id),
   CONSTRAINT theses_submitted_by_user_id_fkey FOREIGN KEY (submitted_by_user_id) REFERENCES public.users(id)
 );
@@ -30,6 +32,24 @@ CREATE TABLE public.thesis_files (
   storage_path text NOT NULL,
   CONSTRAINT thesis_files_pkey PRIMARY KEY (id),
   CONSTRAINT thesis_files_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id)
+);
+CREATE TABLE public.thesis_media (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  thesis_id bigint NOT NULL,
+  asset_kind text NOT NULL CHECK (asset_kind = 'teaser_thumbnail'::text),
+  staging_storage_path text NOT NULL,
+  published_storage_path text,
+  mime_type text NOT NULL CHECK (mime_type = ANY (ARRAY['image/jpeg'::text, 'image/png'::text, 'image/webp'::text])),
+  byte_size bigint NOT NULL CHECK (byte_size > 0 AND byte_size <= 5242880),
+  uploaded_by_user_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT thesis_media_pkey PRIMARY KEY (id),
+  CONSTRAINT thesis_media_one_teaser_per_thesis UNIQUE (thesis_id, asset_kind),
+  CONSTRAINT thesis_media_staging_storage_path_key UNIQUE (staging_storage_path),
+  CONSTRAINT thesis_media_published_storage_path_key UNIQUE (published_storage_path),
+  CONSTRAINT thesis_media_thesis_id_fkey FOREIGN KEY (thesis_id) REFERENCES public.theses(id),
+  CONSTRAINT thesis_media_uploaded_by_user_id_fkey FOREIGN KEY (uploaded_by_user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.thesis_tags (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
@@ -79,7 +99,7 @@ CREATE TABLE public.thesis_authors (
 CREATE TABLE public.thesis_review_comments (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   thesis_id bigint NOT NULL,
-  field_key text NOT NULL CHECK (field_key = ANY (ARRAY['title'::text, 'authors'::text, 'advisers'::text, 'department'::text, 'study_type'::text, 'publication_date'::text, 'publication_link'::text, 'conference'::text, 'research_area'::text, 'tags'::text, 'abstract'::text, 'recommendations'::text, 'lessons_learned'::text, 'pdf_general'::text])),
+  field_key text NOT NULL CHECK (field_key = ANY (ARRAY['title'::text, 'authors'::text, 'advisers'::text, 'department'::text, 'study_type'::text, 'publication_date'::text, 'publication_link'::text, 'deployment_link'::text, 'conference'::text, 'research_area'::text, 'tags'::text, 'abstract'::text, 'recommendations'::text, 'lessons_learned'::text, 'pdf_general'::text, 'teaser_thumbnail'::text])),
   comment text NOT NULL,
   created_by_user_id uuid NOT NULL,
   addressed_at timestamp with time zone,

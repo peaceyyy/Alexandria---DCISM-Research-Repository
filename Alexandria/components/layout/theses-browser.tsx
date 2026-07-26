@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import { LayoutGrid, List, Search, SlidersHorizontal } from "lucide-react";
-import FaqRail from "@/components/layout/faq";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ReviewStatus, ThesisCard } from "@/lib/services/types";
@@ -110,11 +108,11 @@ export default function ThesesBrowser({
   const currentBrowseHref = `${pathname}${currentQuery ? `?${currentQuery}` : ""}`;
 
   return (
-    <div className="grid min-h-screen grid-cols-1 xl:h-screen xl:grid-cols-[auto_minmax(0,1fr)_310px] motion-safe:xl:transition-[grid-template-columns] motion-safe:xl:duration-200">
+    <div className="grid min-h-screen grid-cols-1 xl:h-screen xl:grid-cols-[auto_minmax(0,1fr)] motion-safe:xl:transition-[grid-template-columns] motion-safe:xl:duration-200">
       <WorkspaceSidebar role={role} profileName={profileName} flaggedSubmissionCount={flaggedSubmissionCount} />
 
-      <section className="px-4 pt-10 pb-8 sm:px-6 sm:pt-14 xl:overflow-y-auto xl:px-8 xl:pt-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="mx-auto w-full max-w-4xl">
+      <section className="px-4 pt-10 pb-8 sm:px-6 sm:pt-14 xl:overflow-y-auto xl:pl-8 xl:pr-4 xl:pt-16 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mx-auto w-full max-w-5xl">
 
           {/* ── Control zone ────────────────────────────────── */}
           <div className="pb-4">
@@ -146,9 +144,10 @@ export default function ThesesBrowser({
               </button>
             </div>}
 
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-[15px] font-bold tracking-tight text-[var(--color-text)]">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="flex items-center gap-2 text-[19px] font-extrabold tracking-tight text-[var(--color-text)]">
+                  <span className="block h-5 w-0.5 rounded-full bg-[var(--color-brand)]" aria-hidden />
                   {isMySubmissions ? "My Submissions" : "All Research"}
                 </h1>
 
@@ -161,6 +160,19 @@ export default function ThesesBrowser({
                 <div className="hidden h-4 w-px bg-[var(--color-separator)] sm:block" aria-hidden />
                 <p className="text-[13px] font-medium text-[var(--color-text-muted)]" aria-live="polite">
                   {items.length} {items.length === 1 ? "study" : "studies"}
+                  {!isMySubmissions && hasFilters && (
+                    <>
+                      <span className="mx-1.5 opacity-40">&middot;</span>
+                      <span>{activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"}</span>
+                      <button
+                        type="button"
+                        onClick={clearAllFilters}
+                        className="ml-1.5 font-semibold text-[var(--color-brand-bright)] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)]/60 rounded-sm"
+                      >
+                        Clear
+                      </button>
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -240,7 +252,7 @@ export default function ThesesBrowser({
               )}
             </div>
           ) : (
-            <div className={viewMode === "comfortable" ? "grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3" : "divide-y divide-[var(--color-separator)] border-y border-[var(--color-separator)]"}>
+            <div className={viewMode === "comfortable" ? "grid grid-cols-1 gap-5 sm:grid-cols-2 2xl:grid-cols-3" : "divide-y divide-[var(--color-separator)] border-y border-[var(--color-separator)]"}>
             {items.map((item) => {
               const workflowStatus = isMySubmissions && item.reviewStatus
                 ? item.reviewStatus
@@ -293,14 +305,17 @@ export default function ThesesBrowser({
               const card = viewMode === "comfortable" ? (
                 <article className="group flex flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]">
                   {/* Thumbnail */}
-                  <div className="flex-shrink-0 overflow-hidden border-b border-[var(--color-separator)] bg-[var(--color-text)]/5">
-                    <Image
-                      src="/placeholder.svg"
-                      alt="Thesis preview thumbnail"
-                      width={640}
-                      height={360}
-                      className="aspect-video w-full object-cover"
-                    />
+                  <div className="flex-shrink-0 overflow-hidden border-b border-[var(--color-separator)]">
+                    {/* Branded placeholder shown until real thumbnail is available */}
+                    <div className="flex aspect-[3/2] w-full items-center justify-center bg-[var(--color-surface-alt)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src="/brand/alexandria-mark.svg"
+                        alt=""
+                        aria-hidden
+                        className="h-8 w-8 opacity-20 theme-invert"
+                      />
+                    </div>
                   </div>
                   {/* Content */}
                   <div className="flex flex-col gap-2 px-4 py-4">
@@ -387,15 +402,7 @@ export default function ThesesBrowser({
           </div>
         )}
         </div>
-
-        <div className="mt-8 border-t border-[var(--color-separator)] pt-2 xl:hidden">
-          <FaqRail />
-        </div>
       </section>
-
-      <div className="hidden xl:block xl:pt-16 xl:pr-6 xl:overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <FaqRail />
-      </div>
 
       <Dialog open={filtersOpen && !isMySubmissions} onOpenChange={setFiltersOpen}>
         <DialogContent

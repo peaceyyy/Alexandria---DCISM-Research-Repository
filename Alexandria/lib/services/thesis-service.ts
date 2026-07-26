@@ -169,9 +169,11 @@ export async function getThesisById(
         research_area,
         publication_date,
         publication_link,
+        deployment_link,
         conference,
         recommendations,
         lessons_learned,
+        study_type,
         thesis_authors (
           id,
           user_id,
@@ -185,6 +187,10 @@ export async function getThesisById(
         thesis_files (
           id,
           is_primary
+        ),
+        thesis_media (
+          published_storage_path,
+          asset_kind
         )
       `,
       )
@@ -192,6 +198,12 @@ export async function getThesisById(
       .single();
 
     if (error) {
+      console.error("[thesis-detail] query failed", {
+        thesisId: id,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
       if (error.code === "PGRST116") {
         return err(makeError("NOT_FOUND", "Thesis not found."));
       }
@@ -215,6 +227,13 @@ export async function getThesisById(
     const hasPrimaryFile = (data.thesis_files ?? []).some(
       (f: { is_primary: boolean }) => f.is_primary,
     );
+    const teaser = (data.thesis_media ?? []).find(
+      (media: { asset_kind: string }) => media.asset_kind === "teaser_thumbnail",
+    ) as { published_storage_path: string | null } | undefined;
+    const teaserPublicUrl =
+      data.review_status === "accepted" && teaser?.published_storage_path
+        ? supabase.storage.from("thesis_teasers_public").getPublicUrl(teaser.published_storage_path).data.publicUrl
+        : null;
 
     // Related theses: fetch thesis_ids that share tags, ranked by overlap count
     let relatedTheses: ThesisCard[] = [];
@@ -276,9 +295,11 @@ export async function getThesisById(
       abstract: data.abstract ?? "",
       abstract_preview: data.abstract?.substring(0, 400) ?? "",
       department: data.department,
+      study_type: data.study_type,
       research_area: data.research_area ?? null,
       publication_date: data.publication_date ?? null,
       publication_link: data.publication_link ?? null,
+      deployment_link: data.deployment_link ?? null,
       conference: data.conference ?? null,
       recommendations: data.recommendations ?? null,
       lessons_learned: data.lessons_learned ?? null,
@@ -293,6 +314,9 @@ export async function getThesisById(
         download_requires_auth: true,
       },
       related_theses: relatedTheses,
+      teaser_thumbnail: teaserPublicUrl
+        ? { public_url: teaserPublicUrl, alt: `Teaser thumbnail for ${data.title}` }
+        : null,
     };
 
     return ok(detail);

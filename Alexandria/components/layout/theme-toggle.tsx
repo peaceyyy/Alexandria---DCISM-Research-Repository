@@ -52,7 +52,7 @@ export function ThemeToggle({
         presentation === "tile"
           ? `inline-flex min-h-[52px] w-full flex-col items-center justify-center gap-1 rounded-[10px] border border-[var(--color-separator-mid)] bg-[var(--color-text)]/5 px-1 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-text)]/10 hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 ${className ?? ""}`
           : presentation === "strip"
-          ? `inline-flex h-9 w-full items-center justify-center rounded-lg border border-[var(--color-separator-mid)] bg-transparent text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 ${className ?? ""}`
+          ? `inline-flex items-center justify-center rounded-lg border border-[var(--color-separator-mid)] bg-transparent text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 ${className ?? "h-9 w-full"}`
           : `inline-flex h-8 w-8 items-center justify-center rounded-full border border-[var(--color-separator-mid)] bg-[var(--color-text)]/5 text-[var(--color-text)] transition-colors hover:bg-[var(--color-text)]/10 ${className ?? ""}`
       }
     >

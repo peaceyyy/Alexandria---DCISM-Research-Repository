@@ -115,6 +115,29 @@ export default async function ThesisDetails({
             {thesis.conference && ` | ${thesis.conference}`}
           </div>
 
+          {(thesis.teaser_thumbnail || (thesis.study_type === "capstone" && thesis.deployment_link)) && (
+            <section className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start">
+              {thesis.teaser_thumbnail && (
+                <img
+                  src={thesis.teaser_thumbnail.public_url}
+                  alt={thesis.teaser_thumbnail.alt}
+                  className="aspect-video w-full max-w-xl rounded-xl border border-[var(--color-separator-mid)] object-cover sm:w-80"
+                />
+              )}
+              {thesis.study_type === "capstone" && thesis.deployment_link && (
+                <a
+                  href={thesis.deployment_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-[var(--color-brand)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-brand-bright)]"
+                >
+                  Open deployed system
+                  <ExternalLink size={15} aria-hidden />
+                </a>
+              )}
+            </section>
+          )}
+
           {ownerStatus && (
             <p
               className={

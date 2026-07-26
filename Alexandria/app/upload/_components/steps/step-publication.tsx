@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
 import { type FormValues } from "@/lib/upload/schema";
 import { StepWrapper, Field, FieldError, inputClass } from "./_helpers";
@@ -7,8 +8,15 @@ import { StepWrapper, Field, FieldError, inputClass } from "./_helpers";
 export function StepPublication() {
   const {
     register,
+    watch,
+    setValue,
     formState: { errors },
   } = useFormContext<FormValues>();
+  const studyType = watch("type_of_study");
+
+  useEffect(() => {
+    if (studyType !== "capstone") setValue("deployment_link", "");
+  }, [setValue, studyType]);
 
   return (
     <StepWrapper
@@ -46,6 +54,30 @@ export function StepPublication() {
           <FieldError>{errors.publication_link.message}</FieldError>
         )}
       </Field>
+
+      <div
+        className={[
+          "grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-200 ease-out",
+          studyType === "capstone" ? "mt-5 grid-rows-[1fr] opacity-100" : "mt-0 grid-rows-[0fr] opacity-0",
+        ].join(" ")}
+        aria-hidden={studyType !== "capstone"}
+      >
+        <div className="min-h-0">
+          <Field
+            label="Deployment Link"
+            hint="Optional. A public URL where readers can open the deployed capstone system."
+          >
+            <input
+              {...register("deployment_link")}
+              type="url"
+              placeholder="https://…"
+              disabled={studyType !== "capstone"}
+              className={inputClass(!!errors.deployment_link)}
+            />
+            {errors.deployment_link && <FieldError>{errors.deployment_link.message}</FieldError>}
+          </Field>
+        </div>
+      </div>
     </StepWrapper>
   );
 }

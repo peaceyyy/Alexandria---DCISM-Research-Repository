@@ -33,7 +33,9 @@ import type { ReviewFieldKey } from "@/components/review/types";
 import {
   addReviewComment,
   adminUpdateSubmissionMetadata,
+  finalizeReviewAcceptance,
   getReviewSubmission,
+  replaceTeaserThumbnail,
   setReviewStatus,
 } from "@/lib/services/review-service";
 import type {
@@ -96,6 +98,7 @@ type AdminMetadataDraft = {
   studyType: "thesis" | "capstone";
   publicationDate: string;
   publicationLink: string;
+  deploymentLink: string;
   conference: string;
   researchAreaIds: ResearchAreaId[];
   tags: string;
@@ -113,6 +116,7 @@ function createAdminMetadataDraft(
     studyType: submission.studyType,
     publicationDate: submission.publicationDate,
     publicationLink: submission.publicationLink ?? "",
+    deploymentLink: submission.deploymentLink ?? "",
     conference: submission.conference ?? "",
     researchAreaIds: parseResearchAreaIds(submission.researchArea),
     tags: submission.tags.join(", "),
@@ -129,6 +133,7 @@ function toAdminMetadataValues(draft: AdminMetadataDraft): Partial<SubmitThesisI
     study_type: draft.studyType,
     publication_date: draft.publicationDate,
     publication_link: draft.publicationLink.trim(),
+    deployment_link: draft.studyType === "capstone" ? draft.deploymentLink.trim() || undefined : undefined,
     conference: draft.conference.trim(),
     research_area: serializeResearchAreaIds(draft.researchAreaIds),
     tags: draft.tags
@@ -316,10 +321,9 @@ export function ReviewDetailClient({
       setIsActionPending(true);
       setActionError(null);
 
-      const result = await setReviewStatus({
-        thesisId: submission.id,
-        nextStatus,
-      });
+      const result = nextStatus === "accepted"
+        ? await finalizeReviewAcceptance(submission.id)
+        : await setReviewStatus({ thesisId: submission.id, nextStatus });
 
       if (result.error || !result.data) {
         setActionError(
@@ -374,6 +378,22 @@ export function ReviewDetailClient({
         description: "The correction was recorded without changing its review status.",
       });
       return null;
+    },
+    [showToast, submission.id],
+  );
+
+  const handleAdminTeaserReplace = useCallback(
+    async (file: File | null) => {
+      setIsActionPending(true);
+      setActionError(null);
+      const result = await replaceTeaserThumbnail({ thesisId: submission.id, file });
+      setIsActionPending(false);
+      if (result.error || !result.data) {
+        setActionError(result.error?.message ?? "The teaser thumbnail could not be updated.");
+        return;
+      }
+      setSubmission(result.data);
+      showToast({ title: file ? "Teaser thumbnail replaced." : "Teaser thumbnail removed." });
     },
     [showToast, submission.id],
   );
@@ -983,6 +1003,75 @@ export function ReviewDetailClient({
                 ) : (
                   <p style={{ margin: 0, fontSize: 13, color: "var(--color-text-muted)" }}>—</p>
                 )}
+              </ReviewableField>
+
+              {(submission.studyType === "capstone" || fieldComments("deployment_link").length > 0 || isAdminDirectEditing) && (
+                <ReviewableField
+                  fieldKey="deployment_link"
+                  label="Deployment Link"
+                  comments={fieldComments("deployment_link")}
+                  isActive={activeCommentField === "deployment_link"}
+                  onCommentIconClick={handleCommentIconClick}
+                >
+                  {isAdminDirectEditing ? (
+                    <input
+                      type="url"
+                      value={adminDraft.deploymentLink}
+                      onChange={(event) => updateAdminDraft("deploymentLink", event.target.value)}
+                      disabled={adminDraft.studyType !== "capstone"}
+                      placeholder="https://"
+                      className="min-h-[42px] w-full rounded-md border border-[var(--color-separator-mid)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-placeholder)] focus:border-[var(--color-brand-bright)]/60 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  ) : submission.deploymentLink ? (
+                    <a href={submission.deploymentLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm text-[var(--color-brand-bright)] hover:underline">
+                      <ExternalLink size={12} aria-hidden />
+                      {submission.deploymentLink}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-[var(--color-text-muted)]">{submission.studyType === "capstone" ? "Not provided" : "No longer applicable"}</p>
+                  )}
+                </ReviewableField>
+              )}
+
+              <ReviewableField
+                fieldKey="teaser_thumbnail"
+                label="Teaser Thumbnail"
+                comments={fieldComments("teaser_thumbnail")}
+                isActive={activeCommentField === "teaser_thumbnail"}
+                onCommentIconClick={handleCommentIconClick}
+              >
+                <div className="grid gap-3">
+                  {submission.teaserThumbnail ? (
+                    <a href={submission.teaserThumbnail.previewUrl} target="_blank" rel="noreferrer" className="text-sm text-[var(--color-brand-bright)] hover:underline">
+                      View protected teaser preview · {submission.teaserThumbnail.fileName}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-[var(--color-text-muted)]">No teaser thumbnail attached.</p>
+                  )}
+                  {viewerRole === "admin" && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="cursor-pointer rounded-md border border-[var(--color-separator-mid)] px-3 py-2 text-sm font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-alt)]">
+                        Replace teaser
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          className="sr-only"
+                          disabled={isActionPending}
+                          onChange={(event) => {
+                            const file = event.target.files?.[0] ?? null;
+                            event.currentTarget.value = "";
+                            if (file) void handleAdminTeaserReplace(file);
+                          }}
+                        />
+                      </label>
+                      {submission.teaserThumbnail && (
+                        <button type="button" onClick={() => void handleAdminTeaserReplace(null)} disabled={isActionPending} className="rounded-md px-2 py-1.5 text-sm font-semibold text-[var(--color-danger)] hover:bg-[var(--color-chip-red-bg)]">
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </ReviewableField>
 
               {/* Authors */}

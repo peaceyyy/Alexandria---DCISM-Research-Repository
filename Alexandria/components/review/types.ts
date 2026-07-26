@@ -34,7 +34,9 @@ export type ReviewFieldKey =
   | "abstract"
   | "recommendations"
   | "lessons_learned"
-  | "pdf_general";
+  | "pdf_general"
+  | "deployment_link"
+  | "teaser_thumbnail";
 
 // ─── Display Maps ────────────────────────────────────────────────────────────
 
@@ -64,6 +66,8 @@ export const REVIEW_FIELD_LABEL: Record<ReviewFieldKey, string> = {
   recommendations: "Recommendations",
   lessons_learned: "Lessons Learned",
   pdf_general: "PDF / Paper Feedback",
+  deployment_link: "Deployment Link",
+  teaser_thumbnail: "Teaser Thumbnail",
 };
 
 // ─── Comment Shape ───────────────────────────────────────────────────────────

@@ -121,3 +121,17 @@ These are deliberately deferred until the immediate control-zone behaviour has b
 - Facet result counts and type-ahead suggestions, if the catalog becomes large enough to warrant them.
 - Richer result-context copy or saved searches. The current query label should remain intentionally quiet until its value is proven in use.
 - Search-result sorting, pagination/load-more decisions, and advanced query syntax.
+
+### Discovery-request performance follow-up (deferred)
+
+This is a source-level finding, not a production latency measurement. It is recorded separately from the control-zone UX work so the MVP does not absorb a premature data-layer refactor.
+
+- On public browsing, `app/home/page.tsx` currently resolves the active user before it starts `getTheses`. For a normal public view, those requests can be started concurrently because the `mine` query parameter is already known.
+- `getTheses` currently performs two sequential Supabase operations: `search_public_theses` returns matching thesis IDs, then a second query hydrates the cards, authors, and tags. This is a real extra round trip, but merging it into one RPC is a database/service-contract change and is not required for the current MVP UX slice.
+- `React.cache(getCurrentUser)` deduplicates the current-user lookup only within one server render. It does not cache public search results across separate filter changes or page visits.
+
+**Decision:** First improve perceived continuity at the result grid (retain the controls and previous results while the next URL-backed result set is pending). Defer the following until a production Network trace shows that they materially affect interaction time:
+
+1. Small, file-local optimization: start public search and current-user lookup concurrently when `mine` is not requested.
+2. Larger data-contract optimization: return public thesis-card data from one database operation instead of the current ID search plus hydration query.
+3. Selective public-result caching: cache only accepted-public discovery data with an explicit freshness and publish-invalidation policy; never apply this to member, review, admin, or signed-file data.

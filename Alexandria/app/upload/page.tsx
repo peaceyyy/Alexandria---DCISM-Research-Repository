@@ -9,7 +9,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { formSchema, type FormValues, STEPS, FIELD_STEP_MAP } from "@/lib/upload/schema";
 import { serializeResearchAreaIds } from "@/lib/domain/research-areas";
 import { submitThesis } from "@/lib/services/submission-service";
-import { validateThesisPdf } from "@/lib/upload/file-validation";
+import { validateTeaserThumbnail, validateThesisPdf } from "@/lib/upload/file-validation";
 
 // Layout components
 import { UploadHeader } from "@/app/upload/_components/upload-header";
@@ -40,6 +40,8 @@ export default function UploadPage() {
   // ── File state (outside react-hook-form) ─────────────────────────────────
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [selectedTeaser, setSelectedTeaser] = useState<File | null>(null);
+  const [teaserError, setTeaserError] = useState<string | null>(null);
 
   // ── Dialog state ─────────────────────────────────────────────────────────
   const [showExitWarning, setShowExitWarning] = useState(false);
@@ -70,6 +72,7 @@ export default function UploadPage() {
       tags: [],
       publication_date: "",
       publication_link: "",
+      deployment_link: "",
       conference: "",
       recommendations: "",
       lessons_learned: [],
@@ -81,14 +84,14 @@ export default function UploadPage() {
   // ── Unsaved changes — browser tab close / refresh ────────────────────────
   useEffect(() => {
     function handleBeforeUnload(e: BeforeUnloadEvent) {
-      if (isDirty || selectedFile) {
+      if (isDirty || selectedFile || selectedTeaser) {
         e.preventDefault();
         e.returnValue = "";
       }
     }
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty, selectedFile]);
+  }, [isDirty, selectedFile, selectedTeaser]);
 
   // ── Navigation helpers ───────────────────────────────────────────────────
   const goToStep = useCallback(
@@ -129,7 +132,7 @@ export default function UploadPage() {
 
   // ── Logo click → exit warning ────────────────────────────────────────────
   function handleLogoClick() {
-    if (isDirty || selectedFile) {
+    if (isDirty || selectedFile || selectedTeaser) {
       setShowExitWarning(true);
     } else {
       router.push("/home");
@@ -188,6 +191,21 @@ export default function UploadPage() {
     setSelectedFile(file);
   }
 
+  async function handleTeaserChange(file: File | null) {
+    setTeaserError(null);
+    if (!file) {
+      setSelectedTeaser(null);
+      return;
+    }
+    const validationError = await validateTeaserThumbnail(file);
+    if (validationError) {
+      setSelectedTeaser(null);
+      setTeaserError(validationError);
+      return;
+    }
+    setSelectedTeaser(file);
+  }
+
   // ── Open submit confirm (only if no errors) ──────────────────────────────
   async function handleOpenSubmit() {
     const isValid = await methods.trigger();
@@ -216,6 +234,7 @@ export default function UploadPage() {
         tags: data.tags,
         publication_date: data.publication_date,
         publication_link: data.publication_link,
+        deployment_link: data.type_of_study === "capstone" ? data.deployment_link || undefined : undefined,
         conference: data.conference,
         recommendations: data.recommendations,
         lessons_learned: data.lessons_learned.join("\n"),
@@ -225,6 +244,7 @@ export default function UploadPage() {
       const submissionPacket = new FormData();
       submissionPacket.set("payload", JSON.stringify(payload));
       submissionPacket.set("file", selectedFile!);
+      if (selectedTeaser) submissionPacket.set("teaser", selectedTeaser);
 
       const result = await submitThesis(submissionPacket);
       if (result.error) {
@@ -303,12 +323,16 @@ export default function UploadPage() {
                 file={selectedFile}
                 onChange={handleFileChange}
                 error={fileError ?? undefined}
+                teaser={selectedTeaser}
+                onTeaserChange={handleTeaserChange}
+                teaserError={teaserError ?? undefined}
               />
             )}
             {currentStep === 7 && (
               <StepReview
                 onGoToStep={goToStep}
                 selectedFile={selectedFile}
+                teaserFile={selectedTeaser}
                 onOpenSubmit={handleOpenSubmit}
               />
             )}

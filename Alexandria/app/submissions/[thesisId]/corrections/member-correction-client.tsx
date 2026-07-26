@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   resubmitFlaggedSubmission,
+  replaceTeaserThumbnail,
   saveFlaggedSubmissionCorrection,
 } from "@/lib/services/review-service";
 import type { ReviewSubmission, ThesisAuthorInput } from "@/lib/services/types";
@@ -70,6 +71,7 @@ type CorrectionForm = {
   studyType: "thesis" | "capstone";
   publicationDate: string;
   publicationLink: string;
+  deploymentLink: string;
   conference: string;
   researchAreaIds: ResearchAreaId[];
   abstract: string;
@@ -101,6 +103,7 @@ function createForm(submission: ReviewSubmission): CorrectionForm {
     studyType: submission.studyType,
     publicationDate: submission.publicationDate,
     publicationLink: submission.publicationLink ?? "",
+    deploymentLink: submission.deploymentLink ?? "",
     conference: submission.conference ?? "",
     researchAreaIds: parseResearchAreaIds(submission.researchArea),
     abstract: submission.abstract,
@@ -126,6 +129,7 @@ function toUpdateValues(form: CorrectionForm) {
     study_type: form.studyType,
     publication_date: form.publicationDate,
     publication_link: form.publicationLink,
+    deployment_link: form.studyType === "capstone" ? form.deploymentLink.trim() || undefined : undefined,
     conference: form.conference,
     research_area: serializeResearchAreaIds(form.researchAreaIds),
     abstract: form.abstract,
@@ -163,6 +167,7 @@ export function MemberCorrectionClient({
   const [isSaving, setIsSaving] = useState(false);
   const [isResubmitting, setIsResubmitting] = useState(false);
   const [selectedPdf, setSelectedPdf] = useState<File | null>(null);
+  const [isTeaserPending, setIsTeaserPending] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -354,6 +359,19 @@ export function MemberCorrectionClient({
         : "Draft saved. Feedback on the fields you updated is now marked revised.",
     );
     setIsSaving(false);
+  };
+
+  const handleTeaserReplace = async (file: File | null) => {
+    setIsTeaserPending(true);
+    setError(null);
+    const result = await replaceTeaserThumbnail({ thesisId: submission.id, file });
+    setIsTeaserPending(false);
+    if (result.error || !result.data) {
+      setError(result.error?.message ?? "The teaser thumbnail could not be updated.");
+      return;
+    }
+    setSubmission(result.data);
+    setNotice(file ? "Teaser thumbnail saved. Review evidence was updated." : "Teaser thumbnail removed.");
   };
 
   const clearSelectedPdf = () => {
@@ -556,12 +574,16 @@ export function MemberCorrectionClient({
             >
               <select
                 value={form.studyType}
-                onChange={(event) =>
-                  updateField(
-                    "studyType",
-                    event.target.value as CorrectionForm["studyType"],
-                  )
-                }
+                onChange={(event) => {
+                  const studyType = event.target.value as CorrectionForm["studyType"];
+                  setForm((current) => ({
+                    ...current,
+                    studyType,
+                    deploymentLink: studyType === "capstone" ? current.deploymentLink : "",
+                  }));
+                  hasUnsavedWorkRef.current = true;
+                  setHasUnsavedChanges(true);
+                }}
                 disabled={isLocked}
               >
                 <option value="thesis">Thesis</option>
@@ -722,6 +744,24 @@ export function MemberCorrectionClient({
             />
           </Field>
 
+          {(form.studyType === "capstone" || commentsFor("deployment_link").length > 0) && (
+            <Field
+              fieldKey="deployment_link"
+              label="Deployment link"
+              comments={commentsFor("deployment_link")}
+              activeField={activeCommentField}
+              onCommentIconClick={handleCommentIconClick}
+            >
+              <input
+                type="url"
+                value={form.deploymentLink}
+                onChange={(event) => updateField("deploymentLink", event.target.value)}
+                disabled={isLocked || form.studyType !== "capstone"}
+                placeholder={form.studyType === "capstone" ? "https://" : "No longer applicable"}
+              />
+            </Field>
+          )}
+
           <Field
             fieldKey="pdf_general"
             label="Primary PDF"
@@ -787,6 +827,47 @@ export function MemberCorrectionClient({
                 >
                   {pdfError}
                 </p>
+              )}
+            </div>
+          </Field>
+
+          <Field
+            fieldKey="teaser_thumbnail"
+            label="Teaser thumbnail"
+            comments={commentsFor("teaser_thumbnail")}
+            activeField={activeCommentField}
+            onCommentIconClick={handleCommentIconClick}
+          >
+            <div className={styles.pdfSection}>
+              {submission.teaserThumbnail ? (
+                <>
+                  <a href={submission.teaserThumbnail.previewUrl} target="_blank" rel="noreferrer" className={styles.previewLink}>
+                    Open current teaser · {submission.teaserThumbnail.fileName}
+                  </a>
+                  {!isLocked && (
+                    <button type="button" className={styles.clearPdfIconButton} onClick={() => void handleTeaserReplace(null)} disabled={isTeaserPending}>
+                      Remove teaser
+                    </button>
+                  )}
+                </>
+              ) : (
+                <p>No teaser thumbnail attached.</p>
+              )}
+              {!isLocked && (
+                <label className={styles.filePicker}>
+                  <FileUp size={15} aria-hidden />
+                  <span>{submission.teaserThumbnail ? "Replace teaser" : "Choose teaser image"}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={isTeaserPending || isSaving || isResubmitting}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0] ?? null;
+                      event.currentTarget.value = "";
+                      if (file) void handleTeaserReplace(file);
+                    }}
+                  />
+                </label>
               )}
             </div>
           </Field>

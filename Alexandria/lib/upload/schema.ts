@@ -40,6 +40,7 @@ export const formSchema = z
     tags: z.array(z.string().min(1)).min(1, "Add at least one keyword"),
     publication_date: z.iso.date("Publication date is required"),
     publication_link: z.string().min(1, "Publication link is required"),
+    deployment_link: z.string().url("Use a valid deployment URL").optional().or(z.literal("")),
     conference: z.string().min(1, "Conference name is required"),
     recommendations: z.string().min(10, "Recommendations must be at least 10 characters"),
     lessons_learned: z.array(z.string().min(1)).min(1, "Add at least one lesson learned"),
@@ -51,6 +52,13 @@ export const formSchema = z
         code: "custom",
         path: ["publication_date"],
         message: "Publication date cannot be later than today",
+      });
+    }
+    if (data.type_of_study !== "capstone" && data.deployment_link) {
+      context.addIssue({
+        code: "custom",
+        path: ["deployment_link"],
+        message: "Only capstones may include a deployment link.",
       });
     }
   });
@@ -65,6 +73,7 @@ export const FIELD_STEP_MAP: Record<string, number> = {
   publication_date: 1,
   conference: 2,
   publication_link: 2,
+  deployment_link: 2,
   authors: 3,
   abstract: 4,
   research_areas: 4,

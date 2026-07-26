@@ -4,10 +4,16 @@ import { createClient } from "../supabase/server";
 import { createAdminClient } from "../supabase/admin";
 import {
   removeThesisFileFromStorage,
+  removeTeaserThumbnailFromStaging,
+  promoteTeaserThumbnailToPublic,
+  removePublicTeaserThumbnail,
+  uploadTeaserThumbnailToStaging,
+  uploadAdminTeaserThumbnailToStaging,
   uploadThesisFileToStorage,
 } from "../upload/storage-helper";
 import {
   THESIS_PDF_MIME_TYPE,
+  validateTeaserThumbnail,
   validateThesisPdf,
 } from "../upload/file-validation";
 import { isDepartment } from "../domain/departments";
@@ -44,6 +50,7 @@ import type {
   ThesisAuthor,
   ThesisAuthorInput,
   UpdateFlaggedSubmissionInput,
+  ReplaceTeaserThumbnailInput,
 } from "./types";
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -63,6 +70,8 @@ const REVIEWABLE_FIELDS: ReviewFieldKey[] = [
   "recommendations",
   "lessons_learned",
   "pdf_general",
+  "deployment_link",
+  "teaser_thumbnail",
 ];
 const REVIEW_STATUSES: ReviewStatus[] = [
   "for_review",
@@ -99,7 +108,8 @@ const REVIEW_LIST_SELECT = `
   submitted_by_user_id,
   created_at,
   updated_at,
-  study_type
+  study_type,
+  deployment_link
 `;
 
 type ThesisRow = {
@@ -119,6 +129,7 @@ type ThesisRow = {
   created_at: string;
   updated_at: string;
   study_type: StudyType;
+  deployment_link: string | null;
 };
 
 type AuthorRow = {
@@ -161,6 +172,12 @@ type AuditRow = {
   event: ReviewAuditEventType | null;
   change_description: string | null;
   updated_at: string;
+};
+type TeaserMediaRow = {
+  thesis_id: number;
+  staging_storage_path: string;
+  published_storage_path: string | null;
+  mime_type: string;
 };
 
 type ReviewSearchMatchRow = {
@@ -421,6 +438,7 @@ function buildUpdatePayload(values: Partial<SubmitThesisInput>) {
     "research_area",
     "publication_date",
     "publication_link",
+    "deployment_link",
     "conference",
     "recommendations",
     "lessons_learned",
@@ -460,6 +478,18 @@ function validateUpdatePayload(values: Partial<SubmitThesisInput>) {
 
   if (values.study_type !== undefined && !isStudyType(values.study_type)) {
     return makeError("VALIDATION_FAILED", "Study type must be thesis or capstone.");
+  }
+
+  if (
+    values.deployment_link !== undefined
+    && values.deployment_link !== ""
+    && !/^https?:\/\//i.test(values.deployment_link)
+  ) {
+    return makeError("VALIDATION_FAILED", "Deployment links must use http:// or https://.");
+  }
+
+  if (values.study_type === "thesis" && values.deployment_link) {
+    return makeError("VALIDATION_FAILED", "Only capstones may include a deployment link.");
   }
 
   if (values.department !== undefined && !isDepartment(values.department)) {
@@ -540,6 +570,7 @@ async function loadThesisBundle(
   authors: AuthorRow[];
   tags: TagRow[];
   primaryFile: FileRow | null;
+  teaser: TeaserMediaRow | null;
   comments: CommentRow[];
   audits: AuditRow[];
 }> {
@@ -562,7 +593,8 @@ async function loadThesisBundle(
       submitted_by_user_id,
       created_at,
       updated_at,
-      study_type
+      study_type,
+      deployment_link
     `)
     .eq("id", thesisId);
   const { data: thesis, error: thesisError } = expectedOwnerId
@@ -579,6 +611,7 @@ async function loadThesisBundle(
     authorsResult,
     tagsResult,
     filesResult,
+    teaserResult,
     commentsResult,
     initialAuditsResult,
   ] = await Promise.all([
@@ -599,6 +632,12 @@ async function loadThesisBundle(
       .select("thesis_id, storage_path, file_type, is_primary")
       .eq("thesis_id", thesisId)
       .eq("is_primary", true)
+      .limit(1),
+    supabase
+      .from("thesis_media")
+      .select("thesis_id, staging_storage_path, published_storage_path, mime_type")
+      .eq("thesis_id", thesisId)
+      .eq("asset_kind", "teaser_thumbnail")
       .limit(1),
     supabase
       .from("thesis_review_comments")
@@ -649,6 +688,7 @@ async function loadThesisBundle(
     authorsResult.error,
     tagsResult.error,
     filesResult.error,
+    teaserResult.error,
     isMissingReviewCommentsTable(commentsResult.error)
       ? null
       : commentsResult.error,
@@ -664,6 +704,7 @@ async function loadThesisBundle(
     authors: (authorsResult.data ?? []) as AuthorRow[],
     tags: (tagsResult.data ?? []) as TagRow[],
     primaryFile: ((filesResult.data ?? []) as FileRow[])[0] ?? null,
+    teaser: ((teaserResult.data ?? []) as TeaserMediaRow[])[0] ?? null,
     comments: isMissingReviewCommentsTable(commentsResult.error)
       ? []
       : (commentsResult.data ?? []) as CommentRow[],
@@ -723,6 +764,7 @@ async function loadReviewSubmission(
     studyType: bundle.thesis.study_type,
     publicationDate: bundle.thesis.publication_date ?? "",
     publicationLink: bundle.thesis.publication_link,
+    deploymentLink: bundle.thesis.deployment_link,
     conference: bundle.thesis.conference,
     researchArea: bundle.thesis.research_area,
     tags: bundle.tags.map((tag) => tag.tag),
@@ -737,6 +779,13 @@ async function loadReviewSubmission(
           fileName: getStorageFileName(bundle.primaryFile.storage_path),
           fileSize: null,
           pdfUrl: `/api/theses/${bundle.thesis.id}/file`,
+        }
+      : null,
+    teaserThumbnail: bundle.teaser
+      ? {
+          fileName: getStorageFileName(bundle.teaser.staging_storage_path),
+          previewUrl: `/api/theses/${bundle.thesis.id}/teaser`,
+          isPublished: Boolean(bundle.teaser.published_storage_path),
         }
       : null,
     fieldComments: comments,
@@ -1046,7 +1095,7 @@ export async function setReviewStatus(
       return err(validationError);
     }
 
-    await requireRole(["admin", "moderator"]);
+    await requireRole(["admin"]);
 
     if (!["for_review", "flagged", "accepted", "trashed"].includes(input.nextStatus)) {
       return err(makeError("VALIDATION_FAILED", "A valid next review status is required."));
@@ -1067,6 +1116,62 @@ export async function setReviewStatus(
     return err(
       normalizeServiceError(error, "The review status could not be changed."),
     );
+  }
+}
+
+/** Promotes a staged teaser before recording acceptance; never expose staging paths publicly. */
+export async function finalizeReviewAcceptance(
+  thesisId: number,
+): Promise<ServiceResult<ReviewSubmission>> {
+  try {
+    const validationError = validateThesisId(thesisId);
+    if (validationError) return err(validationError);
+    await requireRole(["admin"]);
+
+    const admin = createAdminClient();
+    const { data: media, error: mediaError } = await admin
+      .from("thesis_media")
+      .select("staging_storage_path, published_storage_path")
+      .eq("thesis_id", thesisId)
+      .eq("asset_kind", "teaser_thumbnail")
+      .maybeSingle();
+    if (mediaError) return err(makeError("SUPABASE_ERROR", "The teaser thumbnail could not be prepared for acceptance."));
+
+    if (!media) return setReviewStatus({ thesisId, nextStatus: "accepted" });
+    if (media.published_storage_path) {
+      const supabase = await createClient();
+      const { error } = await supabase.rpc("accept_submission_with_teaser", {
+        target_thesis_id: thesisId,
+        target_published_storage_path: media.published_storage_path,
+      });
+      if (error) return err(mutationError(error, "The submission could not be accepted."));
+      return ok(await loadReviewSubmission(thesisId));
+    }
+
+    const promoted = await promoteTeaserThumbnailToPublic(media.staging_storage_path);
+    if (!promoted.publicPath) {
+      return err(makeError("SUPABASE_ERROR", promoted.error ?? "The teaser thumbnail could not be promoted."));
+    }
+
+    const supabase = await createClient();
+    const { error: rpcError } = await supabase.rpc("accept_submission_with_teaser", {
+      target_thesis_id: thesisId,
+      target_published_storage_path: promoted.publicPath,
+    });
+    if (rpcError) {
+      const cleanupError = await removePublicTeaserThumbnail(promoted.publicPath);
+      return err(makeError(
+        isMissingReviewRpc(rpcError, "accept_submission_with_teaser") ? "CONFIGURATION_REQUIRED" : "SUPABASE_ERROR",
+        isMissingReviewRpc(rpcError, "accept_submission_with_teaser")
+          ? "Teaser acceptance is not configured yet. Please ask an administrator to complete the review update."
+          : "The submission could not be accepted.",
+        cleanupError ? { public_storage_cleanup_error: cleanupError } : undefined,
+      ));
+    }
+
+    return ok(await loadReviewSubmission(thesisId));
+  } catch (error) {
+    return err(normalizeServiceError(error, "The submission could not be accepted."));
   }
 }
 
@@ -1097,7 +1202,7 @@ export async function adminUpdateSubmissionMetadata(
 
     const supabase = await createClient();
     const { error: rpcError } = await supabase.rpc(
-      "admin_update_submission_metadata",
+      "admin_update_submission_metadata_with_deployment",
       {
         target_thesis_id: input.thesisId,
         payload: buildUpdatePayload(input.values),
@@ -1233,7 +1338,7 @@ export async function updateFlaggedSubmission(
     await requireOwnership(input.thesisId, user.id);
 
     const supabase = await createClient();
-    const { error: rpcError } = await supabase.rpc("update_flagged_submission", {
+    const { error: rpcError } = await supabase.rpc("update_flagged_submission_with_deployment", {
       target_thesis_id: input.thesisId,
       payload: buildUpdatePayload(input.values),
     });
@@ -1247,6 +1352,98 @@ export async function updateFlaggedSubmission(
     return err(
       normalizeServiceError(error, "Your submission changes could not be saved."),
     );
+  }
+}
+
+/**
+ * Members may replace or remove their own thumbnail only while flagged. Admins
+ * may correct it directly. Moderators are deliberately excluded: their role is
+ * limited to review comments and status decisions, never asset replacement.
+ */
+export async function replaceTeaserThumbnail(
+  input: ReplaceTeaserThumbnailInput,
+): Promise<ServiceResult<ReviewSubmission>> {
+  try {
+    const validationError = validateThesisId(input.thesisId);
+    if (validationError) return err(validationError);
+    if (input.file) {
+      const fileValidationError = await validateTeaserThumbnail(input.file);
+      if (fileValidationError) return err(makeError("VALIDATION_FAILED", fileValidationError));
+    }
+
+    const user = await requireSession();
+    if (user.role === "moderator") {
+      return err(makeError("FORBIDDEN", "Moderators can comment on teaser thumbnails but cannot replace them."));
+    }
+    if (user.role === "member") await requireOwnership(input.thesisId, user.id);
+
+    const admin = user.role === "admin" ? createAdminClient() : null;
+    const { data: existingMedia } = admin
+      ? await admin
+          .from("thesis_media")
+          .select("published_storage_path, theses!inner(review_status)")
+          .eq("thesis_id", input.thesisId)
+          .eq("asset_kind", "teaser_thumbnail")
+          .maybeSingle()
+      : { data: null };
+    const isAcceptedAdminReplacement = Boolean(
+      existingMedia && (existingMedia as { theses: { review_status: ReviewStatus } }).theses.review_status === "accepted",
+    );
+
+    let storedTeaser: Awaited<ReturnType<typeof uploadTeaserThumbnailToStaging>> | null = null;
+    let promotedPath: string | null = null;
+    if (input.file) {
+      try {
+        storedTeaser = user.role === "admin"
+          ? await uploadAdminTeaserThumbnailToStaging(input.file, user.id)
+          : await uploadTeaserThumbnailToStaging(input.file, user.id);
+        if (isAcceptedAdminReplacement) {
+          const promoted = await promoteTeaserThumbnailToPublic(storedTeaser.filePath);
+          if (!promoted.publicPath) {
+            await removeTeaserThumbnailFromStaging(storedTeaser.filePath);
+            return err(makeError("SUPABASE_ERROR", promoted.error ?? "The teaser thumbnail could not be promoted."));
+          }
+          promotedPath = promoted.publicPath;
+        }
+      } catch (uploadError) {
+        return err(makeError(
+          "SUPABASE_ERROR",
+          uploadError instanceof Error ? uploadError.message : "The teaser thumbnail could not be uploaded.",
+        ));
+      }
+    }
+
+    const supabase = await createClient();
+    const { error: rpcError } = await supabase.rpc("replace_teaser_thumbnail", {
+      target_thesis_id: input.thesisId,
+      target_storage_path: storedTeaser?.filePath ?? null,
+      target_mime_type: storedTeaser?.mimeType ?? null,
+      target_byte_size: storedTeaser?.byteSize ?? null,
+      target_published_storage_path: promotedPath,
+    });
+    if (rpcError) {
+      const cleanupError = storedTeaser
+        ? await removeTeaserThumbnailFromStaging(storedTeaser.filePath)
+        : null;
+      if (promotedPath) await removePublicTeaserThumbnail(promotedPath);
+      return err(makeError(
+        isMissingReviewRpc(rpcError, "replace_teaser_thumbnail")
+          ? "CONFIGURATION_REQUIRED"
+          : "SUPABASE_ERROR",
+        isMissingReviewRpc(rpcError, "replace_teaser_thumbnail")
+          ? "Thumbnail replacement is not configured yet. Please ask an administrator to complete the review update."
+          : "The teaser thumbnail could not be linked to this submission.",
+        cleanupError ? { storage_cleanup_error: cleanupError } : undefined,
+      ));
+    }
+
+    if (user.role === "admin" && existingMedia?.published_storage_path) {
+      await removePublicTeaserThumbnail(existingMedia.published_storage_path);
+    }
+
+    return ok(await loadReviewSubmission(input.thesisId));
+  } catch (error) {
+    return err(normalizeServiceError(error, "The teaser thumbnail could not be updated."));
   }
 }
 
@@ -1330,6 +1527,22 @@ export async function saveFlaggedSubmissionCorrection(input: {
             }
           : {}),
       });
+    }
+
+    if (input.values.study_type !== undefined || input.values.deployment_link !== undefined) {
+      const { error: deploymentError } = await supabase.rpc(
+        "update_flagged_submission_with_deployment",
+        {
+          target_thesis_id: input.thesisId,
+          payload: buildUpdatePayload({
+            study_type: input.values.study_type,
+            deployment_link: input.values.deployment_link,
+          }),
+        },
+      );
+      if (deploymentError) {
+        return err(mutationError(deploymentError, "The deployment link could not be saved."));
+      }
     }
 
     return ok(await loadReviewSubmission(input.thesisId));

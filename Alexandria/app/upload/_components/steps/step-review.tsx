@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 interface StepReviewProps {
   onGoToStep: (step: number) => void;
   selectedFile: File | null;
+  teaserFile: File | null;
   onOpenSubmit: () => void;
 }
 
@@ -127,6 +128,7 @@ function ReviewSection({
 export function StepReview({
   onGoToStep,
   selectedFile,
+  teaserFile,
   onOpenSubmit,
 }: StepReviewProps) {
   const {
@@ -206,6 +208,9 @@ export function StepReview({
       >
         <SummaryRow label="Conference" value={values.conference} />
         <SummaryRow label="Publication Link" value={values.publication_link} />
+        {values.type_of_study === "capstone" && (
+          <SummaryRow label="Deployment Link" value={values.deployment_link} />
+        )}
       </ReviewSection>
 
       {/* Step 3 — People */}
@@ -296,6 +301,7 @@ export function StepReview({
         ) : (
           <p className="text-sm italic text-[var(--color-danger)] opacity-70">No PDF uploaded yet.</p>
         )}
+        <SummaryRow label="Teaser Thumbnail" value={teaserFile?.name ?? "Optional — not attached"} />
       </ReviewSection>
     </div>
   );
