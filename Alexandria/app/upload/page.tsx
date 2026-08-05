@@ -25,9 +25,44 @@ import { StepContent } from "./_components/steps/step-content";
 import { StepInsights } from "./_components/steps/step-insights";
 import { StepUpload } from "./_components/steps/step-upload";
 import { StepReview } from "./_components/steps/step-review";
+import { StaffSampleConfirmDialog } from "./_components/staff-sample-confirm-dialog";
+import { getUploadCapabilities } from "./actions";
 import { cn } from "@/lib/utils";
 
 const TOTAL_STEPS = STEPS.length;
+
+const STAFF_SAMPLE_FIELDS: FormValues = {
+  title: "An Analysis of Distributed Systems in Micro-Frontend Architectures",
+  abstract:
+    "This is staff-only sample metadata for reviewing the submission flow. It must be replaced with the thesis's actual details before publication.",
+  department: "CS",
+  type_of_study: "thesis",
+  research_areas: ["web_development", "algorithms"],
+  authors: [
+    {
+      user_id: null,
+      display_name: "Sample Author",
+      contribution_role: "author",
+      sort_order: 1,
+    },
+    {
+      user_id: null,
+      display_name: "Sample Adviser",
+      contribution_role: "adviser",
+      sort_order: 2,
+    },
+  ],
+  tags: ["sample", "thesis", "submission"],
+  publication_date: "2026-05-15",
+  publication_link: "https://example.com/thesis",
+  deployment_link: "",
+  conference: "Sample Research Colloquium",
+  recommendations:
+    "Replace this sample recommendation with guidance grounded in the final thesis findings.",
+  lessons_learned: [
+    "Replace this sample lesson with a finding from the final thesis work.",
+  ],
+};
 
 export default function UploadPage() {
   const router = useRouter();
@@ -46,10 +81,14 @@ export default function UploadPage() {
   // ── Dialog state ─────────────────────────────────────────────────────────
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showSampleOverwriteConfirm, setShowSampleOverwriteConfirm] = useState(false);
 
   // ── Submission state ─────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [wizardStatus, setWizardStatus] = useState("");
+  const [canUseStaffSample, setCanUseStaffSample] = useState(false);
+  const [sampleFieldsLoaded, setSampleFieldsLoaded] = useState(false);
 
   // ── Form setup ───────────────────────────────────────────────────────────
   const methods = useForm<FormValues>({
@@ -80,6 +119,22 @@ export default function UploadPage() {
   });
 
   const { isDirty, errors } = methods.formState;
+
+  useEffect(() => {
+    let isActive = true;
+
+    void getUploadCapabilities()
+      .then(({ canUseStaffSample: canUseSample }) => {
+        if (isActive) setCanUseStaffSample(canUseSample);
+      })
+      .catch(() => {
+        // Capability failures fail closed: the staff helper remains hidden.
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   // ── Unsaved changes — browser tab close / refresh ────────────────────────
   useEffect(() => {
@@ -115,15 +170,25 @@ export default function UploadPage() {
       const stepFields = Object.keys(FIELD_STEP_MAP)
         .filter((k) => FIELD_STEP_MAP[k] === currentStep) as Array<keyof FormValues>;
       
-      const isValid = stepFields.length > 0 ? await methods.trigger(stepFields) : true;
+      const isValid =
+        stepFields.length > 0
+          ? await methods.trigger(stepFields, { shouldFocus: true })
+          : true;
       
       if (currentStep === 6 && !selectedFile) {
         setFileError("Please attach a thesis PDF before continuing.");
+        setWizardStatus("Attach your thesis PDF before continuing to review.");
         return;
       }
 
       if (isValid) {
+        setWizardStatus(`Step ${currentStep + 1} of ${TOTAL_STEPS}.`);
         goToStep(currentStep + 1);
+      } else {
+        const stepLabel = STEPS[currentStep - 1]?.label ?? `Step ${currentStep}`;
+        setWizardStatus(
+          `${stepLabel} needs attention. Correct the highlighted fields before continuing.`,
+        );
       }
     } else {
       await handleOpenSubmit();
@@ -139,40 +204,28 @@ export default function UploadPage() {
     }
   }
 
-  // ── Dev Tool: Quick Fill ─────────────────────────────────────────────────
-  function fillDummyData() {
-    methods.reset({
-      title: "An Analysis of Distributed Systems in Micro-Frontend Architectures",
-      abstract: "This paper explores the intricacies of implementing distributed systems concepts within the context of micro-frontend architectures, focusing on performance, state synchronization, and fault tolerance across decoupled UI domains. This study provides a comprehensive overview of modern web development paradigms.",
-      department: "CS",
-      type_of_study: "thesis",
-      research_areas: ["web_development", "algorithms"],
-      authors: [
-        {
-          user_id: null,
-          display_name: "Jane Doe",
-          contribution_role: "author",
-          sort_order: 1,
-        },
-        {
-          user_id: null,
-          display_name: "Dr. John Smith",
-          contribution_role: "adviser",
-          sort_order: 2,
-        }
-      ],
-      tags: ["frontend", "architecture", "distributed-systems"],
-      publication_date: "2026-05-15",
-      publication_link: "https://example.com/thesis",
-      conference: "International Conference on Web Engineering",
-      recommendations: "We recommend further study into the specific impacts of network latency on state synchronization in micro-frontends.",
-      lessons_learned: [
-        "State synchronization across domains requires strict contracts",
-        "Micro-frontends introduce significant networking overhead"
-      ],
-    });
-    // Jump straight to the upload step
-    goToStep(6);
+  // ── Staff helper — metadata only, never a submission authorization path ──
+  function loadStaffSampleFields() {
+    // Keep the form dirty so leaving after loading a sample still receives the normal warning.
+    methods.reset(STAFF_SAMPLE_FIELDS, { keepDefaultValues: true });
+    setSelectedFile(null);
+    setFileError(null);
+    setSelectedTeaser(null);
+    setTeaserError(null);
+    setSampleFieldsLoaded(true);
+    setShowSampleOverwriteConfirm(false);
+    setWizardStatus(
+      "Sample metadata loaded. Attach a thesis PDF and review every field before submitting.",
+    );
+  }
+
+  function handleLoadStaffSample() {
+    if (isDirty || selectedFile || selectedTeaser) {
+      setShowSampleOverwriteConfirm(true);
+      return;
+    }
+
+    loadStaffSampleFields();
   }
 
   // ── File handling ────────────────────────────────────────────────────────
@@ -281,6 +334,9 @@ export default function UploadPage() {
   return (
     <FormProvider {...methods}>
       <form onSubmit={handleFormSubmit} className="flex min-h-screen flex-col bg-[var(--color-bg)]">
+        <p className="sr-only" role="status" aria-live="polite">
+          {wizardStatus}
+        </p>
         {/* Focused-task header */}
         <UploadHeader onLogoClick={handleLogoClick} />
 
@@ -304,13 +360,21 @@ export default function UploadPage() {
 
         {/* Step content — animated on navigation */}
         <main className="flex-1 px-4 pt-10 pb-24">
+          {sampleFieldsLoaded && (
+            <div
+              role="status"
+              className="mx-auto mb-6 max-w-[540px] rounded-lg border border-[var(--color-brand-bright)]/20 bg-[var(--color-brand-bright)]/5 px-3 py-2 text-sm text-[var(--color-text-muted)]"
+            >
+              Sample metadata is loaded. Review every field and attach the actual thesis PDF before submitting.
+            </div>
+          )}
           <div
             key={animKey}
             className={cn(
               "w-full",
               direction === "forward"
-                ? "animate-in fade-in slide-in-from-right-4 duration-200"
-                : "animate-in fade-in slide-in-from-left-4 duration-200",
+                ? "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4 motion-safe:duration-200"
+                : "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-left-4 motion-safe:duration-200",
             )}
           >
             {currentStep === 1 && <StepStudyBasics />}
@@ -341,7 +405,7 @@ export default function UploadPage() {
 
         {/* ── Sticky footer nav bar ─────────────────────────────────────── */}
         <div className="sticky bottom-0 z-30 border-t border-[var(--color-separator-mid)] bg-[var(--color-bg)]/90 backdrop-blur-md">
-          <div className="mx-auto flex max-w-[540px] items-center gap-4 px-4 py-4">
+          <div className="mx-auto flex max-w-[540px] items-center gap-3 px-4 py-3 sm:gap-4 sm:py-4">
 
             {currentStep < TOTAL_STEPS ? (
               <>
@@ -350,55 +414,63 @@ export default function UploadPage() {
                   type="button"
                   onClick={handleBack}
                   disabled={currentStep === 1}
-                  className="flex h-9 items-center gap-1 rounded-md px-3 text-sm text-white/35 transition-all hover:text-white/70 disabled:pointer-events-none disabled:opacity-20"
+                  className="flex h-10 items-center gap-1 rounded-lg px-3 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:pointer-events-none disabled:opacity-35"
                 >
                   <ChevronLeft size={14} aria-hidden />
                   Back
                 </button>
 
                 {/* Progress track — fills the remaining space */}
-                <div className="flex flex-1 flex-col items-center gap-2">
+                <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
                   {/* Segmented dots */}
-                  <div className="flex items-center gap-1.5" role="progressbar" aria-valuenow={currentStep} aria-valuemin={1} aria-valuemax={TOTAL_STEPS}>
+                  <div
+                    className="flex items-center gap-1.5"
+                    role="progressbar"
+                    aria-label="Submission progress"
+                    aria-valuenow={currentStep}
+                    aria-valuemin={1}
+                    aria-valuemax={TOTAL_STEPS}
+                    aria-valuetext={`Step ${currentStep} of ${TOTAL_STEPS}`}
+                  >
                     {Array.from({ length: TOTAL_STEPS - 1 }).map((_, i) => {
                       const seg = i + 1;
                       return (
                         <div
                           key={seg}
                           className={cn(
-                            "h-1 rounded-full transition-all duration-300",
+                            "h-1 rounded-full transition-[width,background-color] duration-200 motion-reduce:transition-none",
                             seg < currentStep
-                              ? "w-4 bg-[#1752F0]"
+                              ? "w-4 bg-[var(--color-brand)]"
                               : seg === currentStep
-                                ? "w-5 bg-[#368BFE]"
-                                : "w-3 bg-white/10",
+                                ? "w-5 bg-[var(--color-brand-bright)]"
+                                : "w-3 bg-[var(--color-separator-mid)]",
                           )}
                         />
                       );
                     })}
                   </div>
                   {/* Step label */}
-                  <span className="text-[9px] font-semibold uppercase tracking-widest text-white/20">
-                    Step {currentStep} of {TOTAL_STEPS - 1}
+                  <span className="text-[11px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]">
+                    Step {currentStep} of {TOTAL_STEPS}
                   </span>
                 </div>
 
-                {/* Dev tool — muted, ghost, tucked away */}
-                {process.env.NODE_ENV === "development" && (
+                {/* Staff-only sample helper — metadata only, never a shortcut through validation. */}
+                {canUseStaffSample && (
                   <button
                     type="button"
-                    onClick={fillDummyData}
-                    title="Dev: Quick Fill"
-                    className="flex h-7 items-center rounded border border-white/8 px-2 text-[9px] font-semibold uppercase tracking-wider text-white/20 transition-colors hover:border-white/15 hover:text-white/40"
+                    onClick={handleLoadStaffSample}
+                    title="Load staff sample metadata"
+                    className="flex h-9 items-center rounded-lg border border-[var(--color-separator)] px-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
                   >
-                    Fill
+                    Sample fields
                   </button>
                 )}
 
                 {/* Next — primary CTA */}
                 <button
                   type="submit"
-                  className="flex h-9 items-center gap-1.5 rounded-lg bg-[#1752F0] px-5 text-sm font-semibold text-white shadow-lg shadow-[#1752F0]/20 transition-all hover:bg-[#368BFE] hover:shadow-[#368BFE]/25"
+                  className="flex h-10 items-center gap-1.5 rounded-lg bg-[var(--color-brand)] px-5 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[var(--color-brand-bright)] motion-safe:active:translate-y-px motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
                 >
                   Next
                   <ChevronRight size={14} aria-hidden />
@@ -410,7 +482,7 @@ export default function UploadPage() {
                 <button
                   type="button"
                   onClick={handleLogoClick}
-                  className="flex h-9 items-center rounded-md px-3 text-sm text-white/35 transition-colors hover:text-white/60"
+                  className="flex h-10 items-center rounded-lg px-3 text-sm font-medium text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-alt)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
                 >
                   Back to Home
                 </button>
@@ -420,7 +492,7 @@ export default function UploadPage() {
                 <button
                   type="button"
                   onClick={handleOpenSubmit}
-                  className="flex h-9 items-center gap-1.5 rounded-lg bg-[#1752F0] px-5 text-sm font-semibold text-white shadow-lg shadow-[#1752F0]/20 transition-all hover:bg-[#368BFE] hover:shadow-[#368BFE]/25"
+                  className="flex h-10 items-center gap-1.5 rounded-lg bg-[var(--color-brand)] px-5 text-sm font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[var(--color-brand-bright)] motion-safe:active:translate-y-px motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
                 >
                   Submit Thesis
                   <ChevronRight size={14} aria-hidden />
@@ -445,6 +517,12 @@ export default function UploadPage() {
         onConfirm={handleConfirmSubmit}
         isSubmitting={isSubmitting}
         error={submitError}
+        sampleFieldsLoaded={sampleFieldsLoaded}
+      />
+      <StaffSampleConfirmDialog
+        open={showSampleOverwriteConfirm}
+        onCancel={() => setShowSampleOverwriteConfirm(false)}
+        onConfirm={loadStaffSampleFields}
       />
     </FormProvider>
   );
