@@ -24,10 +24,21 @@
   --color-separator: oklch(1 0 0 / 6%); /* replaces old border-subtle */
   --color-separator-mid: oklch(1 0 0 / 10%); /* slightly more visible */
 
+  /* Boundary of an INTERACTIVE control (button, step node, input).
+     WCAG 1.4.11 requires >= 3:1 against the page, which the alpha-based
+     separators above cannot reach. Same value in both themes: 3.78:1 on
+     dark, 4.64:1 on light. Never use --color-separator* on a control the
+     user can click — that is a structural-divider token only. */
+  --color-border-interactive: oklch(0.54 0.006 264); /* #6d6f72 */
+
   /* ─── Brand ─────────────────────────────────────── */
   --color-brand: oklch(0.47 0.22 264); /* #1752f0 — primary brand */
   --color-brand-bright: oklch(0.6 0.2 264); /* #368bfe — hover/CTA bright */
   --color-brand-cyan: oklch(0.63 0.12 220); /* #1da0c9 — chip accent */
+  /* Brand as TEXT. Flips per theme so small copy clears 4.5:1 in both:
+     4.67:1 dark, 6.67:1 light. --color-brand-bright is only 3.75:1 on the
+     light background, so it must not be used for text there (DESIGN.md). */
+  --color-brand-text: oklch(0.6 0.2 264);
 
   /* ─── Chip colors (theme-aware pairs) ───────────── */
   /* Cyan chip: research area tags */
@@ -89,6 +100,10 @@
 
   /* ─── Semantic States ───────────────────────────── */
   --color-danger: oklch(0.6 0.16 27); /* #ff6b6b (toned down) */
+  /* Danger as small TEXT. --color-danger is 4.49:1 on the dark background,
+     which misses 4.5:1; this lifts it to 5.28:1. Use --color-danger for
+     fills/washes, --color-danger-text for labels and messages. */
+  --color-danger-text: oklch(0.64 0.16 27);
   --color-success: oklch(0.72 0.17 150); /* #59c987 */
   --color-pronunciation: oklch(0.88 0.17 90); /* #ffd900 */
 
@@ -139,10 +154,15 @@
   --color-separator: oklch(0 0 0 / 6%); /* dark-on-light equivalent */
   --color-separator-mid: oklch(0 0 0 / 10%);
 
+  /* Same value as dark — this lightness clears 3:1 against both pages. */
+  --color-border-interactive: oklch(0.54 0.006 264); /* #6d6f72 — 4.64:1 */
+
   /* ─── Brand (unchanged across themes) ──────────── */
   --color-brand: oklch(0.47 0.22 264); /* #1752f0 */
   --color-brand-bright: oklch(0.6 0.2 264); /* #368bfe */
   --color-brand-cyan: oklch(0.63 0.12 220); /* #1da0c9 */
+  /* Steps down to --color-brand: brand-bright is only 3.75:1 here. */
+  --color-brand-text: oklch(0.47 0.22 264); /* 6.67:1 */
 
   /* ─── Chip colors (light-adjusted) ─────────────── */
   /* Cyan chip on light */
@@ -204,6 +224,8 @@
 
   /* ─── Semantic States ───────────────────────────── */
   --color-danger: oklch(0.45 0.16 27); /* #d63031 (toned down) */
+  /* Already 7.41:1 on the light page — same value, kept for token parity. */
+  --color-danger-text: oklch(0.45 0.16 27);
   --color-success: oklch(0.45 0.16 150); /* #27ae60 */
   --color-pronunciation: oklch(0.45 0.17 80); /* darker amber for light mode */
 

@@ -72,6 +72,29 @@ Use gradients sparingly. They are part of the landing identity, not general UI c
 
 Do not introduce broad background gradients or decorative glow fields.
 
+### Contrast-Safe Tokens (do not substitute)
+
+Three tokens exist because the obvious choice fails WCAG AA. Measured against
+the real `--color-bg` in each theme:
+
+| Token | Use for | Dark | Light | Instead of |
+|---|---|---|---|---|
+| `--color-border-interactive` | Border of anything clickable | 3.81:1 | 4.62:1 | `--color-separator*` (1.2:1 — fails 1.4.11) |
+| `--color-brand-text` | Brand-coloured **text** | 4.68:1 | 6.70:1 | `--color-brand-bright` (3.75:1 on light — fails 1.4.3) |
+| `--color-danger-text` | Danger **text** | 5.28:1 | 7.41:1 | `--color-danger` (4.49:1 on dark — fails 1.4.3) |
+
+> [!IMPORTANT]
+> **Never express state with an `opacity-*` utility on text or on a control the
+> user can still activate.** Opacity cannot be contrast-checked — the result
+> depends on whatever it composites over — and it makes a live control look
+> disabled. The upload stepper previously used `opacity-30`, which rendered its
+> step labels at **1.5:1** while every step remained clickable. Use a dedicated
+> token, or a different fill/hue, to signal state. Opacity is for transitions.
+
+Note: the hex approximations in the palette table above are stale — `--color-bg`
+is `oklch(0.17 …)` (≈`#0d0f13`), not the `#14181c` documented. Trust the OKLCH
+values in `globals.css`, not the hex comments.
+
 ### Anti-Patterns: High Saturation Outlines
 
 We explicitly avoid highly saturated, thick outlines or "streaks" for focus rings and highlights (e.g., solid `#368bfe` rings). These tend to look overwhelming and break the subtle visual density of the UI.
