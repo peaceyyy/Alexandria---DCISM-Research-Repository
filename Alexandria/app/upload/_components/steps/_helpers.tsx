@@ -67,10 +67,10 @@ export function FieldError({ children }: { children: ReactNode }) {
 /** Base CSS class string for text inputs and textareas. */
 export function inputClass(hasError?: boolean) {
   return cn(
-    "h-[42px] w-full rounded-lg border bg-[var(--color-surface-alt)] px-3 text-sm text-[var(--color-text)] placeholder-[var(--color-placeholder)] outline-none transition-colors",
+    "h-[42px] w-full rounded-lg border bg-[var(--color-surface-alt)] px-3 text-sm text-[var(--color-text)] placeholder-[var(--color-placeholder)] outline-none transition-[border-color,box-shadow,background-color] duration-150 motion-reduce:transition-none",
     hasError
-      ? "border-[var(--color-danger)]/50 focus:border-[var(--color-danger)]/80"
-      : "border-[var(--color-separator)] focus:border-[var(--color-brand-bright)]/40",
+      ? "border-[var(--color-danger)]/50 focus:border-[var(--color-danger)]/80 focus:ring-2 focus:ring-[var(--color-danger)]/15"
+      : "border-[var(--color-separator)] focus:border-[var(--color-brand)]/60 focus:bg-[var(--color-surface)] focus:ring-2 focus:ring-[var(--color-brand-bright)]/20",
   );
 }
 
