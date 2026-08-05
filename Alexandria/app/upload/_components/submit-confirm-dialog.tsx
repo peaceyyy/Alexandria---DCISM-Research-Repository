@@ -17,6 +17,7 @@ interface SubmitConfirmDialogProps {
   onConfirm: () => void;
   isSubmitting: boolean;
   error?: string | null;
+  sampleFieldsLoaded?: boolean;
 }
 
 export function SubmitConfirmDialog({
@@ -25,6 +26,7 @@ export function SubmitConfirmDialog({
   onConfirm,
   isSubmitting,
   error,
+  sampleFieldsLoaded = false,
 }: SubmitConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen && !isSubmitting) onCancel(); }}>
@@ -47,6 +49,17 @@ export function SubmitConfirmDialog({
             after the same metadata and PDF checks.
           </DialogDescription>
         </DialogHeader>
+
+        {sampleFieldsLoaded && (
+          <div
+            role="status"
+            className="rounded-lg border border-[var(--color-brand-bright)]/20 bg-[var(--color-brand-bright)]/5 px-3 py-2.5"
+          >
+            <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+              Sample metadata is still loaded. Review and replace every field before submitting.
+            </p>
+          </div>
+        )}
 
         {/* Submission error */}
         {error && (
