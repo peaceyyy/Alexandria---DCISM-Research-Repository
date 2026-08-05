@@ -303,7 +303,7 @@ export default function ThesesBrowser({
               );
 
               const card = viewMode === "comfortable" ? (
-                <article className="group flex flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]">
+                <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-[var(--color-separator)] bg-[var(--color-text)]/[0.03] transition hover:-translate-y-0.5 hover:border-[var(--color-text)]/20 hover:bg-[var(--color-text)]/[0.04]">
                   {/* Thumbnail */}
                   <div className="flex-shrink-0 overflow-hidden border-b border-[var(--color-separator)]">
                     {/* Branded placeholder shown until real thumbnail is available */}
@@ -318,7 +318,7 @@ export default function ThesesBrowser({
                     </div>
                   </div>
                   {/* Content */}
-                  <div className="flex flex-col gap-2 px-4 py-4">
+                  <div className="flex flex-1 flex-col gap-2 px-4 py-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1 text-[11px] uppercase tracking-wide text-[var(--color-text-muted)]">
                         <p className="truncate">{item.authors.map((author) => author.display_name).join(" • ")}</p>
@@ -384,7 +384,7 @@ export default function ThesesBrowser({
                 <Link
                   key={item.id}
                   href={`/submissions/${item.id}/corrections`}
-                  className="block"
+                  className={viewMode === "comfortable" ? "block h-full" : "block"}
                   aria-label={`Correct flagged submission: ${item.title}`}
                 >
                   {card}
@@ -393,7 +393,7 @@ export default function ThesesBrowser({
                 <Link
                   key={item.id}
                   href={`/theses/${item.id}?returnTo=${encodeURIComponent(currentBrowseHref)}`}
-                  className="block"
+                  className={viewMode === "comfortable" ? "block h-full" : "block"}
                 >
                   {card}
                 </Link>

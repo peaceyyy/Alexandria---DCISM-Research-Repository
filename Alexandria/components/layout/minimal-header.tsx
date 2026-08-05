@@ -15,7 +15,7 @@ export function MinimalHeader() {
       {/* Brand */}
       <a
         href="/home"
-        className="text-[var(--color-text)] no-underline"
+        className="inline-flex min-h-11 items-center text-[var(--color-text)] no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
         aria-label="Alexandria — go to repository"
       >
         <AlexandriaBrandLockup
@@ -26,13 +26,15 @@ export function MinimalHeader() {
 
       {/* Actions */}
       <div className="flex items-center gap-4">
-        <ThemeToggle />
+        <div className="h-11 w-11">
+          <ThemeToggle className="!h-11 !w-11" />
+        </div>
         <a
           href="https://github.com/peaceyyy/Alexandria---DCISM-Thesis-Repository"
           target="_blank"
           rel="noreferrer"
           aria-label="View Alexandria source on GitHub"
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--color-separator-mid)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)]"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-separator-mid)] text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
         >
           <GitFork size={18} aria-hidden />
         </a>
