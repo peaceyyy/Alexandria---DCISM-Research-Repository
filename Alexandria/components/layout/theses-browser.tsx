@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LayoutGrid, List, Search, SlidersHorizontal } from "lucide-react";
+import { LayoutGrid, List, Loader2, Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { ReviewStatus, ThesisCard } from "@/lib/services/types";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { RepositorySearchBar } from "@/components/layout/repository-search-bar";
 import { FilterBar } from "@/components/layout/filter-bar";
 import { getSubmissionStatusLabel, getSubmissionStatusValue, SubmissionStatusFilter } from "@/components/layout/submission-status-filter";
 import { WorkspaceSidebar } from "@/components/layout/workspace-sidebar";
+import { ResultUpdateProvider, useResultUpdate } from "@/components/layout/result-update-context";
 
 export type BrowseThesisItem = ThesisCard & {
   reviewStatus?: ReviewStatus;
@@ -40,14 +41,14 @@ function splitResearchAreas(value: string | null) {
     : [];
 }
 
-export default function ThesesBrowser({
+function ThesesBrowserInner({
   items,
   role,
   profileName,
   isMySubmissions,
   flaggedSubmissionCount,
 }: ThesesBrowserProps) {
-  const router = useRouter();
+  const { navigate, isPending } = useResultUpdate();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -74,7 +75,7 @@ export default function ThesesBrowser({
     }
     if (searchParams.get("q")) nextParams.set("q", searchParams.get("q")!);
     const query = nextParams.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    navigate(query ? `${pathname}?${query}` : pathname);
   };
 
   const clearSearch = () => {
@@ -82,7 +83,7 @@ export default function ThesesBrowser({
     nextParams.delete("q");
     nextParams.delete("page");
     const query = nextParams.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    navigate(query ? `${pathname}?${query}` : pathname);
   };
 
   const clearSubmissionStatus = () => {
@@ -90,7 +91,7 @@ export default function ThesesBrowser({
     nextParams.delete("status");
     nextParams.delete("page");
     const query = nextParams.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    navigate(query ? `${pathname}?${query}` : pathname);
   };
 
   const activeFilterCount = ["department", "area", "type", "tag"]
@@ -167,7 +168,8 @@ export default function ThesesBrowser({
                       <button
                         type="button"
                         onClick={clearAllFilters}
-                        className="ml-1.5 font-semibold text-[var(--color-brand-bright)] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)]/60 rounded-sm"
+                        disabled={isPending}
+                        className="ml-1.5 font-semibold text-[var(--color-brand-bright)] hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-brand)]/60 rounded-sm disabled:pointer-events-none disabled:opacity-50"
                       >
                         Clear
                       </button>
@@ -210,10 +212,38 @@ export default function ThesesBrowser({
             </div>
           </div>
 
-          {/* Separator between control zone and content */}
-          <div className="mb-5 border-t border-[var(--color-separator)]" aria-hidden />
+          {/* ── Result region — owns the single pending treatment ── */}
+          <div
+            className="relative"
+            aria-busy={isPending}
+            aria-label={isMySubmissions ? "My submissions list" : "Research results list"}
+          >
+            {/* Accessible live region — announces once per update */}
+            <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+              {isPending ? "Updating results…" : ""}
+            </span>
 
-          {items.length === 0 ? (
+            {/* Separator between control zone and content */}
+            <div className="mb-5 border-t border-[var(--color-separator)]" aria-hidden />
+
+            {/* Compact status pill — visible, centered near top, scoped to result column */}
+            {isPending && (
+              <div
+                aria-hidden
+                className="absolute left-1/2 top-4 z-10 -translate-x-1/2 inline-flex items-center gap-2 rounded-full border border-[var(--color-separator-mid)] bg-[var(--color-surface)]/95 px-3.5 py-1.5 text-[12px] font-medium text-[var(--color-text-muted)] shadow-sm motion-reduce:hidden"
+              >
+                <Loader2 size={13} className="animate-spin text-[var(--color-brand)]" />
+                Updating results…
+              </div>
+            )}
+
+            {/* Result content — fades while pending; approved opacity exception per DESIGN.md */}
+            <div
+              className={[
+                "transition-opacity duration-150 motion-reduce:transition-none",
+                isPending ? "opacity-60 pointer-events-none select-none" : "opacity-100",
+              ].join(" ")}
+            >{items.length === 0 ? (
             <div className="flex h-64 flex-col items-center justify-center rounded-xl border border-[var(--color-separator)] bg-[var(--color-surface)]/50 p-6 text-center">
               <Search size={40} className="mb-4 text-[var(--color-text-muted)]/50" />
               <h3 className="mb-1 text-base font-semibold text-[var(--color-text)]">
@@ -234,17 +264,17 @@ export default function ThesesBrowser({
               {(queryText || hasFilters || hasSubmissionStatusFilter) && (
                 <div className="mt-4 flex flex-wrap justify-center gap-2">
                   {queryText && (
-                    <Button variant="outline" size="sm" onClick={clearSearch}>
+                    <Button variant="outline" size="sm" onClick={clearSearch} disabled={isPending}>
                       Clear search
                     </Button>
                   )}
                   {hasFilters && (
-                    <Button variant="outline" size="sm" onClick={clearAllFilters}>
+                    <Button variant="outline" size="sm" onClick={clearAllFilters} disabled={isPending}>
                       Clear filters
                     </Button>
                   )}
                   {hasSubmissionStatusFilter && (
-                    <Button variant="outline" size="sm" onClick={clearSubmissionStatus}>
+                    <Button variant="outline" size="sm" onClick={clearSubmissionStatus} disabled={isPending}>
                       Clear status
                     </Button>
                   )}
@@ -399,8 +429,10 @@ export default function ThesesBrowser({
                 </Link>
               );
             })}
-          </div>
-        )}
+            </div>
+            )}
+            </div> {/* end result content fade wrapper */}
+          </div> {/* end result region */}
         </div>
       </section>
 
@@ -411,12 +443,20 @@ export default function ThesesBrowser({
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold">Filters</h2>
             {activeFilterCount > 0 && (
-              <button type="button" onClick={() => { clearAllFilters(); setFiltersOpen(false); }} className="text-xs font-semibold text-[var(--color-brand)]">Clear all</button>
+              <button type="button" onClick={() => { clearAllFilters(); setFiltersOpen(false); }} disabled={isPending} className="text-xs font-semibold text-[var(--color-brand)] disabled:pointer-events-none disabled:opacity-50">Clear all</button>
             )}
           </div>
           <FilterBar className="items-start" />
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function ThesesBrowser(props: ThesesBrowserProps) {
+  return (
+    <ResultUpdateProvider>
+      <ThesesBrowserInner {...props} />
+    </ResultUpdateProvider>
   );
 }
