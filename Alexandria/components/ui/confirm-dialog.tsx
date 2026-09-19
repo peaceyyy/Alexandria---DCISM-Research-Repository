@@ -15,6 +15,7 @@ interface ConfirmDialogProps {
   open: boolean;
   title: string;
   description: string;
+  cancelLabel?: string;
   confirmLabel: string;
   confirmIntent: ConfirmDialogIntent;
   confirmIcon?: ReactNode;
@@ -28,6 +29,7 @@ export function ConfirmDialog({
   open,
   title,
   description,
+  cancelLabel = "Cancel",
   confirmLabel,
   confirmIntent,
   confirmIcon,
@@ -54,7 +56,7 @@ export function ConfirmDialog({
         </DialogHeader>
         <DialogFooter className="border-[var(--color-separator)] bg-[var(--color-surface-alt)]">
           <Button type="button" variant="outline" size="lg" onClick={onCancel} disabled={isSubmitting}>
-            Cancel
+            {cancelLabel}
           </Button>
           <Button
             type="button"
