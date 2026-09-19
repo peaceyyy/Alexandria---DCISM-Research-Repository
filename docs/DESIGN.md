@@ -91,6 +91,19 @@ the real `--color-bg` in each theme:
 > step labels at **1.5:1** while every step remained clickable. Use a dedicated
 > token, or a different fill/hue, to signal state. Opacity is for transitions.
 
+> [!NOTE]
+> **Approved exception — result-region pending fade (`ThesesBrowser`).**
+> The result content wrapper applies `opacity-60 pointer-events-none select-none`
+> during a URL-navigation transition. This is accepted because: (1) the entire
+> wrapper is non-interactive (`pointer-events-none`) so no activatable control
+> exists under the dimmed layer; (2) opacity is applied to a single containing
+> `<div>`, not to individual text nodes — compositing is predictable; (3) a
+> visible text overlay ("Updating results…") plus `aria-busy` on the parent
+> container carry the state meaning independently of the dimming. The fade value
+> (~60%) was chosen to remain clearly legible over both dark and light surface
+> tokens while still communicating the inactive state. Do not extend this
+> pattern to other interactive regions without the same three conditions.
+
 Note: the hex approximations in the palette table above are stale — `--color-bg`
 is `oklch(0.17 …)` (≈`#0d0f13`), not the `#14181c` documented. Trust the OKLCH
 values in `globals.css`, not the hex comments.
