@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
-import { Check, ChevronDown, Loader2, SlidersHorizontal } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ACADEMIC_UNITS, type Department } from "@/lib/domain/departments";
 import { RESEARCH_AREAS } from "@/lib/domain/research-areas";
 import { TagMultiSelect } from "@/components/layout/tag-multi-select";
 import { cn } from "@/lib/utils";
+import { useResultUpdate } from "@/components/layout/result-update-context";
 
 const PROGRAM_LABELS: Record<Department, string> = {
   CS: "Computer Science",
@@ -17,10 +18,12 @@ const PROGRAM_LABELS: Record<Department, string> = {
 
 type FilterBarProps = { className?: string };
 
-function FacetPopover({ label, count = 0, children }: { label: string; count?: number; children: ReactNode }) {
+function FacetPopover({ label, count = 0, disabled = false, children }: { label: string; count?: number; disabled?: boolean; children: ReactNode }) {
   return (
     <Popover.Root>
-      <Popover.Trigger className="relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-[var(--color-separator)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40 sm:min-h-9">
+      <Popover.Trigger
+        disabled={disabled}
+        className="relative inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-[var(--color-separator)] bg-[var(--color-surface)] px-3 text-[13px] font-medium text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-separator-mid)] hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40 sm:min-h-9 disabled:pointer-events-none disabled:opacity-50">
         <span>{label}</span>
         {count > 0 && (
           <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-brand)] px-1 text-[9px] font-bold text-white shadow-sm ring-2 ring-[var(--color-surface)]">
@@ -92,10 +95,9 @@ function YearRangeFilter({ from, to, setValue }: { from: string; to: string; set
 
 /** URL-backed public discovery facets. The same controls work in the desktop bar and mobile sheet. */
 export function FilterBar({ className }: FilterBarProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
+  const { isPending, navigate } = useResultUpdate();
   const departments = searchParams.getAll("department");
   const areas = searchParams.getAll("area");
   const types = searchParams.getAll("type");
@@ -110,7 +112,7 @@ export function FilterBar({ className }: FilterBarProps) {
     if (Array.isArray(values)) values.forEach((value) => params.append(key, value));
     else if (values) params.set(key, values);
     params.delete("page");
-    startTransition(() => router.push(`${pathname}?${params.toString()}`));
+    navigate(`${pathname}?${params.toString()}`);
   };
 
   const toggle = (key: string, value: string, selected: string[]) =>
@@ -119,32 +121,32 @@ export function FilterBar({ className }: FilterBarProps) {
   const clearAll = () => {
     const params = new URLSearchParams(searchParams.toString());
     ["department", "area", "type", "tag", "from", "to", "page"].forEach((key) => params.delete(key));
-    startTransition(() => router.push(`${pathname}?${params.toString()}`));
+    navigate(`${pathname}?${params.toString()}`);
   };
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)} aria-label="Search filters">
       <span className="mr-1 inline-flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--color-text-muted)]"><SlidersHorizontal size={14} aria-hidden /> Filters</span>
-      <FacetPopover label="Research area" count={areas.length}>
+      <FacetPopover label="Research area" count={areas.length} disabled={isPending}>
         <div className="max-h-72 overflow-y-auto py-1">
           {RESEARCH_AREAS.map((area) => <CheckboxOption key={area.id} label={area.label} checked={areas.includes(area.id)} onChange={() => toggle("area", area.id, areas)} />)}
         </div>
       </FacetPopover>
-      <FacetPopover label="Program" count={departments.length}>
+      <FacetPopover label="Program" count={departments.length} disabled={isPending}>
         <div className="py-1">
           {ACADEMIC_UNITS[0].programs.map((program) => <CheckboxOption key={program} label={PROGRAM_LABELS[program]} checked={departments.includes(program)} onChange={() => toggle("department", program, departments)} />)}
         </div>
       </FacetPopover>
-      <FacetPopover label="Study type" count={types.length}>
+      <FacetPopover label="Study type" count={types.length} disabled={isPending}>
         <div className="py-1">
           <CheckboxOption label="Thesis" checked={types.includes("thesis")} onChange={() => toggle("type", "thesis", types)} />
           <CheckboxOption label="Capstone" checked={types.includes("capstone")} onChange={() => toggle("type", "capstone", types)} />
         </div>
       </FacetPopover>
-      <FacetPopover label="Year" count={Number(Boolean(from)) + Number(Boolean(to))}>
+      <FacetPopover label="Year" count={Number(Boolean(from)) + Number(Boolean(to))} disabled={isPending}>
         <YearRangeFilter from={from} to={to} setValue={update} />
       </FacetPopover>
-      <FacetPopover label="Tags" count={tags.length}>
+      <FacetPopover label="Tags" count={tags.length} disabled={isPending}>
         <div className="p-1">
           <TagMultiSelect
             selectedTags={tags}
@@ -154,17 +156,17 @@ export function FilterBar({ className }: FilterBarProps) {
         </div>
       </FacetPopover>
       {filterCount > 0 && (
-        <button type="button" onClick={clearAll} className="min-h-11 cursor-pointer px-1 text-[12px] font-semibold text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40 sm:min-h-9">
+        <button
+          type="button"
+          onClick={clearAll}
+          disabled={isPending}
+          className="min-h-11 cursor-pointer px-1 text-[12px] font-semibold text-[var(--color-text-muted)] transition-colors hover:text-[var(--color-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40 sm:min-h-9 disabled:pointer-events-none disabled:opacity-50"
+        >
           Clear all
         </button>
       )}
+      {/* Screen-reader-only announcement; the result-region overlay is the visible signal */}
       <span aria-live="polite" className="sr-only">{isPending ? "Updating results…" : ""}</span>
-      {isPending && (
-        <span className="inline-flex items-center gap-1.5 text-[12px] text-[var(--color-text-muted)]" aria-hidden>
-          <Loader2 className="size-[14px] animate-spin" />
-          Updating…
-        </span>
-      )}
     </div>
   );
 }
