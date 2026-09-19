@@ -3,7 +3,8 @@ import { getThesisById } from "@/lib/services/thesis-service";
 import Link from "next/link";
 import DetailsSidebar from "@/components/layout/details-sidebar";
 import { RecommendationsPreview } from "@/components/layout/recommendations-preview";
-import { ExternalLink, ArrowLeft } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { BackLink } from "@/components/ui/back-link";
 import { ResearchAreaChip } from "@/components/ui/research-area-chip";
 import { WorkspaceSidebar } from "@/components/layout/workspace-sidebar";
 
@@ -77,13 +78,11 @@ export default async function ThesisDetails({
         <section className="px-4 py-5 sm:px-6 xl:overflow-y-auto xl:border-r xl:border-white/15 xl:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {/* this section contains the back button, title, authors, abstract, keywords/tags, pdf viewer */}
 
-          <Link
+          <BackLink
             href={returnHref}
-            className="mb-6 inline-flex h-9 items-center gap-2 rounded-full border border-[var(--color-separator-mid)] px-3 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand-bright)]/35 hover:bg-[var(--color-text)]/5 hover:text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30"
-          >
-            <ArrowLeft size={15} aria-hidden />
-            Back
-          </Link>
+            label="Back"
+            className="mb-6 h-9 rounded-full border border-[var(--color-separator-mid)] px-3 hover:border-[var(--color-brand-bright)]/35"
+          />
 
           <div className="flex items-start gap-3">
             <h1 className="max-w-7xl text-2xl font-extrabold leading-tight text-[var(--color-text)]">
