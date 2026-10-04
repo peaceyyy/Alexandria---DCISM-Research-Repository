@@ -3,5 +3,6 @@ node_modules/
 .next/
 .agents/
 .agent
-.demo
+.claude/
+demo-thesis-pdfs/
 *.env
