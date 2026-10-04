@@ -1387,7 +1387,9 @@ export async function replaceTeaserThumbnail(
           .maybeSingle()
       : { data: null };
     const isAcceptedAdminReplacement = Boolean(
-      existingMedia && (existingMedia as { theses: { review_status: ReviewStatus } }).theses.review_status === "accepted",
+      existingMedia?.theses.some(
+        (thesis) => thesis.review_status === "accepted",
+      ),
     );
 
     let storedTeaser: Awaited<ReturnType<typeof uploadTeaserThumbnailToStaging>> | null = null;

@@ -77,20 +77,20 @@ function SidebarContent({
         <Link href="/home" className={styles.brand} aria-label="Alexandria repository home" onClick={onNavigate}>
           <AlexandriaBrandLockup wordmarkClassName={styles.brandName} />
         </Link>
-        {onToggleCollapse && (
-          <button
-            type="button"
-            className={styles.collapseButton}
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-expanded={!isCollapsed}
-            aria-controls="public-workspace-sidebar"
-            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            onClick={onToggleCollapse}
-          >
-            {isCollapsed ? <PanelLeftOpen size={14} aria-hidden /> : <PanelLeftClose size={14} aria-hidden />}
-          </button>
-        )}
       </div>
+      {onToggleCollapse && (
+        <button
+          type="button"
+          className={styles.collapseButton}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!isCollapsed}
+          aria-controls="public-workspace-sidebar"
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          onClick={onToggleCollapse}
+        >
+          {isCollapsed ? <PanelLeftOpen size={14} aria-hidden /> : <PanelLeftClose size={14} aria-hidden />}
+        </button>
+      )}
 
       <div className={styles.ctaRow}>
         {!role ? (
