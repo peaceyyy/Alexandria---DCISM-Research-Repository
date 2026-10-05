@@ -1,13 +1,20 @@
 "use client";
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const maintainers = [
-  "Homer Adriel Dorin",
-  "Leira Bengil",
-  "Ethan Andre Dalocanog",
-  "Dustin Jesse Balansag",
-  "Shane Benilde Mansueto",
+  "Homer Adriel Dorin as project head and backend engineer",
+  "Leira Bengil for frontend design",
+  "Ethan Andre Dalocanog for UI/UX functionality",
+  "Shane Benilde Mansueto for database setup",
+  "Dustin Jesse Balansag for UI design",
+  "Matt Eron Cabarrubias for domain hosting",
 ];
 
 type MaintainersModalProps = {
@@ -16,7 +23,10 @@ type MaintainersModalProps = {
 };
 
 /** A temporary home for the team list until the dedicated maintainers page exists. */
-export default function MaintainersModal({ isOpen, onOpenChange }: MaintainersModalProps) {
+export default function MaintainersModal({
+  isOpen,
+  onOpenChange,
+}: MaintainersModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px] border border-[var(--color-separator-mid)] bg-[var(--color-bg)]">
