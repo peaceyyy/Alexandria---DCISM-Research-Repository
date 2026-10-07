@@ -208,7 +208,8 @@ until the PHP/MySQL capability answers are documented.
 2. Produce an inventory of live tables, functions, grants, storage buckets,
    RLS policies, indexes, and environment variables.
 3. Export a tested database backup and record the storage-object inventory with
-   checksums, paths, MIME types, and thesis IDs.
+   checksums, logical asset kind, MIME types, byte sizes, and thesis IDs. The
+   inventory must include PDFs, cover images, and any future teaser videos.
 4. Create a staging Supabase project or isolated staging dataset.
 5. Record an end-to-end review fixture: member, moderator, administrator,
    accepted thesis, flagged thesis with comments, and an uploaded PDF.
@@ -230,6 +231,17 @@ Create interfaces around services currently coupled to Supabase:
 This phase should move application policy out of direct component calls without
 changing behavior. It gives either Edge Functions or a future PHP API a stable
 contract to implement.
+
+### Media portability rule
+
+Images and future MP4 teasers do not block a school-server migration. They are
+stored as object bytes separately from the thesis metadata. Before any cutover,
+export a media manifest containing the thesis ID, logical asset kind, MIME type,
+byte size, checksum, and source storage key; copy the bytes to the target file
+store; verify each checksum; then update the target storage mapping. Do not make
+public pages depend on provider-specific bucket URLs. `FileStore` remains the
+single application boundary for current Supabase Storage and any future private
+school-server storage.
 
 **Exit criterion:** UI calls application services, not raw provider clients or
 raw table operations.

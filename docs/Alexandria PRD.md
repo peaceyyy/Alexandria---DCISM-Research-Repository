@@ -316,8 +316,3 @@ Alexandria succeeds if students can quickly discover relevant thesis projects, u
 
 For the MVP, success also requires that thesis PDFs are protected behind authentication, administrators can safely prepare records as drafts before publishing, and database/backend/frontend work follows the accepted Supabase-based architecture.
 
-## 10. Related Documents
-
-- [Database Engineer Reference](./database-engineer-reference.md)
-- [Design Decision Log](./design-decision-log.md)
-- [Group 3 Project Proposal](./Group%203%20_%20Project%20Proposal.md)
