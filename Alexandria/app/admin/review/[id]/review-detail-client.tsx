@@ -13,6 +13,7 @@ import {
   Save,
 } from "lucide-react";
 import { DEPARTMENTS } from "@/lib/domain/departments";
+import type { ProjectProgress } from "@/lib/domain/progress-policy";
 import { ReviewableField } from "@/components/review/reviewable-field";
 import {
   ReviewDecisionActions,
@@ -96,6 +97,8 @@ type AdminMetadataDraft = {
   title: string;
   department: string;
   studyType: "thesis" | "capstone";
+  projectProgress: ProjectProgress;
+  proposalApprovedOn: string;
   publicationDate: string;
   publicationLink: string;
   deploymentLink: string;
@@ -114,7 +117,9 @@ function createAdminMetadataDraft(
     title: submission.title,
     department: submission.department,
     studyType: submission.studyType,
-    publicationDate: submission.publicationDate,
+    projectProgress: submission.projectProgress,
+    proposalApprovedOn: submission.proposalApprovedOn ?? "",
+    publicationDate: submission.publicationDate ?? "",
     publicationLink: submission.publicationLink ?? "",
     deploymentLink: submission.deploymentLink ?? "",
     conference: submission.conference ?? "",
@@ -131,6 +136,8 @@ function toAdminMetadataValues(draft: AdminMetadataDraft): Partial<SubmitThesisI
     title: draft.title.trim(),
     department: draft.department,
     study_type: draft.studyType,
+    project_progress: draft.projectProgress,
+    proposal_approved_on: draft.proposalApprovedOn,
     publication_date: draft.publicationDate,
     publication_link: draft.publicationLink.trim(),
     deployment_link: draft.studyType === "capstone" ? draft.deploymentLink.trim() || undefined : undefined,
@@ -922,7 +929,28 @@ export function ReviewDetailClient({
                 </ReviewableField>
               </div>
 
-              {/* Row 2: Publication Date + Conference */}
+              {/* Row 2: Progress + Thesis 1 approval */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                <ReviewableField fieldKey="project_progress" label="Progress" comments={fieldComments("project_progress")} isActive={activeCommentField === "project_progress"} onCommentIconClick={handleCommentIconClick}>
+                  {isAdminDirectEditing ? (
+                    <select value={adminDraft.projectProgress} onChange={(event) => updateAdminDraft("projectProgress", event.target.value as ProjectProgress)} className="min-h-[42px] w-full rounded-md border border-[var(--color-separator-mid)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-brand-bright)]/60">
+                      <option value="in_progress">Work in progress</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  ) : <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "var(--color-text)" }}>{submission.projectProgress === "completed" ? "Completed" : "Work in progress"}</p>}
+                </ReviewableField>
+                <ReviewableField fieldKey="proposal_approved_on" label="Proposal Approval Date" comments={fieldComments("proposal_approved_on")} isActive={activeCommentField === "proposal_approved_on"} onCommentIconClick={handleCommentIconClick}>
+                  {isAdminDirectEditing ? <DatePicker value={adminDraft.proposalApprovedOn} onChange={(value) => updateAdminDraft("proposalApprovedOn", value)} /> : <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: "var(--color-text)" }}>{submission.proposalApprovedOn ?? "Not provided"}</p>}
+                </ReviewableField>
+              </div>
+
+              {/* Row 3: Publication Date + Conference */}
               <div
                 style={{
                   display: "grid",

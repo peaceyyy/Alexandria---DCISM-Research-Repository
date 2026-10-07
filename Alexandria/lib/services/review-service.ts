@@ -17,6 +17,7 @@ import {
   validateThesisPdf,
 } from "../upload/file-validation";
 import { isDepartment } from "../domain/departments";
+import { getProgressRequirementErrors, isProjectProgress, type ProjectProgress } from "../domain/progress-policy";
 import {
   isResearchAreaId,
   isSerializedResearchAreaIds,
@@ -61,6 +62,8 @@ const REVIEWABLE_FIELDS: ReviewFieldKey[] = [
   "advisers",
   "department",
   "study_type",
+  "project_progress",
+  "proposal_approved_on",
   "publication_date",
   "publication_link",
   "conference",
@@ -100,6 +103,8 @@ const REVIEW_LIST_SELECT = `
   department,
   research_area,
   review_status,
+  project_progress,
+  proposal_approved_on,
   publication_date,
   publication_link,
   conference,
@@ -120,6 +125,8 @@ type ThesisRow = {
   department: string;
   research_area: string | null;
   review_status: ReviewStatus;
+  project_progress: ProjectProgress;
+  proposal_approved_on: string | null;
   publication_date: string | null;
   publication_link: string | null;
   conference: string | null;
@@ -436,6 +443,8 @@ function buildUpdatePayload(values: Partial<SubmitThesisInput>) {
     "abstract",
     "department",
     "research_area",
+    "project_progress",
+    "proposal_approved_on",
     "publication_date",
     "publication_link",
     "deployment_link",
@@ -453,6 +462,10 @@ function buildUpdatePayload(values: Partial<SubmitThesisInput>) {
 
   if (values.study_type !== undefined) {
     payload.study_type = values.study_type;
+  }
+
+  if (values.project_progress !== undefined) {
+    payload.project_progress = values.project_progress;
   }
 
   if (values.authors !== undefined) {
@@ -478,6 +491,17 @@ function validateUpdatePayload(values: Partial<SubmitThesisInput>) {
 
   if (values.study_type !== undefined && !isStudyType(values.study_type)) {
     return makeError("VALIDATION_FAILED", "Study type must be thesis or capstone.");
+  }
+
+  if (values.project_progress !== undefined && !isProjectProgress(values.project_progress)) {
+    return makeError("VALIDATION_FAILED", "Progress must be work in progress or completed.");
+  }
+
+  if (values.proposal_approved_on !== undefined && (
+    !isValidCalendarDate(values.proposal_approved_on)
+    || values.proposal_approved_on > getCurrentCalendarDate()
+  )) {
+    return makeError("VALIDATION_FAILED", "Proposal approval date must be valid and cannot be later than today.");
   }
 
   if (
@@ -762,6 +786,8 @@ async function loadReviewSubmission(
     })),
     department: bundle.thesis.department,
     studyType: bundle.thesis.study_type,
+    projectProgress: bundle.thesis.project_progress,
+    proposalApprovedOn: bundle.thesis.proposal_approved_on,
     publicationDate: bundle.thesis.publication_date ?? "",
     publicationLink: bundle.thesis.publication_link,
     deploymentLink: bundle.thesis.deployment_link,
@@ -1101,6 +1127,21 @@ export async function setReviewStatus(
       return err(makeError("VALIDATION_FAILED", "A valid next review status is required."));
     }
 
+    if (input.nextStatus === "accepted") {
+      const submission = await loadReviewSubmission(input.thesisId);
+      const progressErrors = getProgressRequirementErrors({
+        progress: submission.projectProgress,
+        proposalApprovedOn: submission.proposalApprovedOn,
+        publicationDate: submission.publicationDate,
+        publicationLink: submission.publicationLink,
+        conference: submission.conference,
+        hasPrimaryPdf: Boolean(submission.primaryFile),
+      });
+      if (progressErrors.length > 0) {
+        return err(makeError("VALIDATION_FAILED", progressErrors[0]));
+      }
+    }
+
     const supabase = await createClient();
     const { error: rpcError } = await supabase.rpc("set_review_status", {
       target_thesis_id: input.thesisId,
@@ -1127,6 +1168,19 @@ export async function finalizeReviewAcceptance(
     const validationError = validateThesisId(thesisId);
     if (validationError) return err(validationError);
     await requireRole(["admin"]);
+
+    const submission = await loadReviewSubmission(thesisId);
+    const progressErrors = getProgressRequirementErrors({
+      progress: submission.projectProgress,
+      proposalApprovedOn: submission.proposalApprovedOn,
+      publicationDate: submission.publicationDate,
+      publicationLink: submission.publicationLink,
+      conference: submission.conference,
+      hasPrimaryPdf: Boolean(submission.primaryFile),
+    });
+    if (progressErrors.length > 0) {
+      return err(makeError("VALIDATION_FAILED", progressErrors[0]));
+    }
 
     const admin = createAdminClient();
     const { data: media, error: mediaError } = await admin

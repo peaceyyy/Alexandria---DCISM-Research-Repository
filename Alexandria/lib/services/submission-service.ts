@@ -15,9 +15,9 @@ import {
 } from "../upload/file-validation";
 import { isDepartment } from "../domain/departments";
 import { isSerializedResearchAreaIds } from "../domain/research-areas";
+import { getProgressRequirementErrors, isProjectProgress } from "../domain/progress-policy";
 import { err, makeError, ok } from "./result";
 import { requireSession, requireOwnership } from "./_guards";
-import { finalizeReviewAcceptance } from "./review-service";
 import type {
   SubmitThesisInput,
   SubmitThesisPayload,
@@ -84,6 +84,8 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
         abstract,
         department,
         research_area,
+        project_progress,
+        proposal_approved_on,
         publication_date,
         publication_link,
         deployment_link,
@@ -121,6 +123,8 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
       abstract_preview: thesis.abstract?.substring(0, 400) || "",
       department: thesis.department,
       research_area: thesis.research_area,
+      project_progress: thesis.project_progress,
+      proposal_approved_on: thesis.proposal_approved_on,
       publication_date: thesis.publication_date,
       publication_link: thesis.publication_link,
       deployment_link: thesis.deployment_link,
@@ -237,25 +241,40 @@ export async function submitThesis(
     }
 
     const currentCalendarDate = getCurrentCalendarDate();
-    if (
-      !input.publication_date ||
-      !isValidCalendarDate(input.publication_date)
-    ) {
+    if (!isProjectProgress(input.project_progress)) {
       return err(
-        makeError("VALIDATION_FAILED", "Publication date must be a valid date"),
+        makeError("VALIDATION_FAILED", "Progress must be work in progress or completed."),
       );
     }
-
-    if (input.publication_date > currentCalendarDate) {
+    if (!input.proposal_approved_on || !isValidCalendarDate(input.proposal_approved_on)) {
       return err(
         makeError(
           "VALIDATION_FAILED",
-          "Publication date cannot be later than today",
+          "Proposal approval date must be a valid date",
         ),
       );
     }
+    if (input.proposal_approved_on > currentCalendarDate) {
+      return err(makeError("VALIDATION_FAILED", "Proposal approval date cannot be later than today"));
+    }
+    if (input.publication_date && (!isValidCalendarDate(input.publication_date) || input.publication_date > currentCalendarDate)) {
+      return err(makeError("VALIDATION_FAILED", "Publication date must be valid and cannot be later than today"));
+    }
+    const progressErrors = getProgressRequirementErrors({
+      progress: input.project_progress,
+      proposalApprovedOn: input.proposal_approved_on,
+      publicationDate: input.publication_date,
+      publicationLink: input.publication_link,
+      conference: input.conference,
+      hasPrimaryPdf: true,
+    });
+    if (progressErrors.length > 0) {
+      return err(makeError("VALIDATION_FAILED", progressErrors[0]));
+    }
 
-    const publicationYear = Number(input.publication_date.slice(0, 4));
+    const repositoryYear = Number(
+      (input.project_progress === "completed" ? input.publication_date : input.proposal_approved_on).slice(0, 4),
+    );
 
     let storedFile: StoredThesisFile;
     try {
@@ -281,20 +300,14 @@ export async function submitThesis(
 
     const payload: SubmitThesisPayload = {
       ...input,
-      year: publicationYear,
+      year: repositoryYear,
       storage_path: storedFile.filePath,
       file_type: THESIS_PDF_MIME_TYPE,
       teaser_thumbnail_storage_path: storedTeaser?.filePath,
     };
 
-    const isStaffPublisher = user.role === "admin" || user.role === "moderator";
-
-    // The related database inserts remain atomic inside the RPC. Members retain
-    // the existing review path; staff use the dedicated direct-publish wrapper.
     const { data: thesisId, error: rpcError } = await supabase.rpc(
-      isStaffPublisher && !storedTeaser
-        ? "publish_staff_thesis_transaction"
-        : "submit_thesis_transaction",
+      "submit_thesis_transaction",
       {
         payload,
       }
@@ -316,16 +329,9 @@ export async function submitThesis(
       );
     }
 
-    if (isStaffPublisher && storedTeaser) {
-      const acceptanceResult = await finalizeReviewAcceptance(Number(thesisId));
-      if (acceptanceResult.error) {
-        return err(acceptanceResult.error);
-      }
-    }
-
     return ok({
       id: Number(thesisId),
-      reviewStatus: isStaffPublisher ? "accepted" : "for_review",
+      reviewStatus: "for_review",
     });
   } catch (e: any) {
     return err(e);

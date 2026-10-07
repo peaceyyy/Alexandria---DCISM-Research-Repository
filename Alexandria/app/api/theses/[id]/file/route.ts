@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/services/auth-service";
 import type { ReviewStatus } from "@/lib/services/types";
+import type { ProjectProgress } from "@/lib/domain/progress-policy";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const THESIS_FILES_BUCKET = "thesis_files_bucket";
@@ -10,6 +11,7 @@ type ThesisAccessRow = {
   id: number;
   title: string;
   review_status: ReviewStatus;
+  project_progress: ProjectProgress;
   submitted_by_user_id: string | null;
 };
 
@@ -52,7 +54,7 @@ export async function GET(
     getCurrentUser(),
     admin
       .from("theses")
-      .select("id, title, review_status, submitted_by_user_id")
+       .select("id, title, review_status, project_progress, submitted_by_user_id")
       .eq("id", thesisId)
       .maybeSingle(),
     admin
@@ -88,15 +90,20 @@ export async function GET(
     user?.role === "admin" || user?.role === "moderator";
   const isAdmin = user?.role === "admin";
   const isSubmitter = user?.id === thesis.submitted_by_user_id;
-  const isAccepted = thesis.review_status === "accepted";
+  const isPublicCompleted =
+    thesis.review_status === "accepted" && thesis.project_progress === "completed";
+  const isCommunityWip =
+    thesis.review_status === "accepted"
+    && thesis.project_progress === "in_progress"
+    && isActiveUser;
   const isTrashed = thesis.review_status === "trashed";
   const isOwnerPreview =
     isSubmitter
     && ["for_review", "flagged"].includes(thesis.review_status);
-  const mayPreview = isAccepted || (isReviewer && (!isTrashed || isAdmin)) || isOwnerPreview;
+  const mayPreview = isPublicCompleted || isCommunityWip || (isReviewer && (!isTrashed || isAdmin)) || isOwnerPreview;
   const wantsDownload = request.nextUrl.searchParams.get("download") === "1";
   const mayDownload =
-    isActiveUser && (isAccepted || (isReviewer && (!isTrashed || isAdmin)));
+    isPublicCompleted || isCommunityWip || (isReviewer && (!isTrashed || isAdmin));
 
   if (!mayPreview || (wantsDownload && !mayDownload)) {
     return NextResponse.json(

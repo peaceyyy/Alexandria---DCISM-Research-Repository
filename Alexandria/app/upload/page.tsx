@@ -37,6 +37,8 @@ const STAFF_SAMPLE_FIELDS: FormValues = {
     "This is staff-only sample metadata for reviewing the submission flow. It must be replaced with the thesis's actual details before publication.",
   department: "CS",
   type_of_study: "thesis",
+  project_progress: "completed",
+  proposal_approved_on: "2026-01-12",
   research_areas: ["web_development", "algorithms"],
   authors: [
     {
@@ -99,6 +101,8 @@ export default function UploadPage() {
       abstract: "",
       department: "CS",
       type_of_study: "thesis",
+      project_progress: "in_progress",
+      proposal_approved_on: "",
       research_areas: [],
       authors: [
         {
@@ -285,6 +289,8 @@ export default function UploadPage() {
         research_area: serializeResearchAreaIds(data.research_areas),
         authors: data.authors,
         tags: data.tags,
+        project_progress: data.project_progress,
+        proposal_approved_on: data.proposal_approved_on,
         publication_date: data.publication_date,
         publication_link: data.publication_link,
         deployment_link: data.type_of_study === "capstone" ? data.deployment_link || undefined : undefined,
@@ -304,12 +310,7 @@ export default function UploadPage() {
         throw new Error(result.error.message || "Failed to submit thesis");
       }
 
-      // Staff records publish immediately; member records retain the review flow.
-      router.push(
-        result.data?.reviewStatus === "accepted"
-          ? "/home?published=1"
-          : "/home?submitted=1",
-      );
+      router.push("/home?submitted=1");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred";

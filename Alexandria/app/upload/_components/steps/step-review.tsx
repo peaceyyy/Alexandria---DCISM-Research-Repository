@@ -196,11 +196,13 @@ export function StepReview({
           <SummaryRow label="Department" value={values.department} />
           <SummaryRow label="Type of Study" value={values.type_of_study} />
         </div>
-        <SummaryRow label="Publication Date" value={values.publication_date} />
+        <SummaryRow label="Progress" value={values.project_progress === "completed" ? "Completed" : "Work in progress"} />
+        <SummaryRow label="Proposal Approval Date" value={values.proposal_approved_on} />
+        {values.project_progress === "completed" && <SummaryRow label="Publication Date" value={values.publication_date} />}
       </ReviewSection>
 
       {/* Step 2 — Publication */}
-      <ReviewSection
+      {values.project_progress === "completed" && <ReviewSection
         stepId={2}
         stepLabel={STEPS[1].label}
         hasError={errorSteps.has(2)}
@@ -211,7 +213,7 @@ export function StepReview({
         {values.type_of_study === "capstone" && (
           <SummaryRow label="Deployment Link" value={values.deployment_link} />
         )}
-      </ReviewSection>
+      </ReviewSection>}
 
       {/* Step 3 — People */}
       <ReviewSection

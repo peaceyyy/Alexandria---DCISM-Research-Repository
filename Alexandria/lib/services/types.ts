@@ -1,5 +1,6 @@
 import type { Department } from "../domain/departments";
 import type { ResearchAreaId } from "../domain/research-areas";
+import type { ProjectProgress } from "../domain/progress-policy";
 
 // ─── Primitives ──────────────────────────────────────────────────────────────
 export type ReviewStatus = "for_review" | "flagged" | "accepted" | "trashed";
@@ -14,6 +15,8 @@ export type ReviewFieldKey =
   | "advisers"
   | "department"
   | "study_type"
+  | "project_progress"
+  | "proposal_approved_on"
   | "publication_date"
   | "publication_link"
   | "conference"
@@ -68,6 +71,8 @@ export type DbThesis = {
   department: string;
   research_area: string | null;
   review_status: ReviewStatus;
+  project_progress: ProjectProgress;
+  proposal_approved_on: string | null;
   publication_date: string | null;
   publication_link: string | null;
   conference: string | null;
@@ -149,12 +154,15 @@ export type ThesisCard = {
   research_area: string | null;
   department: string;
   study_type?: StudyType;
+  project_progress?: ProjectProgress;
 };
 /** Used on the Thesis Detail page. Extends ThesisCard. */
 export type ThesisDetail = ThesisCard & {
   abstract: string;
   authors: ThesisAuthor[];
   department: string;
+  project_progress: ProjectProgress;
+  proposal_approved_on: string | null;
   publication_date: string | null;
   publication_link: string | null;
   deployment_link: string | null;
@@ -226,7 +234,9 @@ export type ReviewSubmission = {
   contributorEntries?: ThesisAuthor[];
   department: string;
   studyType: StudyType;
-  publicationDate: string;
+  projectProgress: ProjectProgress;
+  proposalApprovedOn: string | null;
+  publicationDate: string | null;
   publicationLink: string | null;
   deploymentLink: string | null;
   conference: string | null;
@@ -338,7 +348,9 @@ export type SubmitThesisPayload = {
   tags: string[];
   storage_path: string;
   file_type: "application/pdf";
-  publication_date: string;
+  project_progress: ProjectProgress;
+  proposal_approved_on: string;
+  publication_date?: string;
   publication_link?: string;
   deployment_link?: string;
   conference?: string;

@@ -4,7 +4,7 @@ import ThesesBrowser, {
 } from "@/components/layout/theses-browser";
 import { getCurrentUser } from "@/lib/services/auth-service";
 import { listOwnSubmissions } from "@/lib/services/review-service";
-import { getTheses } from "@/lib/services/thesis-service";
+import { getCommunityWorkInProgress, getTheses } from "@/lib/services/thesis-service";
 import type { MySubmissionListItem } from "@/lib/services/types";
 import { SubmissionBanner } from "./_components/submission-banner";
 
@@ -49,7 +49,7 @@ export default async function HomePage({
   const requestedOwnSubmissions = parsed.mine === "1";
   const showOwnSubmissions = requestedOwnSubmissions && Boolean(user);
 
-  const [publicThesesResult, ownSubmissionsResult, flaggedSubmissionsResult] =
+  const [publicThesesResult, communityWorkResult, ownSubmissionsResult, flaggedSubmissionsResult] =
     await Promise.all([
       showOwnSubmissions
         ? Promise.resolve(null)
@@ -63,6 +63,16 @@ export default async function HomePage({
             study_type: parsed.type,
             tag: parsed.tag,
           }),
+      showOwnSubmissions || !user
+        ? Promise.resolve(null)
+        : getCommunityWorkInProgress({
+            limit: 100,
+            q: parsed.q,
+            year_from: parsed.from,
+            year_to: parsed.to,
+            department: parsed.department,
+            study_type: parsed.type,
+          }),
       showOwnSubmissions
         ? listOwnSubmissions({ q: parsed.q, status: parsed.status ?? "all" })
         : Promise.resolve(null),
@@ -72,7 +82,7 @@ export default async function HomePage({
   const role = user?.role ?? null;
   const items: BrowseThesisItem[] = showOwnSubmissions
     ? (ownSubmissionsResult?.data ?? []).map(mapOwnSubmission)
-    : publicThesesResult?.data ?? [];
+    : [...(publicThesesResult?.data ?? []), ...(communityWorkResult?.data ?? [])];
   const flaggedSubmissionCount = flaggedSubmissionsResult?.data?.length ?? 0;
   const query = firstValue(parsed.q);
 

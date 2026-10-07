@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { DEPARTMENTS } from "@/lib/domain/departments";
 import { RESEARCH_AREA_IDS, RESEARCH_AREAS } from "@/lib/domain/research-areas";
+import { PROJECT_PROGRESS_VALUES } from "@/lib/domain/progress-policy";
 
 export { DEPARTMENTS };
 export { RESEARCH_AREAS };
@@ -33,26 +34,40 @@ export const formSchema = z
     abstract: z.string().min(50, "Abstract must be at least 50 characters"),
     department: z.enum(DEPARTMENTS, "Department must be CS, IT, or IS."),
     type_of_study: z.enum(["thesis", "capstone"]),
+    project_progress: z.enum(PROJECT_PROGRESS_VALUES),
+    proposal_approved_on: z.iso.date("Proposal approval date is required"),
     research_areas: z
       .array(z.enum(RESEARCH_AREA_IDS))
       .min(1, "Select at least one research area"),
     authors: z.array(authorSchema).min(1, "At least one author is required"),
     tags: z.array(z.string().min(1)).min(1, "Add at least one keyword"),
-    publication_date: z.iso.date("Publication date is required"),
-    publication_link: z.string().min(1, "Publication link is required"),
+    publication_date: z.iso.date("Use a valid publication date").optional().or(z.literal("")),
+    publication_link: z.string().url("Use a valid publication URL").optional().or(z.literal("")),
     deployment_link: z.string().url("Use a valid deployment URL").optional().or(z.literal("")),
-    conference: z.string().min(1, "Conference name is required"),
+    conference: z.string(),
     recommendations: z.string().min(10, "Recommendations must be at least 10 characters"),
     lessons_learned: z.array(z.string().min(1)).min(1, "Add at least one lesson learned"),
   })
   .superRefine((data, context) => {
-    if (!data.publication_date) return;
-    if (data.publication_date > currentCalendarDate) {
+    if (data.proposal_approved_on > currentCalendarDate) {
       context.addIssue({
         code: "custom",
-        path: ["publication_date"],
-        message: "Publication date cannot be later than today",
+        path: ["proposal_approved_on"],
+        message: "Proposal approval date cannot be later than today",
       });
+    }
+    if (data.project_progress === "completed") {
+      if (!data.publication_date) {
+        context.addIssue({ code: "custom", path: ["publication_date"], message: "Publication date is required for completed work" });
+      } else if (data.publication_date > currentCalendarDate) {
+        context.addIssue({ code: "custom", path: ["publication_date"], message: "Publication date cannot be later than today" });
+      }
+      if (!data.publication_link) {
+        context.addIssue({ code: "custom", path: ["publication_link"], message: "Publication link is required for completed work" });
+      }
+      if (!data.conference.trim()) {
+        context.addIssue({ code: "custom", path: ["conference"], message: "Conference or venue is required for completed work" });
+      }
     }
     if (data.type_of_study !== "capstone" && data.deployment_link) {
       context.addIssue({
@@ -70,7 +85,9 @@ export const FIELD_STEP_MAP: Record<string, number> = {
   title: 1,
   department: 1,
   type_of_study: 1,
-  publication_date: 1,
+  project_progress: 1,
+  proposal_approved_on: 1,
+  publication_date: 2,
   conference: 2,
   publication_link: 2,
   deployment_link: 2,
