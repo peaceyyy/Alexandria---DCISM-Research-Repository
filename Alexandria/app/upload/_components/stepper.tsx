@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 interface StepperProps {
   steps: readonly { id: number; label: string }[];
   currentStep: number;
+  completedSteps?: number[];
   errorSteps?: number[];
   onStepClick?: (step: number) => void;
 }
@@ -13,6 +14,7 @@ interface StepperProps {
 export function Stepper({
   steps,
   currentStep,
+  completedSteps,
   errorSteps = [],
   onStepClick,
 }: StepperProps) {
@@ -43,7 +45,9 @@ export function Stepper({
       >
         <div className="mx-auto flex w-max items-start">
         {steps.map((step, index) => {
-          const isCompleted = step.id < currentStep;
+          const isCompleted = completedSteps
+            ? completedSteps.includes(step.id) && step.id !== currentStep
+            : step.id < currentStep;
           const isCurrent = step.id === currentStep;
           const hasError = errorSteps.includes(step.id);
           const canNavigate = Boolean(onStepClick);
