@@ -26,17 +26,31 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 20px 20px 18px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 20px 18px 18px;
   border-bottom: 1px solid var(--color-separator);
   color: var(--color-text);
   text-decoration: none;
   position: relative;
 }
 
+.brand img {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+}
+
 .brandText {
+  display: inline-block;
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
   font-weight: 800;
   font-size: 15px;
   color: var(--color-text);
+  transition: max-width 0.2s ease, opacity 0.12s ease 0.08s;
 }
 
 .collapseButton,
@@ -98,6 +112,7 @@
 .nav {
   flex: 1;
   padding: 16px 12px 0;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -114,6 +129,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   padding: 10px 12px;
   border-radius: 10px;
   font-size: 14px;
@@ -137,6 +153,8 @@
 }
 
 .navIcon {
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   opacity: 0.8;
 }
@@ -146,42 +164,23 @@
   color: var(--color-brand-bright);
 }
 
-.collapsed .brand {
-  justify-content: center;
-  gap: 0;
-  padding-inline: 0;
-}
-
-.collapsed .brand img {
-  width: 28px !important;
-  height: 28px !important;
-}
-
 .collapsed .brandText,
 .collapsed .navText,
 .collapsed .profileDetails {
-  width: 0;
+  max-width: 0;
   opacity: 0;
   overflow: hidden;
   white-space: nowrap;
+  transition-delay: 0.08s, 0s;
 }
 
-.collapsed .nav {
-  padding-inline: 10px;
-}
-
-.collapsed .navLink,
-.collapsed .logoutBtn {
-  justify-content: center;
-  padding-inline: 0;
-}
-
-.collapsed .footer {
-  padding-inline: 10px;
-}
-
-.collapsed .logoutBtn {
-  width: 36px;
+.navText {
+  display: block;
+  min-width: 0;
+  max-width: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.2s ease, opacity 0.12s ease 0.08s;
 }
 
 .footer {
@@ -190,6 +189,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow: hidden;
 }
 
 /* ── Footer action stack ── */
@@ -335,9 +335,12 @@
 .profileDetails {
   display: flex;
   min-width: 0;
+  max-width: 150px;
+  overflow: hidden;
   flex: 1;
   flex-direction: column;
   gap: 1px;
+  transition: max-width 0.2s ease, opacity 0.12s ease 0.08s;
 }
 
 .profileName {
@@ -408,29 +411,15 @@
   }
 
   .sidebar.collapsed .brand {
-    justify-content: flex-start;
-    padding-inline: 20px;
+    padding-inline: 18px;
   }
 
   .sidebar.collapsed .brandText,
   .sidebar.collapsed .navText,
   .sidebar.collapsed .profileDetails {
-    width: auto;
+    max-width: none;
     opacity: 1;
     overflow: visible;
-  }
-
-  .sidebar.collapsed .nav {
-    padding-inline: 12px;
-  }
-
-  .sidebar.collapsed .navLink {
-    justify-content: flex-start;
-    padding-inline: 12px;
-  }
-
-  .sidebar.collapsed .footer {
-    padding-inline: 12px;
   }
 
   .sidebar.collapsed .footerActions {
@@ -486,7 +475,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebar {
+  .sidebar,
+  .brandText,
+  .navText,
+  .profileDetails {
     transition: none;
   }
 }

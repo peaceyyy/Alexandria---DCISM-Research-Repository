@@ -6,6 +6,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  Presentation,
   Upload,
   X,
   Users,
@@ -33,6 +34,12 @@ const NAV_LINKS: NavLink[] = [
     href: "/admin/dashboard",
     label: "Dashboard",
     icon: LayoutDashboard,
+    roles: ["admin", "moderator"],
+  },
+  {
+    href: "/admin/demo",
+    label: "Presentation demo",
+    icon: Presentation,
     roles: ["admin", "moderator"],
   },
   {
