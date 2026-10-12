@@ -1,0 +1,65 @@
+phase: sub-phase-2
+created: 2026-10-09
+schema: athena-default
+feature: staff-demo-templates
+
+dependencies:
+  read:
+    - path: docs/plans/staff-demo-templates-plan.md
+      reason: Understand route structure, fixture requirements, and access model
+      priority: critical
+
+    - path: Alexandria/app/admin/layout.tsx
+      reason: Understand the existing admin layout guard — demo routes inherit this
+      priority: critical
+
+    - path: Alexandria/app/admin/_components/admin-dashboard-view.tsx
+      reason: Find the correct insertion point for the Presentation demo card
+      priority: high
+
+    - path: Alexandria/app/admin/_components/dashboard-constants.ts
+      reason: Check for any constant patterns to follow for the new card
+      priority: medium
+
+  modify:
+    - path: Alexandria/app/admin/_components/admin-dashboard-view.tsx
+      reason: Add Presentation demo card with Explore Thesis / Explore Capstone actions
+      exclusive_lock: true
+      changes: Add card component pointing to /admin/demo — no data-fetching; presentational only
+
+  create:
+    - path: Alexandria/app/admin/demo/page.tsx
+      reason: Template chooser page — explains demo is local-only, offers thesis/capstone choice
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/thesis/page.tsx
+      reason: Entry point for the thesis demo walkthrough (wizard shell wired in sub-phase-3)
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/capstone/page.tsx
+      reason: Entry point for the capstone demo walkthrough
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/thesis/preview/page.tsx
+      reason: Thesis demo preview route stub (preview component wired in sub-phase-4)
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/capstone/preview/page.tsx
+      reason: Capstone demo preview route stub
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/_lib/fixtures.ts
+      reason: Immutable thesis/capstone fixtures with clearly fictional values and a deep-clone helper
+      exclusive_lock: true
+
+relationships:
+  requires_phases: []
+  provides_for_phases: [sub-phase-3]
+  blocks_if_incomplete: [sub-phase-3]
+
+context_estimate:
+  read_tokens: 2000
+  total_budget: 5000
+  warning_threshold: 4000
+  status: ok
+  recommendation: admin-dashboard-view.tsx is large (~21KB). Read it to locate the card grid before editing.
