@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
@@ -34,21 +34,11 @@ export function DemoWizard({ template }: DemoWizardProps) {
     defaultValues: getDemoFixture(template),
     mode: "onTouched",
   });
-  const { formState, trigger, getValues } = methods;
+  const { trigger, getValues } = methods;
   const { completedSteps, validateStep } = useStepCompletion({
     methods,
     initialCompletedSteps: STEPS.slice(0, -1).map(({ id }) => id),
   });
-
-  useEffect(() => {
-    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!formState.isDirty) return;
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", warnBeforeUnload);
-    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
-  }, [formState.isDirty]);
 
   const goToStep = (nextStep: number) => setCurrentStep(nextStep);
 
