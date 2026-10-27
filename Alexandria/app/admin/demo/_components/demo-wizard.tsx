@@ -24,10 +24,11 @@ import { DemoReview } from "./demo-review";
 import { SimulatedPdfCard } from "./simulated-pdf-card";
 
 type DemoWizardProps = { template: DemoTemplate };
+type DemoStep = (typeof STEPS)[number]["id"];
 
 export function DemoWizard({ template }: DemoWizardProps) {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState<DemoStep>(1);
   const [errorSteps, setErrorSteps] = useState<number[]>([]);
   const methods = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -40,7 +41,10 @@ export function DemoWizard({ template }: DemoWizardProps) {
     initialCompletedSteps: STEPS.slice(0, -1).map(({ id }) => id),
   });
 
-  const goToStep = (nextStep: number) => setCurrentStep(nextStep);
+  const goToStep = (nextStep: number) => {
+    const target = STEPS.find(({ id }) => id === nextStep);
+    if (target) setCurrentStep(target.id);
+  };
 
   const continueToNextStep = async () => {
     const isValid = await validateStep(currentStep, { shouldFocus: true });
@@ -75,7 +79,7 @@ export function DemoWizard({ template }: DemoWizardProps) {
     4: <StepContent />,
     5: <StepInsights />,
     6: <SimulatedPdfCard template={template} />,
-    7: <DemoReview template={template} onGoToStep={setCurrentStep} />,
+    7: <DemoReview template={template} onGoToStep={goToStep} />,
   } as const;
 
   return (
