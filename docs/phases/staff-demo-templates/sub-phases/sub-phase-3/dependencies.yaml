@@ -1,0 +1,103 @@
+phase: sub-phase-3
+created: 2026-10-09
+schema: athena-default
+feature: staff-demo-templates
+
+dependencies:
+  read:
+    - path: docs/plans/staff-demo-templates-plan.md
+      reason: No-write boundary rules, component reuse strategy (option B), exit warning spec
+      priority: critical
+
+    - path: Alexandria/app/admin/demo/_lib/fixtures.ts
+      reason: Understand fixture shape and deep-clone helper before wiring form state
+      priority: critical
+
+    - path: Alexandria/app/upload/_components/stepper.tsx
+      reason: Understand stepper API — imported directly into demo-wizard.tsx
+      priority: critical
+
+    - path: Alexandria/app/upload/_components/steps/step-review.tsx
+      reason: Refactor its existing real-file attachment presentation into a shared visual shell without changing live validation
+      priority: critical
+
+    - path: Alexandria/app/upload/_components/exit-warning-dialog.tsx
+      reason: Mirror this pattern for demo-exit-warning-dialog.tsx
+      priority: high
+
+    - path: Alexandria/app/upload/_components/steps/step-upload.tsx
+      reason: Understand the real dropzone to faithfully replace it with simulated-pdf-card.tsx
+      priority: high
+
+    - path: Alexandria/app/upload/_components/people-builder.tsx
+      reason: Understand props interface before composing in demo-wizard.tsx
+      priority: medium
+
+    - path: Alexandria/app/upload/_components/steps/step-content.tsx
+      reason: Understand field step props
+      priority: medium
+
+    - path: Alexandria/app/upload/_components/steps/step-study-basics.tsx
+      reason: Understand field step props
+      priority: medium
+
+    - path: Alexandria/app/upload/_components/steps/step-people.tsx
+      reason: Understand field step props
+      priority: medium
+
+    - path: Alexandria/app/upload/_components/steps/step-insights.tsx
+      reason: Understand field step props
+      priority: medium
+
+    - path: Alexandria/app/upload/_components/steps/step-publication.tsx
+      reason: Understand field step props including capstone-only deployment field
+      priority: medium
+
+  modify:
+    - path: Alexandria/app/admin/demo/thesis/page.tsx
+      reason: Wire demo-wizard.tsx into the thesis route
+      exclusive_lock: true
+      changes: Replace stub with composed demo-wizard using thesis fixture
+
+    - path: Alexandria/app/admin/demo/capstone/page.tsx
+      reason: Wire demo-wizard.tsx into the capstone route
+      exclusive_lock: true
+      changes: Replace stub with composed demo-wizard using capstone fixture
+
+    - path: Alexandria/app/upload/_components/steps/step-review.tsx
+      reason: Narrow visual refactor — use the shared attachment shell for the existing real File case only
+      exclusive_lock: true
+      changes: Preserve existing props and live PDF validation; do not add a simulated attachment or demo-mode branch
+
+  create:
+    - path: Alexandria/components/thesis/pdf-attachment-card.tsx
+      reason: Shared presentational PDF card for the existing live-file display and the clearly labelled simulated demo descriptor
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/_components/demo-banner.tsx
+      reason: Persistent safety banner (icon + text + Exit demo link; not color-only)
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/_components/demo-wizard.tsx
+      reason: Standalone shell with its own local form state; imports leaf upload components directly
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/_components/simulated-pdf-card.tsx
+      reason: Replaces the real dropzone in demo mode; keyboard-readable; never constructs a File
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/_components/demo-exit-warning-dialog.tsx
+      reason: Fires on navigate-away / Exit demo / tab close; suppressed on View sample record navigation
+      exclusive_lock: true
+
+relationships:
+  requires_phases: [sub-phase-1, sub-phase-2]
+  provides_for_phases: [sub-phase-4]
+  blocks_if_incomplete: [sub-phase-4]
+
+context_estimate:
+  read_tokens: 4200
+  total_budget: 5000
+  warning_threshold: 4000
+  status: approaching_limit
+  recommendation: Read step files selectively — focus on their props interfaces, not full implementations. Read stepper.tsx and step-review.tsx fully; skim the rest for prop signatures only.

@@ -663,9 +663,10 @@ async function loadThesisBundle(
       .order("id", { ascending: false }),
   ]);
 
-  let auditsResult = initialAuditsResult;
+  let auditData: AuditRow[] = (initialAuditsResult.data ?? []) as AuditRow[];
+  let auditError = initialAuditsResult.error;
 
-  if (isMissingAuditEventColumn(auditsResult.error)) {
+  if (isMissingAuditEventColumn(auditError)) {
     const fallbackAuditsResult = await supabase
       .from("thesis_audits")
       .select("id, thesis_id, changed_by_user_id, change_description, updated_at")
@@ -673,15 +674,11 @@ async function loadThesisBundle(
       .order("updated_at", { ascending: false })
       .order("id", { ascending: false });
 
-    auditsResult = {
-      ...fallbackAuditsResult,
-      data: (fallbackAuditsResult.data ?? []).map(
-        (audit) => ({
-          ...audit,
-          event: null,
-        }),
-      ),
-    } as any;
+    auditData = (fallbackAuditsResult.data ?? []).map((audit) => ({
+      ...audit,
+      event: null,
+    }));
+    auditError = fallbackAuditsResult.error;
   }
 
   const firstError = [
@@ -692,7 +689,7 @@ async function loadThesisBundle(
     isMissingReviewCommentsTable(commentsResult.error)
       ? null
       : commentsResult.error,
-    auditsResult.error,
+    auditError,
   ].find(Boolean);
 
   if (firstError) {
@@ -708,7 +705,7 @@ async function loadThesisBundle(
     comments: isMissingReviewCommentsTable(commentsResult.error)
       ? []
       : (commentsResult.data ?? []) as CommentRow[],
-    audits: (auditsResult.data ?? []) as AuditRow[],
+    audits: auditData,
   };
 }
 

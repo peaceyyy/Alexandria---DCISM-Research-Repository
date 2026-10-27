@@ -1,0 +1,92 @@
+phase: sub-phase-5
+created: 2026-10-09
+schema: athena-default
+feature: staff-demo-templates
+
+dependencies:
+  read:
+    - path: docs/plans/staff-demo-templates-plan.md
+      reason: Full test scope, accessibility spec, and copy requirements
+      priority: critical
+
+    - path: Alexandria/app/admin/demo/_components/demo-wizard.tsx
+      reason: Review focus movement and label text; target for a11y fixes
+      priority: critical
+
+    - path: Alexandria/app/admin/demo/_components/demo-preview.tsx
+      reason: Review label text and action labels; target for a11y fixes
+      priority: critical
+
+    - path: Alexandria/app/admin/demo/_components/demo-banner.tsx
+      reason: Confirm icon + text pattern; not color-only
+      priority: high
+
+    - path: Alexandria/app/admin/demo/_components/demo-exit-warning-dialog.tsx
+      reason: Understand dialog trigger logic to write accurate exit-warning tests
+      priority: high
+
+    - path: Alexandria/app/admin/demo/_lib/fixtures.ts
+      reason: Understand fixture shape to write fixture-fallback tests
+      priority: high
+
+    - path: Alexandria/app/admin/demo/_lib/demo-session.ts
+      reason: Understand sessionStorage key/namespace for local-only state tests
+      priority: high
+
+    - path: Alexandria/app/admin/layout.tsx
+      reason: Understand the admin layout guard to write accurate role-protection tests
+      priority: medium
+
+    - path: Alexandria/app/admin/demo/_components/simulated-pdf-card.tsx
+      reason: Understand rendering to write simulated-attachment tests
+      priority: medium
+
+  modify:
+    - path: Alexandria/app/admin/demo/_components/demo-wizard.tsx
+      reason: A11y fixes — focus movement, label text, keyboard order
+      exclusive_lock: true
+      changes: Targeted accessibility and copy fixes only
+
+    - path: Alexandria/app/admin/demo/_components/demo-preview.tsx
+      reason: A11y fixes — label clarity, action labels, screen-reader text
+      exclusive_lock: true
+      changes: Targeted accessibility and copy fixes only
+
+    - path: Alexandria/app/admin/demo/_components/demo-banner.tsx
+      reason: Confirm non-color-only pattern; adjust copy if needed
+      exclusive_lock: true
+      changes: Copy/icon adjustments only
+
+  create:
+    - path: Alexandria/app/admin/demo/__tests__/demo-access.test.tsx
+      reason: Role-protection tests (admin/moderator access; member/guest redirected)
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/__tests__/demo-fixture.test.tsx
+      reason: Fixture-fallback tests + local-only state (no sessionStorage key until View sample record)
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/__tests__/demo-attachment.test.tsx
+      reason: Simulated-attachment rendering tests (no File constructed; no Open PDF action)
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/__tests__/demo-exit-warning.test.tsx
+      reason: Exit-warning fires on back/Exit mid-walkthrough; suppressed on View sample record
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/__tests__/demo-no-write.test.tsx
+      reason: Confirm submitThesis is unreachable from demo entry points
+      exclusive_lock: true
+
+relationships:
+  requires_phases: [sub-phase-4]
+  provides_for_phases: []
+  blocks_if_incomplete: []
+
+context_estimate:
+  read_tokens: 3500
+  total_budget: 5000
+  warning_threshold: 4000
+  status: ok
+  recommendation: Read demo-wizard and demo-preview fully for a11y review. Read other files for test-writing context only — focus on interfaces and trigger conditions, not full implementations.
+  note: "CRITICAL — Test files are created but NOT executed until the user grants the explicit verification gate: 'Human review approved; run verification.'"

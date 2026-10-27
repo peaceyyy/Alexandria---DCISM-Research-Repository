@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Popover } from "@base-ui/react/popover";
 import { Check, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -59,8 +59,6 @@ function YearRangeFilter({ from, to, setValue }: { from: string; to: string; set
   const [draftFrom, setDraftFrom] = useState(from);
   const [draftTo, setDraftTo] = useState(to);
   const [error, setError] = useState("");
-  useEffect(() => { setDraftFrom(from); setDraftTo(to); }, [from, to]);
-
   const validate = (nextFrom: string, nextTo: string) => {
     const maximumYear = new Date().getFullYear() + 1;
     const isValidYear = (value: string) => value === "" || (/^\d{4}$/.test(value) && Number(value) >= 1900 && Number(value) <= maximumYear);
@@ -144,7 +142,7 @@ export function FilterBar({ className }: FilterBarProps) {
         </div>
       </FacetPopover>
       <FacetPopover label="Year" count={Number(Boolean(from)) + Number(Boolean(to))} disabled={isPending}>
-        <YearRangeFilter from={from} to={to} setValue={update} />
+        <YearRangeFilter key={`${from}:${to}`} from={from} to={to} setValue={update} />
       </FacetPopover>
       <FacetPopover label="Tags" count={tags.length} disabled={isPending}>
         <div className="p-1">

@@ -1,0 +1,139 @@
+phase: staff-demo-templates
+mission: "Replace the unsafe live sample-fields helper with a safe, staff-only Presentation Demo experience that lets staff walk through the thesis/capstone wizard and preview a sample record — without ever touching the database, storage, or submission layer."
+
+success_criteria:
+  - [ ] Sample fields helper and all related dead code removed from the live upload path
+  - [ ] /admin/demo routes are accessible to admin/moderator only; inaccessible to members/guests
+  - [ ] Thesis and capstone demo fixtures are fictional and clearly labelled
+  - [ ] Demo wizard reuses leaf upload components with its own isolated form state
+  - [ ] No import of submitThesis, actions.ts, or any write-capable module in demo code
+  - [ ] Custom exit warning guards in-app navigation; browser-native beforeunload prompt covers tab close/refresh; neither interrupts View sample record
+  - [ ] Demo preview reads from sessionStorage or falls back to immutable fixture; never fetches backend
+  - [ ] All demo surfaces display the persistent Presentation demo safety banner
+  - [ ] Shared attachment presentation looks like the real PDF attachment while demo surfaces show SAMPLE PDF and never expose an open/download action
+  - [ ] Live /upload behavior is completely unaffected
+
+estimated_hours: 16
+
+sub_phases:
+
+  # ─── Wave 1: Independent setup work (run in parallel) ─────────────────────
+
+  - id: sub-phase-1
+    name: "Retire the unsafe live sample helper"
+    persona: "Janitor / Detective"
+    time_estimate: 2h
+    dependencies: []
+    files_to_modify:
+      - Alexandria/app/upload/page.tsx
+      - Alexandria/app/upload/_components/submit-confirm-dialog.tsx
+    files_to_delete:
+      - Alexandria/app/upload/_components/staff-sample-confirm-dialog.tsx
+    files_to_check:
+      - Alexandria/app/upload/actions.ts  # Remove if its only purpose was the sample helper
+    tasks:
+      - Remove STAFF_SAMPLE_FIELDS fixture and the Sample fields control from page.tsx
+      - Remove loaded-sample banners, overwrite confirmation, and submission-dialog sample warning
+      - Remove now-unused state, imports, and capability calls
+      - Delete staff-sample-confirm-dialog.tsx
+      - Verify live form empty defaults, PDF requirement, and authorization boundary are intact
+
+  - id: sub-phase-2
+    name: "Establish protected demo routes and fixtures"
+    persona: "Kairou (Architect)"
+    time_estimate: 3h
+    dependencies: []  # Parallel with sub-phase-1 — different files
+    files_to_modify:
+      - Alexandria/app/admin/_components/admin-dashboard-view.tsx
+    files_to_create:
+      - Alexandria/app/admin/demo/page.tsx
+      - Alexandria/app/admin/demo/thesis/page.tsx
+      - Alexandria/app/admin/demo/capstone/page.tsx
+      - Alexandria/app/admin/demo/thesis/preview/page.tsx
+      - Alexandria/app/admin/demo/capstone/preview/page.tsx
+      - Alexandria/app/admin/demo/_lib/fixtures.ts
+    tasks:
+      - Add Presentation demo card to admin dashboard (Explore Thesis / Explore Capstone)
+      - Create template chooser at /admin/demo with safety copy (no record is created)
+      - Define thesis and capstone fixtures with clearly fictional values in fixtures.ts
+      - Implement deep-clone helper so walkthroughs cannot bleed into each other
+      - Scaffold route stubs under /admin so existing layout guard governs access
+      - Confirm routes do not import submission, Storage, thesis-detail, or admin-metrics services
+
+  # ─── Wave 2: Sequential — builds on both Wave 1 sub-phases ───────────────
+
+  - id: sub-phase-3
+    name: "Build the no-write demo wizard shell"
+    persona: "Sparks (Designer + Engineer)"
+    time_estimate: 5h
+    dependencies: [sub-phase-1, sub-phase-2]
+    files_to_create:
+      - Alexandria/app/admin/demo/_components/demo-banner.tsx
+      - Alexandria/app/admin/demo/_components/demo-wizard.tsx
+      - Alexandria/app/admin/demo/_components/simulated-pdf-card.tsx
+      - Alexandria/app/admin/demo/_components/demo-exit-warning-dialog.tsx
+      - Alexandria/components/thesis/pdf-attachment-card.tsx
+    files_to_modify:
+      - Alexandria/app/admin/demo/thesis/page.tsx
+      - Alexandria/app/admin/demo/capstone/page.tsx
+      - Alexandria/app/upload/_components/steps/step-review.tsx   # Narrow visual refactor for its existing real-file case
+    tasks:
+      - Build demo-wizard.tsx with its own local form state; preload deep-cloned fixture on mount
+      - Import leaf components directly (stepper.tsx, step-*.tsx, people-builder.tsx, tag-input.tsx)
+      - Do NOT touch app/upload/page.tsx
+      - Implement demo-banner.tsx (icon + text + Exit demo link; not color-only)
+      - Extract pdf-attachment-card.tsx as the common visual shell for real and simulated PDF metadata
+      - Build simulated-pdf-card.tsx by composing the common visual shell with SAMPLE PDF badge, text explanation, and non-interactive SAMPLE-watermarked cover; never construct a File or call storage
+      - Add demo-exit-warning-dialog.tsx (mirrors exit-warning-dialog.tsx)
+      - Wire the custom exit warning to Back/Exit demo; use browser-native beforeunload handling for tab close/refresh; suppress both intentional-navigation guards on View sample record
+      - Refactor step-review.tsx only to render the common attachment shell for its existing real File case; do not add a demo attachment union or weaken live PDF validation
+      - Confirm zero imports of submitThesis, actions.ts, or write-capable modules in demo shell
+
+  - id: sub-phase-4
+    name: "Add local-only record previews"
+    persona: "Sparks (Designer + Engineer)"
+    time_estimate: 3h
+    dependencies: [sub-phase-3]
+    files_to_create:
+      - Alexandria/app/admin/demo/_lib/demo-session.ts
+      - Alexandria/app/admin/demo/_components/demo-preview.tsx
+      - Alexandria/app/admin/demo/_components/demo-preview-client.tsx
+    files_to_modify:
+      - Alexandria/app/admin/demo/thesis/preview/page.tsx
+      - Alexandria/app/admin/demo/capstone/preview/page.tsx
+    tasks:
+      - Implement demo-session.ts to write demo view model to namespaced sessionStorage before preview
+      - Keep preview route pages as protected server wrappers; read sessionStorage after mount only in demo-preview-client.tsx and fall back to immutable fixture on refresh or direct navigation
+      - Render demo-preview.tsx using same visual vocabulary as real thesis detail surface and the common PDF attachment shell
+      - Add persistent "Demo only — not a published Alexandria record" label
+      - Render simulated attachment with SAMPLE PDF badge, text explanation, and non-interactive SAMPLE-watermarked cover; no File, URL, Open PDF, or download action
+      - Add Restart this demo, Switch template, and Exit to dashboard actions
+      - Clear namespaced demo session state on Restart, Switch template, and Exit
+      - Confirm preview never uses /theses/:id, a database ID, public URL, or real detail services
+
+  - id: sub-phase-5
+    name: "Accessibility, copy, and regression hardening"
+    persona: "Janitor / Detective"
+    time_estimate: 3h
+    dependencies: [sub-phase-4]
+    files_to_modify:
+      - Alexandria/app/admin/demo/_components/demo-wizard.tsx
+      - Alexandria/app/admin/demo/_components/demo-preview.tsx
+      - Alexandria/app/admin/demo/_components/demo-banner.tsx
+    files_to_create:
+      - Alexandria/app/admin/demo/__tests__/demo-access.test.tsx
+      - Alexandria/app/admin/demo/__tests__/demo-fixture.test.tsx
+      - Alexandria/app/admin/demo/__tests__/demo-attachment.test.tsx
+      - Alexandria/app/admin/demo/__tests__/demo-exit-warning.test.tsx
+      - Alexandria/app/admin/demo/__tests__/demo-no-write.test.tsx
+    tasks:
+      - Review focus movement (wizard steps → template selection → preview → reset/exit)
+      - Confirm all demo-only meaning is in text, not color/iconography alone
+      - Verify labels (Explore, View sample record, Restart, Switch, Exit — never Submit or Publish)
+      - Write role-protection tests (admin/moderator access; member/guest redirected)
+      - Write fixture-fallback tests (refresh shows fixture, not backend fetch)
+      - Write local-only state tests (no sessionStorage key until View sample record)
+      - Write simulated-attachment rendering tests (real attachment layout parity, SAMPLE PDF text, no File/URL/Open PDF/download action)
+      - Write exit-warning tests (custom dialog on Back/Exit, native beforeunload registration on tab close/refresh, suppressed on View sample record)
+      - Write no-write tests (submitThesis unreachable from demo entry points)
+      - NOTE: Test files are created but NOT executed until explicit human verification gate

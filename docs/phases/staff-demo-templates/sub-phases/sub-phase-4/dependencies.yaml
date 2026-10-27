@@ -1,0 +1,66 @@
+phase: sub-phase-4
+created: 2026-10-09
+schema: athena-default
+feature: staff-demo-templates
+
+dependencies:
+  read:
+    - path: docs/plans/staff-demo-templates-plan.md
+      reason: Preview requirements, sessionStorage contract, fallback behavior, and safety label spec
+      priority: critical
+
+    - path: Alexandria/app/admin/demo/_lib/fixtures.ts
+      reason: Understand fixture shape — preview falls back to this on refresh
+      priority: critical
+
+    - path: Alexandria/app/admin/demo/_components/demo-wizard.tsx
+      reason: Understand the view model shape written to sessionStorage before preview navigation
+      priority: critical
+
+    - path: Alexandria/app/admin/demo/thesis/preview/page.tsx
+      reason: Current stub — replace with wired preview page
+      priority: high
+
+    - path: Alexandria/app/admin/demo/capstone/preview/page.tsx
+      reason: Current stub — replace with wired preview page
+      priority: high
+
+    - path: Alexandria/app/admin/demo/_components/demo-banner.tsx
+      reason: Reuse persistent safety banner on preview pages
+      priority: medium
+
+  modify:
+    - path: Alexandria/app/admin/demo/thesis/preview/page.tsx
+      reason: Wire demo-preview.tsx with sessionStorage read + fixture fallback
+      exclusive_lock: true
+      changes: Replace stub; read from demo-session.ts; pass view model or fixture to demo-preview.tsx
+
+    - path: Alexandria/app/admin/demo/capstone/preview/page.tsx
+      reason: Same as thesis preview — capstone variant
+      exclusive_lock: true
+      changes: Replace stub; read from demo-session.ts; pass view model or fixture to demo-preview.tsx
+
+  create:
+    - path: Alexandria/app/admin/demo/_components/demo-preview-client.tsx
+      reason: Client-only reader for validated sessionStorage state and immutable fixture fallback
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/_lib/demo-session.ts
+      reason: Namespaced sessionStorage helper — write before preview navigation, read on mount
+      exclusive_lock: true
+
+    - path: Alexandria/app/admin/demo/_components/demo-preview.tsx
+      reason: Renders the demo view model using the same visual vocabulary as the real thesis detail surface
+      exclusive_lock: true
+
+relationships:
+  requires_phases: [sub-phase-3]
+  provides_for_phases: [sub-phase-5]
+  blocks_if_incomplete: [sub-phase-5]
+
+context_estimate:
+  read_tokens: 2000
+  total_budget: 5000
+  warning_threshold: 4000
+  status: ok
+  recommendation: Keep route pages as protected server wrappers. Read sessionStorage only in a client component, then pass the validated view model to demo-preview. Reuse the common PDF attachment shell with its simulated descriptor.

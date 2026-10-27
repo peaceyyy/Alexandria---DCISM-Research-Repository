@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -27,6 +27,7 @@ import { AuthInterceptModal } from "@/app/(auth)/_components/auth-intercept-moda
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import styles from "./filter-sidebar.module.css";
+import { useLocalStorageValue } from "@/components/layout/use-local-storage-value";
 
 type WorkspaceSidebarProps = {
   role: UserRole | null;
@@ -206,20 +207,13 @@ function SidebarContent({
 
 /** Shared public navigation for repository, detail, and profile routes. */
 export function WorkspaceSidebar(props: WorkspaceSidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [storedCollapsed, setStoredCollapsed] = useLocalStorageValue(STORAGE_KEY);
+  const [storedLegacyCollapsed] = useLocalStorageValue(LEGACY_STORAGE_KEY);
+  const isCollapsed = (storedCollapsed ?? storedLegacyCollapsed) === "1";
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (stored === "1") setIsCollapsed(true);
-  }, []);
-
   const toggleCollapse = () => {
-    setIsCollapsed((current) => {
-      const next = !current;
-      localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
-      return next;
-    });
+    setStoredCollapsed(isCollapsed ? "0" : "1");
   };
 
   return (

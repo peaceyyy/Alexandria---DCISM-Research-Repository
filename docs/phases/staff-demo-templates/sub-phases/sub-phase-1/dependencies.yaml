@@ -1,0 +1,51 @@
+phase: sub-phase-1
+created: 2026-10-09
+schema: athena-default
+feature: staff-demo-templates
+
+dependencies:
+  read:
+    - path: docs/plans/staff-demo-templates-plan.md
+      reason: Understand the full feature scope and safety constraints
+      priority: critical
+
+    - path: Alexandria/app/upload/page.tsx
+      reason: Identify STAFF_SAMPLE_FIELDS, Sample fields control, and all dead state to remove
+      priority: critical
+
+    - path: Alexandria/app/upload/_components/staff-sample-confirm-dialog.tsx
+      reason: File to be deleted — confirm no other consumers
+      priority: critical
+
+    - path: Alexandria/app/upload/_components/submit-confirm-dialog.tsx
+      reason: Remove sample-specific warning branch inside this dialog
+      priority: high
+
+    - path: Alexandria/app/upload/actions.ts
+      reason: Determine if any capability here existed solely for the sample helper; remove if so
+      priority: high
+
+  modify:
+    - path: Alexandria/app/upload/page.tsx
+      reason: Remove STAFF_SAMPLE_FIELDS, Sample fields control, loaded-sample banners, overwrite confirmation, and dead imports/state
+      exclusive_lock: true
+      changes: Deletion of sample helper surface — live upload form defaults, PDF requirement, and auth boundary must remain intact
+
+    - path: Alexandria/app/upload/_components/submit-confirm-dialog.tsx
+      reason: Remove sample-specific warning text/branch
+      exclusive_lock: true
+      changes: Strip the sample-warning section only; preserve all other dialog behavior
+
+  create: []
+
+relationships:
+  requires_phases: []
+  provides_for_phases: [sub-phase-3]
+  blocks_if_incomplete: [sub-phase-3]
+
+context_estimate:
+  read_tokens: 2500
+  total_budget: 5000
+  warning_threshold: 4000
+  status: ok
+  recommendation: page.tsx is large (~23KB). Read it fully before making any deletions.

@@ -46,7 +46,16 @@ export interface CommentSidePanelProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function CommentSidePanel({
+export function CommentSidePanel(props: CommentSidePanelProps) {
+  return (
+    <CommentSidePanelContent
+      key={props.fieldKey ?? "closed"}
+      {...props}
+    />
+  );
+}
+
+function CommentSidePanelContent({
   fieldKey,
   anchorY,
   comments,
@@ -82,11 +91,6 @@ export function CommentSidePanel({
     Math.max(anchorY, MARGIN),
     viewportHeight - PANEL_HEIGHT - MARGIN,
   );
-
-  // Reset draft when switching fields
-  useEffect(() => {
-    setDraft("");
-  }, [fieldKey]);
 
   // Auto-focus textarea when panel opens with canComment
   useEffect(() => {
