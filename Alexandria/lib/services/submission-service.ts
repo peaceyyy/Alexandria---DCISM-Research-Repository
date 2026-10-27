@@ -50,7 +50,10 @@ type OwnSubmissionRow = Pick<
   | "lessons_learned"
   | "review_status"
 > & {
-  thesis_authors: DbThesisAuthor[];
+  thesis_authors: Pick<
+    DbThesisAuthor,
+    "id" | "user_id" | "display_name" | "contribution_role" | "sort_order"
+  >[];
   thesis_tags: Pick<DbThesisTag, "tag">[];
   thesis_files: Pick<DbThesisFile, "is_primary">[] | null;
 };
