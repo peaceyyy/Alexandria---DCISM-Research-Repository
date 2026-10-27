@@ -32,12 +32,14 @@ function mapAuthor(a: {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ThesisCardQueryRow = Pick<
   DbThesis,
   "id" | "title" | "year" | "abstract" | "research_area" | "department" | "study_type"
 > & {
-  thesis_authors?: DbThesisAuthor[] | null;
+  thesis_authors?: Pick<
+    DbThesisAuthor,
+    "id" | "user_id" | "display_name" | "contribution_role" | "sort_order"
+  >[] | null;
   thesis_tags?: Pick<DbThesisTag, "tag">[] | null;
 };
 
@@ -282,6 +284,7 @@ export async function getThesisById(
               abstract,
               department,
               research_area,
+              study_type,
               thesis_authors (
                 id,
                 user_id,
