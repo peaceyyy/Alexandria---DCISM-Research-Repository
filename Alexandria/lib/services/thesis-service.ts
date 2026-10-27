@@ -9,6 +9,9 @@ import type {
   ThesisCard,
   ThesisDetail,
   ThesisListParams,
+  DbThesis,
+  DbThesisAuthor,
+  DbThesisTag,
 } from "./types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -30,7 +33,17 @@ function mapAuthor(a: {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapToThesisCard(row: any): ThesisCard {
+type ThesisCardQueryRow = Pick<
+  DbThesis,
+  "id" | "title" | "year" | "abstract" | "research_area" | "department" | "study_type"
+> & {
+  thesis_authors?: DbThesisAuthor[] | null;
+  thesis_tags?: Pick<DbThesisTag, "tag">[] | null;
+};
+
+type PublicThesisSearchRow = { thesis_id: number; total_count: number };
+
+function mapToThesisCard(row: ThesisCardQueryRow): ThesisCard {
   return {
     id: row.id,
     title: row.title,
@@ -77,12 +90,13 @@ export async function getTheses(
       return err(makeError("SUPABASE_ERROR", searchError.message));
     }
 
-    if (!searchResults || searchResults.length === 0) {
+    const searchRows = (searchResults ?? []) as PublicThesisSearchRow[];
+    if (searchRows.length === 0) {
       return ok([], { total_count: 0, page, limit });
     }
 
-    const thesisIds = searchResults.map((r: any) => r.thesis_id);
-    const totalCount = Number(searchResults[0].total_count);
+    const thesisIds = searchRows.map((row) => row.thesis_id);
+    const totalCount = Number(searchRows[0].total_count);
 
     const { data, error } = await supabase
       .from("theses")
@@ -111,8 +125,9 @@ export async function getTheses(
       return err(makeError("SUPABASE_ERROR", error.message));
     }
 
-    const cardsMap = new Map((data ?? []).map(row => [row.id, mapToThesisCard(row)]));
-    const cards: ThesisCard[] = thesisIds.map((id: any) => cardsMap.get(id)).filter(Boolean) as ThesisCard[];
+    const thesisRows = (data ?? []) as ThesisCardQueryRow[];
+    const cardsMap = new Map(thesisRows.map((row) => [row.id, mapToThesisCard(row)]));
+    const cards: ThesisCard[] = thesisIds.map((id) => cardsMap.get(id)).filter(Boolean) as ThesisCard[];
 
     return ok(cards, { total_count: totalCount, page, limit });
   } catch (e: unknown) {
@@ -133,7 +148,7 @@ export async function getTagSuggestions(partialTag: string, limit: number = 10):
       return err(makeError("SUPABASE_ERROR", error.message));
     }
 
-    const tags = (data ?? []).map((r: any) => r.tag);
+    const tags = ((data ?? []) as { tag: string }[]).map((row) => row.tag);
     return ok(tags);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to load tag suggestions.";

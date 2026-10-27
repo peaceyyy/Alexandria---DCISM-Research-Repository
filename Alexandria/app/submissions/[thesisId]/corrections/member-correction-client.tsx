@@ -181,7 +181,6 @@ export function MemberCorrectionClient({
   const correctedPdfInputRef = useRef<HTMLInputElement>(null);
 
   const hasUnsavedWork = hasUnsavedChanges || selectedPdf !== null;
-  hasUnsavedWorkRef.current = hasUnsavedWork;
 
   const correctionSummary = useMemo(
     () => getCorrectionSummary(submission.fieldComments),
@@ -204,6 +203,7 @@ export function MemberCorrectionClient({
   }, [notice]);
 
   useEffect(() => {
+    hasUnsavedWorkRef.current = hasUnsavedWork;
     if (!hasUnsavedWork) {
       if (hasHistoryGuardRef.current && !allowExitRef.current) {
         hasHistoryGuardRef.current = false;

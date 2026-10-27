@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, RotateCcw } from "lucide-react";
 
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { getResearchAreaLabel } from "@/lib/domain/research-areas";
 import { type FormValues } from "@/lib/upload/schema";
 
-import { clearDemoSession, readDemoSession } from "../_lib/demo-session";
+import { clearDemoSession, DEMO_SESSION_CHANGE_EVENT, parseDemoSession } from "../_lib/demo-session";
 import { getDemoFixture, type DemoTemplate } from "../_lib/fixtures";
 import { DemoBanner } from "./demo-banner";
 
@@ -91,12 +91,19 @@ function SampleRecord({ template, values }: { template: DemoTemplate; values: Fo
 
 export function DemoPreviewClient({ template }: { template: DemoTemplate }) {
   const router = useRouter();
-  const [values, setValues] = useState<FormValues>(() => getDemoFixture(template));
-
-  useEffect(() => {
-    const sessionValues = readDemoSession(template);
-    if (sessionValues) setValues(sessionValues);
-  }, [template]);
+  const subscribe = useCallback((onStoreChange: () => void) => {
+    window.addEventListener(DEMO_SESSION_CHANGE_EVENT, onStoreChange);
+    return () => window.removeEventListener(DEMO_SESSION_CHANGE_EVENT, onStoreChange);
+  }, []);
+  const getSnapshot = useCallback(
+    () => window.sessionStorage.getItem("alexandria:presentation-demo:v1"),
+    [],
+  );
+  const rawSession = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  const values = useMemo(
+    () => parseDemoSession(template, rawSession) ?? getDemoFixture(template),
+    [template, rawSession],
+  );
 
   const leaveDemo = () => {
     clearDemoSession();

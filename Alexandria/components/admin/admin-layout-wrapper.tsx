@@ -20,30 +20,28 @@ export function AdminLayoutWrapper({
 }) {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [mobileOpenPath, setMobileOpenPath] = useState<string | null>(null);
   const [isNarrowViewport, setIsNarrowViewport] = useState(false);
+  const isMobileOpen = isNarrowViewport && mobileOpenPath === pathname;
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 1023px)");
-    const updateViewport = () => setIsNarrowViewport(mediaQuery.matches);
+    const updateViewport = () => {
+      setIsNarrowViewport(mediaQuery.matches);
+      if (!mediaQuery.matches) setMobileOpenPath(null);
+    };
     updateViewport();
     mediaQuery.addEventListener("change", updateViewport);
     return () => mediaQuery.removeEventListener("change", updateViewport);
   }, []);
 
   useEffect(() => {
-    if (!isNarrowViewport) {
-      setIsMobileOpen(false);
-    }
-  }, [isNarrowViewport]);
-
-  useEffect(() => {
     if (!isMobileOpen) return;
 
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsMobileOpen(false);
+        setMobileOpenPath(null);
         requestAnimationFrame(() => menuButtonRef.current?.focus());
       }
     };
@@ -52,12 +50,8 @@ export function AdminLayoutWrapper({
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [isMobileOpen]);
 
-  useEffect(() => {
-    setIsMobileOpen(false);
-  }, [pathname]);
-
   function closeMobileNavigation() {
-    setIsMobileOpen(false);
+    setMobileOpenPath(null);
     requestAnimationFrame(() => menuButtonRef.current?.focus());
   }
 
@@ -95,7 +89,7 @@ export function AdminLayoutWrapper({
         isNarrowViewport={isNarrowViewport}
         onToggleCollapse={() => setIsCollapsed((collapsed) => !collapsed)}
         onMobileClose={closeMobileNavigation}
-        onNavigate={() => setIsMobileOpen(false)}
+        onNavigate={() => setMobileOpenPath(null)}
       />
       {isMobileOpen && (
         <button
@@ -121,7 +115,7 @@ export function AdminLayoutWrapper({
           aria-expanded={isMobileOpen}
           aria-controls="admin-sidebar"
           title="Open navigation menu"
-          onClick={() => setIsMobileOpen(true)}
+          onClick={() => setMobileOpenPath(pathname)}
         >
           <Menu size={18} aria-hidden />
         </button>

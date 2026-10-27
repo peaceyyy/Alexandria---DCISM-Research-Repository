@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { LayoutGrid, List, Loader2, Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -15,6 +15,7 @@ import { FilterBar } from "@/components/layout/filter-bar";
 import { getSubmissionStatusLabel, getSubmissionStatusValue, SubmissionStatusFilter } from "@/components/layout/submission-status-filter";
 import { WorkspaceSidebar } from "@/components/layout/workspace-sidebar";
 import { ResultUpdateProvider, useResultUpdate } from "@/components/layout/result-update-context";
+import { useLocalStorageValue } from "@/components/layout/use-local-storage-value";
 
 export type BrowseThesisItem = ThesisCard & {
   reviewStatus?: ReviewStatus;
@@ -52,20 +53,8 @@ function ThesesBrowserInner({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<BrowseView>("comfortable");
-  const [viewHydrated, setViewHydrated] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem(VIEW_STORAGE_KEY);
-    if (stored === "comfortable" || stored === "compact") {
-      setViewMode(stored);
-    }
-    setViewHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (viewHydrated) localStorage.setItem(VIEW_STORAGE_KEY, viewMode);
-  }, [viewHydrated, viewMode]);
+  const [storedViewMode, setStoredViewMode] = useLocalStorageValue(VIEW_STORAGE_KEY);
+  const viewMode: BrowseView = storedViewMode === "compact" ? "compact" : "comfortable";
 
   const clearAllFilters = () => {
     const nextParams = new URLSearchParams();
@@ -194,7 +183,7 @@ function ThesesBrowserInner({
                       type="button"
                       variant="ghost"
                       size="icon-sm"
-                      onClick={() => setViewMode(mode)}
+                      onClick={() => setStoredViewMode(mode)}
                       aria-pressed={active}
                       aria-label={label}
                       title={label}

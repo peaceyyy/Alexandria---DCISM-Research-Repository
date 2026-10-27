@@ -3,6 +3,7 @@ import { formSchema, type FormValues } from "@/lib/upload/schema";
 import type { DemoTemplate } from "./fixtures";
 
 const DEMO_SESSION_KEY = "alexandria:presentation-demo:v1";
+export const DEMO_SESSION_CHANGE_EVENT = "alexandria:presentation-demo-change";
 
 type DemoSession = {
   template: DemoTemplate;
@@ -12,11 +13,10 @@ type DemoSession = {
 export function writeDemoSession(template: DemoTemplate, values: FormValues) {
   const session: DemoSession = { template, values };
   window.sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(session));
+  window.dispatchEvent(new Event(DEMO_SESSION_CHANGE_EVENT));
 }
 
-export function readDemoSession(template: DemoTemplate) {
-  const rawSession = window.sessionStorage.getItem(DEMO_SESSION_KEY);
-
+export function parseDemoSession(template: DemoTemplate, rawSession: string | null) {
   if (!rawSession) return null;
 
   try {
@@ -30,6 +30,11 @@ export function readDemoSession(template: DemoTemplate) {
   }
 }
 
+export function readDemoSession(template: DemoTemplate) {
+  return parseDemoSession(template, window.sessionStorage.getItem(DEMO_SESSION_KEY));
+}
+
 export function clearDemoSession() {
   window.sessionStorage.removeItem(DEMO_SESSION_KEY);
+  window.dispatchEvent(new Event(DEMO_SESSION_CHANGE_EVENT));
 }
