@@ -30,6 +30,44 @@ import { cn } from "@/lib/utils";
 
 const TOTAL_STEPS = STEPS.length;
 
+
+const STAFF_SAMPLE_FIELDS: FormValues = {
+  title: "An Analysis of Distributed Systems in Micro-Frontend Architectures",
+  abstract:
+    "This is staff-only sample metadata for reviewing the submission flow. It must be replaced with the thesis's actual details before publication.",
+  department: "CS",
+  type_of_study: "thesis",
+  project_progress: "completed",
+  proposal_approved_on: "2026-01-12",
+  research_areas: ["web_development", "algorithms"],
+  authors: [
+    {
+      user_id: null,
+      display_name: "Sample Author",
+      contribution_role: "author",
+      sort_order: 1,
+    },
+    {
+      user_id: null,
+      display_name: "Sample Adviser",
+      contribution_role: "adviser",
+      sort_order: 2,
+    },
+  ],
+  tags: ["sample", "thesis", "submission"],
+  publication_date: "2026-05-15",
+  publication_link: "https://example.com/thesis",
+  deployment_link: "",
+  conference: "Sample Research Colloquium",
+  recommendations:
+    "Replace this sample recommendation with guidance grounded in the final thesis findings.",
+  lessons_learned: [
+    "Replace this sample lesson with a finding from the final thesis work.",
+  ],
+};
+
+
+
 export default function UploadPage() {
   const router = useRouter();
 
@@ -62,6 +100,8 @@ export default function UploadPage() {
       abstract: "",
       department: "CS",
       type_of_study: "thesis",
+      project_progress: "in_progress",
+      proposal_approved_on: "",
       research_areas: [],
       authors: [
         {
@@ -220,6 +260,8 @@ export default function UploadPage() {
         research_area: serializeResearchAreaIds(data.research_areas),
         authors: data.authors,
         tags: data.tags,
+        project_progress: data.project_progress,
+        proposal_approved_on: data.proposal_approved_on,
         publication_date: data.publication_date,
         publication_link: data.publication_link,
         deployment_link: data.type_of_study === "capstone" ? data.deployment_link || undefined : undefined,
@@ -239,12 +281,7 @@ export default function UploadPage() {
         throw new Error(result.error.message || "Failed to submit thesis");
       }
 
-      // Staff records publish immediately; member records retain the review flow.
-      router.push(
-        result.data?.reviewStatus === "accepted"
-          ? "/home?published=1"
-          : "/home?submitted=1",
-      );
+      router.push("/home?submitted=1");
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred";

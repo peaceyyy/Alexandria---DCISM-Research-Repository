@@ -49,6 +49,7 @@ import {
 } from "@/lib/services/review-service";
 import type { ReviewSubmission, ThesisAuthorInput } from "@/lib/services/types";
 import { getCorrectionSummary } from "@/lib/review/correction-state";
+import type { ProjectProgress } from "@/lib/domain/progress-policy";
 import styles from "./member-correction-client.module.css";
 
 const LessonsModal = dynamic(
@@ -69,6 +70,8 @@ type CorrectionForm = {
   title: string;
   department: string;
   studyType: "thesis" | "capstone";
+  projectProgress: ProjectProgress;
+  proposalApprovedOn: string;
   publicationDate: string;
   publicationLink: string;
   deploymentLink: string;
@@ -101,7 +104,9 @@ function createForm(submission: ReviewSubmission): CorrectionForm {
     title: submission.title,
     department: submission.department,
     studyType: submission.studyType,
-    publicationDate: submission.publicationDate,
+    projectProgress: submission.projectProgress,
+    proposalApprovedOn: submission.proposalApprovedOn ?? "",
+    publicationDate: submission.publicationDate ?? "",
     publicationLink: submission.publicationLink ?? "",
     deploymentLink: submission.deploymentLink ?? "",
     conference: submission.conference ?? "",
@@ -127,6 +132,8 @@ function toUpdateValues(form: CorrectionForm) {
     title: form.title,
     department: form.department,
     study_type: form.studyType,
+    project_progress: form.projectProgress,
+    proposal_approved_on: form.proposalApprovedOn,
     publication_date: form.publicationDate,
     publication_link: form.publicationLink,
     deployment_link: form.studyType === "capstone" ? form.deploymentLink.trim() || undefined : undefined,
@@ -542,6 +549,34 @@ export function MemberCorrectionClient({
               disabled={isLocked}
             />
           </Field>
+
+          <div className={styles.twoColumns}>
+            <Field
+              fieldKey="project_progress"
+              label="Progress"
+              comments={commentsFor("project_progress")}
+              activeField={activeCommentField}
+              onCommentIconClick={handleCommentIconClick}
+            >
+              <select
+                value={form.projectProgress}
+                onChange={(event) => updateField("projectProgress", event.target.value as ProjectProgress)}
+                disabled={isLocked}
+              >
+                <option value="in_progress">Work in progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </Field>
+            <Field
+              fieldKey="proposal_approved_on"
+              label="Proposal approval date"
+              comments={commentsFor("proposal_approved_on")}
+              activeField={activeCommentField}
+              onCommentIconClick={handleCommentIconClick}
+            >
+              <input type="date" value={form.proposalApprovedOn} onChange={(event) => updateField("proposalApprovedOn", event.target.value)} disabled={isLocked} />
+            </Field>
+          </div>
 
           <div className={styles.twoColumns}>
             <Field

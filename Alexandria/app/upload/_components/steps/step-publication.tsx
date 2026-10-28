@@ -13,6 +13,7 @@ export function StepPublication() {
     formState: { errors },
   } = useFormContext<FormValues>();
   const studyType = watch("type_of_study");
+  const projectProgress = watch("project_progress");
 
   useEffect(() => {
     if (studyType !== "capstone") setValue("deployment_link", "");
@@ -21,8 +22,16 @@ export function StepPublication() {
   return (
     <StepWrapper
       title="Publication Details"
-      description="Alexandria only accepts theses that have been publicly presented or published."
+      description={projectProgress === "completed"
+        ? "Completed work needs its public presentation or publication details before staff can approve it."
+        : "Publication details are added when this Thesis 1-passed work is completed."}
     >
+      {projectProgress !== "completed" ? (
+        <p className="rounded-lg border border-[var(--color-separator)] bg-[var(--color-surface-alt)] p-4 text-sm leading-6 text-[var(--color-text-muted)]">
+          This work is in progress. Its available PDF will be visible only to approved, signed-in DCISM community accounts after staff review.
+        </p>
+      ) : (
+        <>
       {/* Conference */}
       <Field
         label="Conference"
@@ -78,6 +87,8 @@ export function StepPublication() {
           </Field>
         </div>
       </div>
+        </>
+      )}
     </StepWrapper>
   );
 }

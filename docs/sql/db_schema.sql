@@ -13,6 +13,8 @@ CREATE TABLE public.theses (
   publication_link text,
   publication_date date,
   review_status text NOT NULL DEFAULT 'for_review'::text CHECK (review_status = ANY (ARRAY['for_review'::text, 'flagged'::text, 'accepted'::text, 'trashed'::text])),
+  project_progress text CHECK (project_progress IS NULL OR project_progress = ANY (ARRAY['in_progress'::text, 'completed'::text])),
+  proposal_approved_on date,
   recommendations text,
   lessons_learned text,
   submitted_by_user_id uuid,
@@ -99,7 +101,7 @@ CREATE TABLE public.thesis_authors (
 CREATE TABLE public.thesis_review_comments (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   thesis_id bigint NOT NULL,
-  field_key text NOT NULL CHECK (field_key = ANY (ARRAY['title'::text, 'authors'::text, 'advisers'::text, 'department'::text, 'study_type'::text, 'publication_date'::text, 'publication_link'::text, 'deployment_link'::text, 'conference'::text, 'research_area'::text, 'tags'::text, 'abstract'::text, 'recommendations'::text, 'lessons_learned'::text, 'pdf_general'::text, 'teaser_thumbnail'::text])),
+  field_key text NOT NULL CHECK (field_key = ANY (ARRAY['title'::text, 'authors'::text, 'advisers'::text, 'department'::text, 'study_type'::text, 'project_progress'::text, 'proposal_approved_on'::text, 'publication_date'::text, 'publication_link'::text, 'deployment_link'::text, 'conference'::text, 'research_area'::text, 'tags'::text, 'abstract'::text, 'recommendations'::text, 'lessons_learned'::text, 'pdf_general'::text, 'teaser_thumbnail'::text])),
   comment text NOT NULL,
   created_by_user_id uuid NOT NULL,
   addressed_at timestamp with time zone,

@@ -26,6 +26,8 @@ export type ReviewFieldKey =
   | "advisers"
   | "department"
   | "study_type"
+  | "project_progress"
+  | "proposal_approved_on"
   | "publication_date"
   | "publication_link"
   | "conference"
@@ -57,6 +59,8 @@ export const REVIEW_FIELD_LABEL: Record<ReviewFieldKey, string> = {
   advisers: "Advisers",
   department: "Department",
   study_type: "Study Type",
+  project_progress: "Progress",
+  proposal_approved_on: "Proposal Approval Date",
   publication_date: "Publication Date",
   publication_link: "Publication Link",
   conference: "Conference",
@@ -153,7 +157,9 @@ export interface ReviewSubmission {
   advisers: string[];   // display_name where contribution_role = 'adviser'
   department: string;
   studyType: "thesis" | "capstone";
-  publicationDate: string;        // matches DB publication_date
+  projectProgress: "in_progress" | "completed";
+  proposalApprovedOn: string | null;
+  publicationDate: string | null; // matches DB publication_date
   publicationLink: string | null; // matches DB publication_link
   conference: string | null;      // matches DB conference
   researchArea: string | null;    // matches DB research_area

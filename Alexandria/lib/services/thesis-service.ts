@@ -1,7 +1,9 @@
 import { createAdminClient } from "../supabase/admin";
 import { DEPARTMENTS } from "../domain/departments";
 import { RESEARCH_AREA_IDS } from "../domain/research-areas";
+import type { ProjectProgress } from "../domain/progress-policy";
 import { err, makeError, ok } from "./result";
+import { requireSession } from "./_guards";
 import type {
   FilterOptions,
   ServiceResult,
@@ -54,6 +56,7 @@ function mapToThesisCard(row: ThesisCardQueryRow): ThesisCard {
     research_area: row.research_area ?? null,
     department: row.department,
     study_type: row.study_type,
+    project_progress: row.project_progress,
     authors: (row.thesis_authors ?? []).map(mapAuthor),
     tags: (row.thesis_tags ?? []).map((t: { tag: string }) => t.tag),
   };
@@ -110,6 +113,8 @@ export async function getTheses(
         department,
         research_area,
         study_type,
+        review_status,
+        project_progress,
         thesis_authors (
           id,
           user_id,
@@ -127,13 +132,59 @@ export async function getTheses(
       return err(makeError("SUPABASE_ERROR", error.message));
     }
 
-    const thesisRows = (data ?? []) as ThesisCardQueryRow[];
-    const cardsMap = new Map(thesisRows.map((row) => [row.id, mapToThesisCard(row)]));
+
+    const publicRows = ((data ?? []) as (ThesisCardQueryRow & { review_status?: string; project_progress?: string })[]).filter(
+      (row) => row.review_status === "accepted" && row.project_progress === "completed",
+    );
+    const cardsMap = new Map(publicRows.map((row) => [row.id, mapToThesisCard(row)]));
     const cards: ThesisCard[] = thesisIds.map((id) => cardsMap.get(id)).filter(Boolean) as ThesisCard[];
+
+
+
+
+
+
 
     return ok(cards, { total_count: totalCount, page, limit });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Failed to load theses.";
+    return err(makeError("SUPABASE_ERROR", message));
+  }
+}
+
+/** Returns accepted Thesis 1-passed work for an approved, signed-in community account. */
+export async function getCommunityWorkInProgress(
+  params?: ThesisListParams,
+): Promise<ServiceResult<ThesisCard[]>> {
+  try {
+    await requireSession();
+    const supabase = createAdminClient();
+    let query = supabase
+      .from("theses")
+      .select(`
+        id, title, year, abstract, department, research_area, study_type, project_progress,
+        thesis_authors (id, user_id, display_name, contribution_role, sort_order),
+        thesis_tags (tag)
+      `)
+      .eq("review_status", "accepted")
+      .eq("project_progress", "in_progress")
+      .order("year", { ascending: false });
+
+    if (params?.q?.trim()) query = query.ilike("title", `%${params.q.trim()}%`);
+    if (params?.department?.length) query = query.in("department", params.department);
+    if (params?.study_type?.length) query = query.in("study_type", params.study_type);
+    if (params?.year_from) query = query.gte("year", params.year_from);
+    if (params?.year_to) query = query.lte("year", params.year_to);
+
+    const { data, error } = await query;
+    if (error) return err(makeError("SUPABASE_ERROR", error.message));
+    return ok((data ?? []).map(mapToThesisCard), {
+      total_count: data?.length ?? 0,
+      page: 1,
+      limit: params?.limit ?? 20,
+    });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to load community work in progress.";
     return err(makeError("SUPABASE_ERROR", message));
   }
 }
@@ -179,6 +230,8 @@ export async function getThesisById(
         id,
         title,
         review_status,
+        project_progress,
+        proposal_approved_on,
         submitted_by_user_id,
         year,
         abstract,
@@ -231,10 +284,12 @@ export async function getThesisById(
       return err(makeError("NOT_FOUND", "Thesis not found."));
     }
 
-    if (
-      data.review_status !== "accepted"
-      && data.submitted_by_user_id !== viewerId
-    ) {
+    const isOwner = data.submitted_by_user_id === viewerId;
+    const isPublicRecord = data.review_status === "accepted" && data.project_progress === "completed";
+    const isCommunityWip = data.review_status === "accepted"
+      && data.project_progress === "in_progress"
+      && Boolean(viewerId);
+    if (!isPublicRecord && !isCommunityWip && !isOwner) {
       return err(makeError("NOT_FOUND", "Thesis not found."));
     }
 
@@ -248,7 +303,7 @@ export async function getThesisById(
       (media: { asset_kind: string }) => media.asset_kind === "teaser_thumbnail",
     ) as { published_storage_path: string | null } | undefined;
     const teaserPublicUrl =
-      data.review_status === "accepted" && teaser?.published_storage_path
+      isPublicRecord && teaser?.published_storage_path
         ? supabase.storage.from("thesis_teasers_public").getPublicUrl(teaser.published_storage_path).data.publicUrl
         : null;
 
@@ -298,6 +353,7 @@ export async function getThesisById(
             `,
             )
             .eq("review_status", "accepted")
+            .eq("project_progress", "completed")
             .in("id", relatedIds)
             .limit(5);
 
@@ -314,6 +370,8 @@ export async function getThesisById(
       abstract_preview: data.abstract?.substring(0, 400) ?? "",
       department: data.department,
       study_type: data.study_type,
+      project_progress: data.project_progress as ProjectProgress,
+      proposal_approved_on: data.proposal_approved_on ?? null,
       research_area: data.research_area ?? null,
       publication_date: data.publication_date ?? null,
       publication_link: data.publication_link ?? null,
@@ -329,7 +387,7 @@ export async function getThesisById(
         has_primary_file: hasPrimaryFile,
         preview_path: hasPrimaryFile ? `/api/theses/${id}/file` : null,
         download_path: hasPrimaryFile ? `/api/theses/${id}/file?download=1` : null,
-        download_requires_auth: true,
+        download_requires_auth: !isPublicRecord,
       },
       related_theses: relatedTheses,
       teaser_thumbnail: teaserPublicUrl

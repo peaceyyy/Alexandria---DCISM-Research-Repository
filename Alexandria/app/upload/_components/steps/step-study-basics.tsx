@@ -13,7 +13,7 @@ export function StepStudyBasics() {
     formState: { errors },
   } = useFormContext<FormValues>();
 
-  const publicationDate = watch("publication_date");
+  const proposalApprovedOn = watch("proposal_approved_on");
 
   return (
     <StepWrapper
@@ -56,14 +56,44 @@ export function StepStudyBasics() {
         </Field>
       </div>
 
-      {/* Publication Date */}
+      <Field label="Progress" htmlFor="project_progress" required>
+        <SelectInput {...register("project_progress")} id="project_progress" hasError={!!errors.project_progress}>
+          <option value="in_progress">Work in progress</option>
+          <option value="completed">Completed</option>
+        </SelectInput>
+        <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+          Work in progress is a Thesis 1-passed record for the DCISM community. Completed work can be published after review.
+        </p>
+        {errors.project_progress && <FieldError>{errors.project_progress.message}</FieldError>}
+      </Field>
+
+      <Field
+        label="Proposal Approval Date"
+        required
+        hint="The date the Thesis 1 proposal or document was approved."
+      >
+        <DatePicker
+          value={proposalApprovedOn}
+          onChange={(val) =>
+            setValue("proposal_approved_on", val, { shouldDirty: true, shouldValidate: true })
+          }
+          max={currentCalendarDate}
+          error={!!errors.proposal_approved_on}
+        />
+        {errors.proposal_approved_on && (
+          <FieldError>{errors.proposal_approved_on.message}</FieldError>
+        )}
+      </Field>
+
+      {/* Completed records derive their repository year from the public milestone. */}
+      {watch("project_progress") === "completed" && (
       <Field
         label="Publication Date"
         required
         hint="The date your thesis was presented or formally published."
       >
         <DatePicker
-          value={publicationDate}
+          value={watch("publication_date")}
           onChange={(val) =>
             setValue("publication_date", val, { shouldDirty: true, shouldValidate: true })
           }
@@ -72,11 +102,11 @@ export function StepStudyBasics() {
         />
 
         {/* Derived year badge — appears once a valid date is chosen */}
-        {publicationDate && !errors.publication_date && (
+        {watch("publication_date") && !errors.publication_date && (
           <p className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)] animate-in fade-in duration-200">
             <span className="text-[9px] font-semibold uppercase tracking-widest">Year</span>
             <span className="rounded-md border border-[var(--color-brand-bright)]/20 bg-[var(--color-brand-bright)]/8 px-2 py-0.5 font-mono text-[11px] font-medium text-[var(--color-brand-bright)]">
-              {publicationDate.slice(0, 4)}
+              {watch("publication_date").slice(0, 4)}
             </span>
             <span className="text-[var(--color-text-muted)] opacity-50">— automatically derived from date above</span>
           </p>
@@ -86,6 +116,7 @@ export function StepStudyBasics() {
           <FieldError>{errors.publication_date.message}</FieldError>
         )}
       </Field>
+      )}
     </StepWrapper>
   );
 }

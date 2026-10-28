@@ -113,6 +113,16 @@ export default async function ThesisDetails({
             | {thesis.year}
             {thesis.conference && ` | ${thesis.conference}`}
           </div>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full border border-[var(--color-separator-mid)] bg-[var(--color-surface-alt)] px-2.5 py-1 font-semibold text-[var(--color-text-muted)]">
+              {thesis.project_progress === "completed" ? "Completed" : "Work in progress"}
+            </span>
+            {thesis.proposal_approved_on && (
+              <span className="rounded-full border border-[var(--color-separator)] px-2.5 py-1 text-[var(--color-text-muted)]">
+                Thesis 1 approved {thesis.proposal_approved_on}
+              </span>
+            )}
+          </div>
 
           {(thesis.teaser_thumbnail || (thesis.study_type === "capstone" && thesis.deployment_link)) && (
             <section className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-start">
