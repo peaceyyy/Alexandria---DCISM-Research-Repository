@@ -134,22 +134,30 @@ Meaning: what kind of academic work the record represents.
 
 Rule: do not use "research", "paper", or "project" as stored study type values unless a future product decision expands the enum.
 
-### Publication and Conference Metadata
+### Project Progress, Approval, and Publication Metadata
 
-Current fields:
+Project progress is not a tag and is not the review status. It applies to both
+theses and capstones.
 
-| Field | Meaning | Current consistency issue |
+| Field | Meaning | Rule |
 | --- | --- | --- |
-| `publication_date` | Month and year formally presented or published | Current upload schema uses a full date-shaped field, but the product only needs month/year. |
-| `publication_link` | Public URL to proceedings, journal, repository, or official publication | Required in current upload schema, but may not exist for every thesis. |
-| `conference` | Conference, symposium, event, or venue where the work was presented | Required in current upload schema, optional in older docs/database notes, and missing from some detail/review surfaces. |
+| `project_progress` | Academic progress of the thesis or capstone | `in_progress` or `completed`. The UI label is **Progress**. |
+| `proposal_approved_on` | Date on which the Thesis 1 proposal/document was approved | Required for both progress values. It is the single required academic milestone date. |
+| `publication_date` | Date the completed work was presented or formally published | Required only when `project_progress = completed`. |
+| `publication_link` | Public URL to proceedings, journal, repository, or official publication | Required only when `project_progress = completed`. |
+| `conference` | Conference, symposium, event, or venue where the completed work was presented | Required only when `project_progress = completed`. |
+
+An `in_progress` record represents work from a student who has passed Thesis 1:
+the proposal and methodology document may be shared, while results, analysis,
+and conclusion are still being completed. A `completed` record must have its
+final PDF plus the verified conference/venue and publication link.
 
 Publication date display rule:
 
 | Surface | Expected treatment |
 | --- | --- |
-| Upload form | Ask for month and year only. Do not ask users for a day. |
-| Upload review step | Show month and year, e.g. `June 2026`. |
+| Upload form | Ask for a proposal approval date for every record. Ask for the publication/presentation date only when Progress is Completed. |
+| Upload review step | Show the proposal approval date for every record and publication metadata only for completed records. |
 | Public thesis detail page | Show month and year with publication metadata. |
 | Moderator review/approval detail page | Show month and year as the reviewable publication date. |
 | Homepage/repository cards | Show year only, e.g. `2026`, when compact metadata is preferred. |
@@ -168,9 +176,10 @@ If `conference` exists or is required, it should be visible anywhere full thesis
 | Admin all-studies/published detail pages | Display with other metadata if available. |
 | API/service DTOs | Include in thesis detail and review-submission shapes if moderators need to approve it. |
 
-Open decision:
-
-Decide whether `conference` is required for every submission. If not every thesis has a conference, make it optional in upload validation and display `Not provided` or hide the row when empty.
+Completed-record rule: `conference`, `publication_link`, and `publication_date`
+are prerequisites for marking a record Completed. Moderators and administrators
+verify these values during review. They remain optional while Progress is Work in
+progress.
 
 ### Review Status
 
@@ -184,6 +193,10 @@ Stored values and labels are already mostly consistent:
 | `trashed` | Trashed |
 
 Rule: store status keys, not labels. Labels can change without data migration.
+
+Review status must never be used as the academic-progress field. A work in
+progress record can be visible to approved DCISM community accounts while still
+using the normal review workflow.
 
 ### User Role and Affiliation
 
@@ -224,6 +237,5 @@ When implementation begins, prefer this order:
 
 1. What are the official stored codes and display names for the future departments: CpE, CE, Biology, and Psychology?
 2. Should BSCS, BSIT, and BSIS become a separate `program` or `course` field later, or should Alexandria avoid storing them entirely for the MVP?
-3. Is `conference` required for every accepted thesis/capstone, or should it be optional metadata?
-4. Is `publication_link` required for every submission, or should the uploaded PDF be enough when no public URL exists?
-5. If the database keeps a date-shaped `publication_date` column, what internal placeholder day should represent month/year-only values?
+3. Confirm the final date display format for `proposal_approved_on` and `publication_date`.
+4. Confirm the implementation path for the approved DCISM roster and later alumni access.

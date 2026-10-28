@@ -1,7 +1,8 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useLocalStorageValue } from "@/components/layout/use-local-storage-value";
 
 type Theme = "dark" | "light";
 
@@ -14,33 +15,17 @@ export function ThemeToggle({
   presentation = "icon",
   className,
 }: ThemeToggleProps) {
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [mounted, setMounted] = useState(false);
+  const [storedTheme, setStoredTheme] = useLocalStorageValue("alexandria-theme");
+  const theme: Theme = storedTheme === "light" ? "light" : "dark";
 
   useEffect(() => {
-    setMounted(true);
-    const stored = window.localStorage.getItem("alexandria-theme");
-    if (stored === "light") {
-      setTheme("light");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (mounted) {
-      document.documentElement.dataset.theme = theme;
-    }
-  }, [theme, mounted]);
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
 
   function toggleTheme() {
     const next: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(next);
     document.documentElement.dataset.theme = next;
-    window.localStorage.setItem("alexandria-theme", next);
-  }
-
-  // Prevent hydration mismatch by returning a placeholder or null until mounted
-  if (!mounted) {
-    return null;
+    setStoredTheme(next);
   }
 
   return (

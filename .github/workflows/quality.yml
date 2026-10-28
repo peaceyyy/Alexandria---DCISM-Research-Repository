@@ -3,7 +3,7 @@ name: Quality Gate
 on:
   pull_request:
     branches: [main]
-  push:th
+  push:
     branches: [main]
 
 jobs:
@@ -23,5 +23,20 @@ jobs:
           cache: npm
           cache-dependency-path: Alexandria/package-lock.json
 
-      - run: npm ci
-      - run: npm run build
+      - name: Install dependencies
+        id: dependencies
+        run: npm ci
+
+      # Run every check after a successful install, even if another check fails.
+      # Failed checks still fail the required verify job.
+      - name: Lint
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: npm run lint
+
+      - name: Type check
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: npm run typecheck
+
+      - name: Production build
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
+        run: npm run build

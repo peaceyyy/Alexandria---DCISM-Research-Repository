@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
-import { ArrowRight, CircleAlert, FileText, CircleCheck } from "lucide-react";
+import { ArrowRight, CircleAlert, CircleCheck } from "lucide-react";
 import { type FormValues, FIELD_STEP_MAP, STEPS } from "@/lib/upload/schema";
 import { getResearchAreaLabel } from "@/lib/domain/research-areas";
 import { cn } from "@/lib/utils";
+import { PdfAttachmentCard } from "@/components/thesis/pdf-attachment-card";
 
 interface StepReviewProps {
   onGoToStep: (step: number) => void;
@@ -291,15 +292,10 @@ export function StepReview({
         onFix={() => onGoToStep(6)}
       >
         {selectedFile ? (
-          <div className="flex items-center gap-3">
-            <FileText size={15} className="text-[#59c987]" aria-hidden />
-            <div>
-              <p className="text-sm text-[var(--color-text)]">{selectedFile.name}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">
-                {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-              </p>
-            </div>
-          </div>
+          <PdfAttachmentCard
+            fileName={selectedFile.name}
+            detail={`${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`}
+          />
         ) : (
           <p className="text-sm italic text-[var(--color-danger)] opacity-70">No PDF uploaded yet.</p>
         )}

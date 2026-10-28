@@ -2,7 +2,7 @@
 
 import { Search, X } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useResultUpdate } from "@/components/layout/result-update-context";
 
 export function RepositorySearchBar({
@@ -12,14 +12,29 @@ export function RepositorySearchBar({
   initialQuery?: string;
   placeholder?: string;
 }) {
+  const searchParams = useSearchParams();
+  const queryFromUrl = searchParams.get("q") ?? initialQuery;
+
+  return (
+    <RepositorySearchForm
+      key={queryFromUrl}
+      initialQuery={queryFromUrl}
+      placeholder={placeholder}
+    />
+  );
+}
+
+function RepositorySearchForm({
+  initialQuery,
+  placeholder,
+}: {
+  initialQuery: string;
+  placeholder: string;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(initialQuery);
   const { isPending, navigate } = useResultUpdate();
-
-  useEffect(() => {
-    setQuery(searchParams.get("q") ?? "");
-  }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

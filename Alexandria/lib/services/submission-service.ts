@@ -15,8 +15,12 @@ import {
 } from "../upload/file-validation";
 import { isDepartment } from "../domain/departments";
 import { isSerializedResearchAreaIds } from "../domain/research-areas";
+
 import { getProgressRequirementErrors, isProjectProgress } from "../domain/progress-policy";
-import { err, makeError, ok } from "./result";
+
+
+import { err, makeError, normalizeServiceError, ok } from "./result";
+
 import { requireSession, requireOwnership } from "./_guards";
 import type {
   SubmitThesisInput,
@@ -25,10 +29,38 @@ import type {
   RegisterFilePayload,
   ServiceResult,
   ThesisDetail,
+  DbThesis,
+  DbThesisAuthor,
+  DbThesisFile,
+  DbThesisTag,
 } from "./types";
 
 const APPLICATION_TIME_ZONE = "Asia/Manila";
 const ISO_CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+type OwnSubmissionRow = Pick<
+  DbThesis,
+  | "id"
+  | "title"
+  | "year"
+  | "abstract"
+  | "department"
+  | "research_area"
+  | "publication_date"
+  | "publication_link"
+  | "deployment_link"
+  | "conference"
+  | "recommendations"
+  | "lessons_learned"
+  | "review_status"
+> & {
+  thesis_authors: Pick<
+    DbThesisAuthor,
+    "id" | "user_id" | "display_name" | "contribution_role" | "sort_order"
+  >[];
+  thesis_tags: Pick<DbThesisTag, "tag">[];
+  thesis_files: Pick<DbThesisFile, "is_primary">[] | null;
+};
 
 function getCurrentCalendarDate() {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -115,11 +147,11 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
       return err(makeError("SUPABASE_ERROR", error.message));
     }
 
-    const thesisDetails: ThesisDetail[] = (theses || []).map((thesis: any) => ({
+    const thesisDetails: ThesisDetail[] = ((theses || []) as OwnSubmissionRow[]).map((thesis) => ({
       id: thesis.id,
       title: thesis.title,
       year: thesis.year,
-      abstract: thesis.abstract,
+      abstract: thesis.abstract ?? "",
       abstract_preview: thesis.abstract?.substring(0, 400) || "",
       department: thesis.department,
       research_area: thesis.research_area,
@@ -133,16 +165,16 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
       lessons_learned: thesis.lessons_learned,
       reviewStatus: thesis.review_status,
       submittedByUserId: user.id,
-      authors: thesis.thesis_authors.map((a: any) => ({
+      authors: thesis.thesis_authors.map((a) => ({
         id: a.id,
         user_id: a.user_id,
         display_name: a.display_name,
         contribution_role: a.contribution_role,
         sort_order: a.sort_order,
       })),
-      tags: thesis.thesis_tags.map((t: any) => t.tag),
+      tags: thesis.thesis_tags.map((t) => t.tag),
       file_access: {
-        has_primary_file: thesis.thesis_files?.some((f: any) => f.is_primary) || false,
+        has_primary_file: thesis.thesis_files?.some((f) => f.is_primary) || false,
         preview_path: `/api/theses/${thesis.id}/file`,
         download_path:
           thesis.review_status === "accepted"
@@ -155,8 +187,8 @@ export async function getOwnSubmissions(): Promise<ServiceResult<ThesisDetail[]>
     }));
 
     return ok(thesisDetails);
-  } catch (e: any) {
-    return err(e);
+  } catch (e: unknown) {
+    return err(normalizeServiceError(e));
   }
 }
 
@@ -333,8 +365,8 @@ export async function submitThesis(
       id: Number(thesisId),
       reviewStatus: "for_review",
     });
-  } catch (e: any) {
-    return err(e);
+  } catch (e: unknown) {
+    return err(normalizeServiceError(e));
   }
 }
 
@@ -381,8 +413,8 @@ export async function registerThesisFile(
     }
 
     return ok(null);
-  } catch (e: any) {
-    return err(e);
+  } catch (e: unknown) {
+    return err(normalizeServiceError(e));
   }
 }
 
@@ -457,7 +489,7 @@ export async function updateOwnSubmission(
     }
 
     return ok(null);
-  } catch (e: any) {
-    return err(e);
+  } catch (e: unknown) {
+    return err(normalizeServiceError(e));
   }
 }

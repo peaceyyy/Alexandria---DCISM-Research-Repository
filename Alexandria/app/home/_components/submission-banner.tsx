@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,57 +13,50 @@ export function SubmissionBanner() {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [visible, setVisible] = useState(false);
-  const [isExiting, setIsExiting] = useState(false);
-  const [kind, setKind] = useState<"submitted" | "resubmitted" | "published" | null>(null);
-
-  useEffect(() => {
-    const nextKind =
-      params.get("published") === "1"
-        ? "published"
-        : params.get("resubmitted") === "1"
+  const kind =
+    params.get("published") === "1"
+      ? "published"
+      : params.get("resubmitted") === "1"
         ? "resubmitted"
         : params.get("submitted") === "1"
           ? "submitted"
           : null;
 
-    if (nextKind) {
-      const nextParams = new URLSearchParams(params.toString());
-      nextParams.delete("submitted");
-      nextParams.delete("resubmitted");
-      nextParams.delete("published");
-
-      setKind(nextKind);
-      setVisible(true);
-      router.replace(
-        nextParams.size ? `${pathname}?${nextParams.toString()}` : pathname,
-        { scroll: false },
-      );
-    }
+  const dismiss = useCallback(() => {
+    const nextParams = new URLSearchParams(params.toString());
+    nextParams.delete("submitted");
+    nextParams.delete("resubmitted");
+    nextParams.delete("published");
+    router.replace(
+      nextParams.size ? `${pathname}?${nextParams.toString()}` : pathname,
+      { scroll: false },
+    );
   }, [params, pathname, router]);
 
-  // Auto-dismiss logic
-  useEffect(() => {
-    if (visible && !isExiting) {
-      const timer = setTimeout(() => {
-        setIsExiting(true);
-      }, 5000); // 5 seconds visible
-      return () => clearTimeout(timer);
-    }
-  }, [visible, isExiting]);
+  if (!kind) return null;
 
-  // Clean up completely after exit animation finishes
-  useEffect(() => {
-    if (isExiting) {
-      const timer = setTimeout(() => {
-        setVisible(false);
-        setIsExiting(false);
-      }, 300); // matches the tailwind animate-out duration
-      return () => clearTimeout(timer);
-    }
-  }, [isExiting]);
+  return <SubmissionToast key={kind} kind={kind} onDismiss={dismiss} />;
+}
 
-  if (!visible) return null;
+function SubmissionToast({
+  kind,
+  onDismiss,
+}: {
+  kind: "submitted" | "resubmitted" | "published";
+  onDismiss: () => void;
+}) {
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsExiting(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!isExiting) return;
+    const timer = setTimeout(onDismiss, 300);
+    return () => clearTimeout(timer);
+  }, [isExiting, onDismiss]);
 
   const isResubmitted = kind === "resubmitted";
   const isPublished = kind === "published";

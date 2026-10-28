@@ -14,6 +14,7 @@ import { validateTeaserThumbnail, validateThesisPdf } from "@/lib/upload/file-va
 // Layout components
 import { UploadHeader } from "@/app/upload/_components/upload-header";
 import { Stepper } from "@/app/upload/_components/stepper";
+import { useStepCompletion } from "@/app/upload/_components/use-step-completion";
 import { ExitWarningDialog } from "@/app/upload/_components/exit-warning-dialog";
 import { SubmitConfirmDialog } from "@/app/upload/_components/submit-confirm-dialog";
 
@@ -25,11 +26,10 @@ import { StepContent } from "./_components/steps/step-content";
 import { StepInsights } from "./_components/steps/step-insights";
 import { StepUpload } from "./_components/steps/step-upload";
 import { StepReview } from "./_components/steps/step-review";
-import { StaffSampleConfirmDialog } from "./_components/staff-sample-confirm-dialog";
-import { getUploadCapabilities } from "./actions";
 import { cn } from "@/lib/utils";
 
 const TOTAL_STEPS = STEPS.length;
+
 
 const STAFF_SAMPLE_FIELDS: FormValues = {
   title: "An Analysis of Distributed Systems in Micro-Frontend Architectures",
@@ -66,6 +66,8 @@ const STAFF_SAMPLE_FIELDS: FormValues = {
   ],
 };
 
+
+
 export default function UploadPage() {
   const router = useRouter();
 
@@ -83,14 +85,11 @@ export default function UploadPage() {
   // ── Dialog state ─────────────────────────────────────────────────────────
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [showSampleOverwriteConfirm, setShowSampleOverwriteConfirm] = useState(false);
 
   // ── Submission state ─────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [wizardStatus, setWizardStatus] = useState("");
-  const [canUseStaffSample, setCanUseStaffSample] = useState(false);
-  const [sampleFieldsLoaded, setSampleFieldsLoaded] = useState(false);
 
   // ── Form setup ───────────────────────────────────────────────────────────
   const methods = useForm<FormValues>({
@@ -123,22 +122,14 @@ export default function UploadPage() {
   });
 
   const { isDirty, errors } = methods.formState;
-
-  useEffect(() => {
-    let isActive = true;
-
-    void getUploadCapabilities()
-      .then(({ canUseStaffSample: canUseSample }) => {
-        if (isActive) setCanUseStaffSample(canUseSample);
-      })
-      .catch(() => {
-        // Capability failures fail closed: the staff helper remains hidden.
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
+  const isSupplementalStepComplete = useCallback(
+    (step: number) => step !== 6 || Boolean(selectedFile),
+    [selectedFile],
+  );
+  const { completedSteps, markStepIncomplete, validateStep } = useStepCompletion({
+    methods,
+    isSupplementalStepComplete,
+  });
 
   // ── Unsaved changes — browser tab close / refresh ────────────────────────
   useEffect(() => {
@@ -164,6 +155,15 @@ export default function UploadPage() {
     [currentStep],
   );
 
+  const handleStepClick = useCallback(
+    async (step: number) => {
+      if (step === currentStep) return;
+      await validateStep(currentStep);
+      goToStep(step);
+    },
+    [currentStep, goToStep, validateStep],
+  );
+
   function handleBack() {
     goToStep(currentStep - 1);
   }
@@ -171,24 +171,17 @@ export default function UploadPage() {
   async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (currentStep < TOTAL_STEPS) {
-      const stepFields = Object.keys(FIELD_STEP_MAP)
-        .filter((k) => FIELD_STEP_MAP[k] === currentStep) as Array<keyof FormValues>;
-      
-      const isValid =
-        stepFields.length > 0
-          ? await methods.trigger(stepFields, { shouldFocus: true })
-          : true;
-      
-      if (currentStep === 6 && !selectedFile) {
-        setFileError("Please attach a thesis PDF before continuing.");
-        setWizardStatus("Attach your thesis PDF before continuing to review.");
-        return;
-      }
+      const isValid = await validateStep(currentStep, { shouldFocus: true });
 
       if (isValid) {
         setWizardStatus(`Step ${currentStep + 1} of ${TOTAL_STEPS}.`);
         goToStep(currentStep + 1);
       } else {
+        if (currentStep === 6 && !selectedFile) {
+          setFileError("Please attach a thesis PDF before continuing.");
+          setWizardStatus("Attach your thesis PDF before continuing to review.");
+          return;
+        }
         const stepLabel = STEPS[currentStep - 1]?.label ?? `Step ${currentStep}`;
         setWizardStatus(
           `${stepLabel} needs attention. Correct the highlighted fields before continuing.`,
@@ -208,41 +201,19 @@ export default function UploadPage() {
     }
   }
 
-  // ── Staff helper — metadata only, never a submission authorization path ──
-  function loadStaffSampleFields() {
-    // Keep the form dirty so leaving after loading a sample still receives the normal warning.
-    methods.reset(STAFF_SAMPLE_FIELDS, { keepDefaultValues: true });
-    setSelectedFile(null);
-    setFileError(null);
-    setSelectedTeaser(null);
-    setTeaserError(null);
-    setSampleFieldsLoaded(true);
-    setShowSampleOverwriteConfirm(false);
-    setWizardStatus(
-      "Sample metadata loaded. Attach a thesis PDF and review every field before submitting.",
-    );
-  }
-
-  function handleLoadStaffSample() {
-    if (isDirty || selectedFile || selectedTeaser) {
-      setShowSampleOverwriteConfirm(true);
-      return;
-    }
-
-    loadStaffSampleFields();
-  }
-
   // ── File handling ────────────────────────────────────────────────────────
   async function handleFileChange(file: File | null) {
     setFileError(null);
     if (!file) {
       setSelectedFile(null);
+      markStepIncomplete(6);
       return;
     }
     const validationError = await validateThesisPdf(file);
     if (validationError) {
       setFileError(validationError);
       setSelectedFile(null);
+      markStepIncomplete(6);
       return;
     }
     setSelectedFile(file);
@@ -354,21 +325,14 @@ export default function UploadPage() {
           <Stepper
             steps={STEPS}
             currentStep={currentStep}
+            completedSteps={completedSteps}
             errorSteps={errorSteps}
-            onStepClick={goToStep}
+            onStepClick={handleStepClick}
           />
         </div>
 
         {/* Step content — animated on navigation */}
         <main className="flex-1 px-4 pt-10 pb-24">
-          {sampleFieldsLoaded && (
-            <div
-              role="status"
-              className="mx-auto mb-6 max-w-[540px] rounded-lg border border-[var(--color-brand-bright)]/20 bg-[var(--color-brand-bright)]/5 px-3 py-2 text-sm text-[var(--color-text-muted)]"
-            >
-              Sample metadata is loaded. Review every field and attach the actual thesis PDF before submitting.
-            </div>
-          )}
           <div
             key={animKey}
             className={cn(
@@ -456,18 +420,6 @@ export default function UploadPage() {
                   </span>
                 </div>
 
-                {/* Staff-only sample helper — metadata only, never a shortcut through validation. */}
-                {canUseStaffSample && (
-                  <button
-                    type="button"
-                    onClick={handleLoadStaffSample}
-                    title="Load staff sample metadata"
-                    className="flex h-9 items-center rounded-lg border border-[var(--color-separator)] px-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)] transition-colors hover:border-[var(--color-brand)] hover:text-[var(--color-brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-bright)]/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
-                  >
-                    Sample fields
-                  </button>
-                )}
-
                 {/* Next — primary CTA */}
                 <button
                   type="submit"
@@ -518,12 +470,6 @@ export default function UploadPage() {
         onConfirm={handleConfirmSubmit}
         isSubmitting={isSubmitting}
         error={submitError}
-        sampleFieldsLoaded={sampleFieldsLoaded}
-      />
-      <StaffSampleConfirmDialog
-        open={showSampleOverwriteConfirm}
-        onCancel={() => setShowSampleOverwriteConfirm(false)}
-        onConfirm={loadStaffSampleFields}
       />
     </FormProvider>
   );
